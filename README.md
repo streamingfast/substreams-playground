@@ -2,8 +2,7 @@
 [![reference](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=flat-square)](https://pkg.go.dev/github.com/streamingfast/substream-pancakeswap)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-This repo holds the `exchange` and `prediction` subgraphs from PancakeSwap that make use of the [`sparkle indexing framework`](https://github.com/streamingfast/sparkle).
-They are developer previews for The Graph Network.
+This repo holds the `exchange` substream-based "pseudo-subgraph" from PancakeSwap.
 
 
 ## Usage
