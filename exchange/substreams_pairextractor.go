@@ -14,17 +14,18 @@ type PairExtractor struct {
 	*SubstreamIntrinsics
 
 	UseIndexBuilder string // by name,
-	Contract eth.Address
+	Contract        eth.Address
 }
 
-func (p *IndexBuilder) Map(block *pbcodec.Block) (keys IndexableKeys, err error) {
-}
+// func (p *IndexBuilder) Map(block *pbcodec.Block) (keys IndexableKeys, err error) {
+// 	return nil, nil
+// }
 
 // inputs: sf.ethereum.v1.codec.Block
 // outputs: pancakeswap.v1.PCSPairs  (index on Nil)
 
 // Map function can take one or more input objects, sync'd by the `Block` clock.
-func (p *PairExtractor) Map(block *pbcodec.Block) (pairs PCSPairs, indexKeys IndexableKeys, err error) {
+func (p *PairExtractor) Map(block *pbcodec.Block) (pairs PCSPairs, err error) {
 	for _, trx := range block.TransactionTraces {
 		// WARN: this wouldn't catch those contract calls that are nested in sub-Calls
 		if !bytes.Equal(trx.To, p.Contract) {
