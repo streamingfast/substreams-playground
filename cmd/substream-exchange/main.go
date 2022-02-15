@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/streamingfast/bstream"
@@ -19,6 +21,11 @@ import (
 )
 
 func main() {
+	fmt.Println(os.Args)
+	localBlockPath := "./localblocks"
+	if len(os.Args) == 2 {
+		localBlockPath = os.Args[1]
+	}
 	// Start piping blocks from a Firehose instance
 
 	// these, taken from `index.go` in `sparkle/cli` stuff
@@ -26,14 +33,15 @@ func main() {
 	rpcEndpoint := "http://localhost:8546" //  kc port-forward sub-pancake4-exchange-lucid-koschei-59686b7cc6-k49jk 8546:10.0.1.19:8546
 
 	//blocksStore, err := dstore.NewDBinStore("gs://dfuseio-global-blocks-us/eth-bsc-mainnet/v1")
-	blocksStore, err := dstore.NewDBinStore("./localblocks")
+	blocksStore, err := dstore.NewDBinStore(localBlockPath)
 	if err != nil {
 		log.Fatalln("error setting up blocks store:", err)
 	}
 
-	pipe := setupPipeline(rpcEndpoint)
+	//const startBlock = 6810700 // 6809737
+	const startBlock = 6810775
+	pipe := setupPipeline(rpcEndpoint, startBlock)
 
-	const startBlock = 6810700 // 6809737
 	hose := firehose.New([]dstore.Store{blocksStore}, startBlock, pipe,
 		firehose.WithForkableSteps(bstream.StepIrreversible),
 	)
@@ -43,7 +51,7 @@ func main() {
 	}
 }
 
-func setupPipeline(rpcEndpoint string) bstream.Handler {
+func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 
 	httpClient := &http.Client{
 		Transport: &http.Transport{
@@ -65,15 +73,27 @@ func setupPipeline(rpcEndpoint string) bstream.Handler {
 	_ = subgraphDef
 
 	pairsStore := exchange.NewStateBuilder("pairs")
+	//pairsStore.Init(startBlockNum, "/Users/cbillett/t/substream-data")
+
+	totalPairsStore := exchange.NewStateBuilder("total_pairs")
+	//totalPairsStore.Init(startBlockNum, "/Users/cbillett/t/substream-data")
+
+	pairsPriceStore := exchange.NewStateBuilder("pairs_price")
+
 	pairExtractor := &exchange.PairExtractor{SubstreamIntrinsics: intr, Contract: eth.Address(exchange.FactoryAddressBytes)}
-	pairsStoreProc := &exchange.PCSPairsStore{SubstreamIntrinsics: intr, PairsStore: pairsStore}
+	pcsPairsStateBuilder := &exchange.PCSPairsStateBuilder{SubstreamIntrinsics: intr}
+	pcsTotalPairsStateBuilder := &exchange.PCSTotalPairsStateBuilder{SubstreamIntrinsics: intr}
+	pcsPairsPriceStateBuilder := &exchange.PCSPairsPriceStateBuilder{SubstreamIntrinsics: intr}
 	reservesExtractor := &exchange.ReservesExtractor{SubstreamIntrinsics: intr}
 
 	return bstream.HandlerFunc(func(block *bstream.Block, obj interface{}) error {
 
 		// TODO: eventually, handle the `undo` signals.
+		if block.Number >= startBlockNum+300 {
+			return io.EOF
+		}
 
-		blk := block.ToNative().(*pbcodec.Block)
+		blk := block.ToProtocol().(*pbcodec.Block)
 		intr.SetCurrentBlock(blk)
 
 		fmt.Println("block", blk.Num(), blk.ID())
@@ -90,7 +110,7 @@ func setupPipeline(rpcEndpoint string) bstream.Handler {
 		}
 		// TODO: flush `pairs` output to disk somewhere
 
-		if err := pairsStoreProc.Process(blk, pairs); err != nil {
+		if err := pcsPairsStateBuilder.Process(pairs, pairsStore); err != nil {
 			return fmt.Errorf("processing pair cache: %w", err)
 		}
 
@@ -103,18 +123,29 @@ func setupPipeline(rpcEndpoint string) bstream.Handler {
 
 		pairsStore.Flush()
 
-		updates, err := reservesExtractor.Map(blk, pairsStore)
+		//total pairs
+		if len(pairs) > 0 {
+			if err := pcsTotalPairsStateBuilder.Process(pairs, totalPairsStore); err != nil {
+				return fmt.Errorf("processing total pairs: %w", err)
+			}
+		}
+
+		reserveUpdates, err := reservesExtractor.Map(blk, pairsStore)
 		if err != nil {
 			return fmt.Errorf("processing reserves extractor: %w", err)
 		}
 
-		if len(updates) != 0 {
-			fmt.Println("reserves updates:")
-			cnt, _ := json.MarshalIndent(updates, "", "  ")
+		if len(reserveUpdates) != 0 {
+			fmt.Println("reserves reserveUpdates:")
+			cnt, _ := json.MarshalIndent(reserveUpdates, "", "  ")
 			fmt.Println(string(cnt))
 		}
 
-		// TODO: flush those `updates` somewhere, as the output of the reserves extractor
+		err = pcsPairsPriceStateBuilder.BuildState(reserveUpdates, pairsPriceStore)
+		if err != nil {
+			return fmt.Errorf("pairs price building: %w", err)
+		}
+		// TODO: flush those `reserveUpdates` somewhere, as the output of the reserves extractor
 
 		return nil
 	})

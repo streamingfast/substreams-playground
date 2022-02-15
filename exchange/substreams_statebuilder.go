@@ -1,22 +1,56 @@
 package exchange
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
 )
+
+type StateReader interface {
+	GetFirst(key string) ([]byte, bool)
+	GetLast(key string) ([]byte, bool)
+	GetAt(ord uint64, key string) ([]byte, bool)
+}
 
 type StateBuilder struct {
 	readOnly bool
 	name     string
-	kv       map[string][]byte
+	KV       map[string][]byte
 	Deltas   []StateDelta
 }
 
 func NewStateBuilder(name string) *StateBuilder {
 	return &StateBuilder{
 		name: name,
-		kv:   make(map[string][]byte),
+		KV:   make(map[string][]byte),
 	}
+}
+
+func (b *StateBuilder) Init(startBlockNum uint64, dataFolder string) error {
+	relativeKvStartBlock := (startBlockNum / 100) * 100
+	kvTotalPairFile := fmt.Sprintf("%s/%d-%s.kv", dataFolder, relativeKvStartBlock, b.name)
+	if _, err := os.Stat(kvTotalPairFile); err == nil {
+		data, _ := ioutil.ReadFile(kvTotalPairFile)
+		err = json.Unmarshal(data, &b.KV)
+		if err != nil {
+			return fmt.Errorf("unmarshalling kv for %s at block %d: %w", b.name, relativeKvStartBlock, err)
+		}
+	}
+
+	for i := relativeKvStartBlock; i < startBlockNum; i++ {
+		deltaFile := fmt.Sprintf("%s/%d-%s.delta", dataFolder, i, b.name)
+		if _, err := os.Stat(deltaFile); err == nil {
+			data, _ := ioutil.ReadFile(deltaFile)
+			err = json.Unmarshal(data, &b.Deltas)
+			if err != nil {
+				return fmt.Errorf("unmarshalling delta for %s at block %d: %s", b.name, i, err)
+			}
+			b.Flush()
+		}
+	}
+	return nil
 }
 
 type StateDelta struct {
@@ -30,7 +64,7 @@ type StateDelta struct {
 var NotFound = errors.New("state key not found")
 
 func (b *StateBuilder) GetFirst(key string) ([]byte, bool) {
-	val, found := b.kv[key]
+	val, found := b.KV[key]
 	return val, found
 }
 
@@ -124,10 +158,28 @@ func (b *StateBuilder) Flush() {
 	for _, delta := range b.Deltas {
 		switch delta.Op {
 		case "u", "c":
-			b.kv[delta.Key] = delta.NewValue
+			b.KV[delta.Key] = delta.NewValue
 		case "d":
-			delete(b.kv, delta.Key)
+			delete(b.KV, delta.Key)
 		}
 	}
 	b.Deltas = nil
+}
+
+func (b *StateBuilder) StoreAndFlush(blockNumber uint64, dataFolder string) error {
+	if blockNumber%100 == 0 {
+		cnt, _ := json.MarshalIndent(b.KV, "", "  ")
+		err := ioutil.WriteFile(fmt.Sprintf("%s/%d-%s.kv", dataFolder, blockNumber, b.name), cnt, os.ModePerm)
+		if err != nil {
+			return fmt.Errorf("writing %s kv at block %d: %w", b.name, blockNumber, err)
+		}
+	}
+
+	cnt, _ := json.MarshalIndent(b.Deltas, "", "  ")
+	err := ioutil.WriteFile(fmt.Sprintf("%s/%d-%s.delta", dataFolder, blockNumber, b.name), cnt, os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("writing %s delta at block %d: %w", b.name, blockNumber, err)
+	}
+	b.Flush()
+	return nil
 }

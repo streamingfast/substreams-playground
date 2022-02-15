@@ -17,7 +17,7 @@ type ReservesExtractor struct {
 // Map function can take one or more input objects, sync'd by the
 // `Block` clock.  Because it depends on a `PairsState`, it needs to
 // be run in `Process`, linearly.
-func (p *ReservesExtractor) Map(block *pbcodec.Block, pairsState *StateBuilder) (reserves PCSReserveUpdates, err error) {
+func (p *ReservesExtractor) Map(block *pbcodec.Block, pairsState StateReader) (reserves PCSReserveUpdates, err error) {
 	for _, trx := range block.TransactionTraces {
 		for _, log := range trx.Receipt.Logs {
 			// perhaps we can optimize in a small local map, if we

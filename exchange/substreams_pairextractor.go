@@ -57,7 +57,7 @@ func (p *PairExtractor) Map(block *pbcodec.Block) (pairs PCSPairs, err error) {
 			ord := uint64(log.BlockIndex)
 
 			pairs = append(pairs, PCSPair{
-				Address:               eth.Address(ev.Pair).Pretty(),
+				Address:               ev.Pair.Pretty(),
 				Token0:                *erc20Token0,
 				Token1:                *erc20Token1,
 				CreationTransactionID: eth.Hash(trx.Hash).Pretty(),
