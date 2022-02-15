@@ -55,7 +55,24 @@ type PCSReserveUpdate struct {
 	Reserve0    string
 	Reserve1    string
 
-	LogOrdinal  uint64
+	LogOrdinal uint64
+
 	Token0Price string
 	Token1Price string
 }
+
+// func (u PCSReserveUpdate) Token0Price() *big.Float {
+// 	if len(ev.Reserve1.Bits()) == 0 {
+// 		return big.NewFloat(0)
+// 	} else {
+// 		return  bf().Quo(reserve0.Float(), reserve1.Float())
+// 	}
+// }
+
+// func (u PCSReserveUpdate) Token1Price() *big.Float {
+// 	if len(ev.Reserve0.Bits()) == 0 {
+// 		return big.NewFloat(0)
+// 	} else {
+// 		return bf().Quo(reserve1.Float(), reserve0.Float())
+// 	}
+// }

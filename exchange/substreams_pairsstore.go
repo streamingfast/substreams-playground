@@ -17,7 +17,7 @@ type PCSPairsStateBuilder struct {
 
 // input: pbcodec.Block
 // output: STATE (path-to-storage, unique ID for storage)
-func (p *PCSPairsStateBuilder) Process(pairs PCSPairs, pairsStore *StateBuilder) error {
+func (p *PCSPairsStateBuilder) BuildState(pairs PCSPairs, pairsStore *StateBuilder) error {
 	for _, pair := range pairs {
 		cnt, err := json.Marshal(pair)
 		if err != nil {

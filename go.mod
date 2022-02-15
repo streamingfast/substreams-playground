@@ -3,6 +3,7 @@ module github.com/streamingfast/sparkle-pancakeswap
 go 1.15
 
 require (
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/ghodss/yaml v1.0.0
 	github.com/golang/protobuf v1.5.2
 	github.com/streamingfast/bstream v0.0.2-0.20220211203037-c8c9a009bd74

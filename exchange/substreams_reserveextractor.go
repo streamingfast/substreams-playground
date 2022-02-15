@@ -42,38 +42,50 @@ func (p *ReservesExtractor) Map(block *pbcodec.Block, pairsState StateReader) (r
 					return nil, err
 				}
 
-				reserve0 := toFloat(ev.Reserve0, pair.Token0.Decimals)
-				reserve1 := toFloat(ev.Reserve1, pair.Token1.Decimals)
+				reserve0 := intToFloat(ev.Reserve0, pair.Token0.Decimals)
+				reserve1 := intToFloat(ev.Reserve1, pair.Token1.Decimals)
 
-				// https://stackoverflow.com/questions/64257065/is-there-another-way-of-testing-if-a-big-int-is-0
-				var token0Price, token1Price string
-				if len(ev.Reserve1.Bits()) == 0 {
-					token0Price = "0"
-				} else {
-					token0Price = bf().Quo(reserve0.Float(), reserve1.Float()).String()
-				}
-
-				if len(ev.Reserve0.Bits()) == 0 {
-					token1Price = "0"
-				} else {
-					token1Price = bf().Quo(reserve1.Float(), reserve0.Float()).String()
-				}
-
-				reserves = append(reserves, PCSReserveUpdate{
+				update := PCSReserveUpdate{
 					PairAddress: eth.Address(log.Address).Pretty(),
 					Reserve0:    reserve0.String(),
 					Reserve1:    reserve1.String(),
-					Token0Price: token0Price,
-					Token1Price: token1Price,
 					LogOrdinal:  uint64(log.BlockIndex),
-				})
+				}
+
+				///// OPTIONAL?
+				// THESE TWO FIELDS COULD VERY WELL BE COMPUTED DOWNSTREAM, IT'S JUST A DIVISION
+				// BETWEEN THE TWO FIELDS.  WE CONVEY ENOUGH, BECAUSE WE BLEND IN THE DECIMALS
+				//
+				// https://stackoverflow.com/questions/64257065/is-there-another-way-of-testing-if-a-big-int-is-0
+				if len(ev.Reserve1.Bits()) == 0 {
+					update.Token0Price = "0"
+				} else {
+					update.Token0Price = bf().Quo(reserve0.Float(), reserve1.Float()).String()
+				}
+
+				if len(ev.Reserve0.Bits()) == 0 {
+					update.Token1Price = "0"
+				} else {
+					update.Token1Price = bf().Quo(reserve1.Float(), reserve0.Float()).String()
+				}
+				// END OPTIONAL?
+
+				reserves = append(reserves, update)
 			}
 		}
 	}
 	return
 }
 
-func toFloat(in *big.Int, decimals uint32) entity.Float {
+func intToFloat(in *big.Int, decimals uint32) entity.Float {
 	bf := entity.ConvertTokenToDecimal(in, int64(decimals))
 	return entity.NewFloat(bf)
+}
+func strToFloat(in string) entity.Float {
+	newFloat, _, err := big.ParseFloat(in, 10, 100, big.ToNearestEven)
+	if err != nil {
+		panic(fmt.Sprintf("cannot load float %q: %s", in, err))
+	}
+
+	return entity.NewFloat(newFloat)
 }

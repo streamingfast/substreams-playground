@@ -41,7 +41,7 @@ func main() {
 	}
 
 	//const startBlock = 6810700 // 6809737
-	const startBlock = 6810775
+	const startBlock = 6810700
 	pipe := setupPipeline(rpcEndpoint, startBlock)
 
 	hose := firehose.New([]dstore.Store{blocksStore}, startBlock, pipe,
@@ -87,14 +87,14 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 	pairExtractor := &exchange.PairExtractor{SubstreamIntrinsics: intr, Contract: eth.Address(exchange.FactoryAddressBytes)}
 	pcsPairsStateBuilder := &exchange.PCSPairsStateBuilder{SubstreamIntrinsics: intr}
 	pcsTotalPairsStateBuilder := &exchange.PCSTotalPairsStateBuilder{SubstreamIntrinsics: intr}
-	pcsReservesStateBuilder := &exchange.PCSReservesStateBuilder{SubstreamIntrinsics: intr}
+	pcsPricesStateBuilder := &exchange.PCSPricesStateBuilder{SubstreamIntrinsics: intr}
 	reservesExtractor := &exchange.ReservesExtractor{SubstreamIntrinsics: intr}
 
 	return bstream.HandlerFunc(func(block *bstream.Block, obj interface{}) error {
 
 		// TODO: eventually, handle the `undo` signals.
 		//  NOTE: The RUNTIME will handle the undo signals. It'll have all it needs.
-		if block.Number >= startBlockNum+3000 {
+		if block.Number >= startBlockNum+10000 {
 			return io.EOF
 		}
 
@@ -111,7 +111,7 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 
 		//pairs.Print()
 
-		if err := pcsPairsStateBuilder.Process(pairs, pairsStore); err != nil {
+		if err := pcsPairsStateBuilder.BuildState(pairs, pairsStore); err != nil {
 			return fmt.Errorf("processing pair cache: %w", err)
 		}
 
@@ -133,7 +133,7 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 
 		reserveUpdates.Print()
 
-		err = pcsReservesStateBuilder.BuildState(reserveUpdates, pairsPriceStore)
+		err = pcsPricesStateBuilder.BuildState(reserveUpdates, pairsPriceStore)
 		if err != nil {
 			return fmt.Errorf("pairs price building: %w", err)
 		}
