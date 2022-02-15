@@ -175,6 +175,8 @@ func (b *StateBuilder) StoreAndFlush(blockNumber uint64, dataFolder string) erro
 	//	return fmt.Errorf("writing %s kv at block %d: %w", b.name, blockNumber, err)
 	//}
 
+	//todo: maybe delta to merge = b.toBundle()
+
 	//b.bundle.commit()
 	//b.bundle.purge()
 	//}
