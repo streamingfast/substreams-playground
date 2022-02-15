@@ -9,7 +9,7 @@ type PCSTotalPairsStateBuilder struct {
 	*SubstreamIntrinsics
 }
 
-func (p *PCSTotalPairsStateBuilder) Process(pairs PCSPairs, totalPairsStore *StateBuilder) error {
+func (p *PCSTotalPairsStateBuilder) BuildState(pairs PCSPairs, totalPairsStore *StateBuilder) error {
 	if len(pairs) == 0 {
 		return nil
 	}

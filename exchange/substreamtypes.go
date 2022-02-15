@@ -1,6 +1,20 @@
 package exchange
 
+import (
+	"encoding/json"
+	"fmt"
+)
+
 type PCSPairs []PCSPair
+
+func (p PCSPairs) Print() {
+	if len(p) == 0 {
+		return
+	}
+	fmt.Println("Pairs updates:")
+	cnt, _ := json.MarshalIndent(p, "", "  ")
+	fmt.Println(string(cnt))
+}
 
 // sf.pancakeswap
 type PCSPair struct {
@@ -26,6 +40,15 @@ type ERC20Token struct {
 }
 
 type PCSReserveUpdates []PCSReserveUpdate
+
+func (p PCSReserveUpdates) Print() {
+	if len(p) == 0 {
+		return
+	}
+	fmt.Println("Reserve updates:")
+	cnt, _ := json.MarshalIndent(p, "", "  ")
+	fmt.Println(string(cnt))
+}
 
 type PCSReserveUpdate struct {
 	PairAddress string

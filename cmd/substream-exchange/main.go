@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -52,6 +51,7 @@ func main() {
 	if err := hose.Run(context.Background()); err != nil {
 		log.Fatalln("running the firehose:", err)
 	}
+	time.Sleep(5 * time.Second)
 }
 
 func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
@@ -93,7 +93,8 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 	return bstream.HandlerFunc(func(block *bstream.Block, obj interface{}) error {
 
 		// TODO: eventually, handle the `undo` signals.
-		if block.Number >= startBlockNum+300 {
+		//  NOTE: The RUNTIME will handle the undo signals. It'll have all it needs.
+		if block.Number >= startBlockNum+3000 {
 			return io.EOF
 		}
 
@@ -108,29 +109,21 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 			return fmt.Errorf("extracting pairs: %w", err)
 		}
 
-		if len(pairs) != 0 {
-			fmt.Println("pairs updates:")
-			cnt, _ := json.MarshalIndent(pairs, "", "  ")
-			fmt.Println(string(cnt))
-		}
-		// TODO: flush `pairs` output to disk somewhere
+		//pairs.Print()
 
 		if err := pcsPairsStateBuilder.Process(pairs, pairsStore); err != nil {
 			return fmt.Errorf("processing pair cache: %w", err)
 		}
 
-		pairsStore.PrintDeltas()
+		//pairsStore.PrintDeltas()
 
 		pairsStore.Flush()
 
-		//total pairs
-		if len(pairs) > 0 {
-			if err := pcsTotalPairsStateBuilder.Process(pairs, totalPairsStore); err != nil {
-				return fmt.Errorf("processing total pairs: %w", err)
-			}
+		if err := pcsTotalPairsStateBuilder.BuildState(pairs, totalPairsStore); err != nil {
+			return fmt.Errorf("processing total pairs: %w", err)
 		}
 
-		totalPairsStore.PrintDeltas()
+		//totalPairsStore.PrintDeltas()
 		totalPairsStore.Flush()
 
 		reserveUpdates, err := reservesExtractor.Map(blk, pairsStore)
@@ -138,11 +131,7 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 			return fmt.Errorf("processing reserves extractor: %w", err)
 		}
 
-		if len(reserveUpdates) != 0 {
-			fmt.Println("reserves reserveUpdates:")
-			cnt, _ := json.MarshalIndent(reserveUpdates, "", "  ")
-			fmt.Println(string(cnt))
-		}
+		reserveUpdates.Print()
 
 		err = pcsReservesStateBuilder.BuildState(reserveUpdates, pairsPriceStore)
 		if err != nil {

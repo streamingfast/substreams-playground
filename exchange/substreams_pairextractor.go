@@ -105,7 +105,7 @@ func (p *PairExtractor) getToken(addr eth.Address) (*ERC20Token, error) {
 		return nil, fmt.Errorf("rpc call error: %w", err)
 	}
 
-	token := &ERC20Token{Address: addr.String()}
+	token := &ERC20Token{Address: addr.Pretty()}
 
 	decimalsResponse := resps[0]
 	if decimalsResponse.CallError == nil && decimalsResponse.DecodingError == nil {
