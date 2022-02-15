@@ -75,11 +75,12 @@ func (p *PairExtractor) Map(block *pbcodec.Block) (pairs PCSPairs, err error) {
 }
 
 func (p *PairExtractor) getToken(addr eth.Address) (*ERC20Token, error) {
-	return &ERC20Token{
-		Decimals: 8,
-		Name:     "Bitcoin",
-		Symbol:   "BSV",
-	}, nil
+	// return &ERC20Token{
+	// 	Address:  addr.Pretty(),
+	// 	Decimals: 8,
+	// 	Name:     "Bitcoin",
+	// 	Symbol:   "BSV",
+	// }, nil
 	calls := []*subgraph.RPCCall{
 		{
 			ToAddr:          addr.Pretty(),

@@ -30,7 +30,10 @@ func main() {
 
 	// these, taken from `index.go` in `sparkle/cli` stuff
 
-	rpcEndpoint := "http://localhost:8546" //  kc port-forward sub-pancake4-exchange-lucid-koschei-59686b7cc6-k49jk 8546:10.0.1.19:8546
+	rpcEndpoint := os.Getenv("BSC_ENDPOINT")
+	if rpcEndpoint == "" {
+		rpcEndpoint = "http://localhost:8546" //  kc port-forward sub-pancake4-exchange-lucid-koschei-59686b7cc6-k49jk 8546:10.0.1.19:8546
+	}
 
 	//blocksStore, err := dstore.NewDBinStore("gs://dfuseio-global-blocks-us/eth-bsc-mainnet/v1")
 	blocksStore, err := dstore.NewDBinStore(localBlockPath)
@@ -68,6 +71,7 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 	}
 
 	rpcCache := indexer.NewCache(rpcCacheStore, rpcCacheStore, 0, 999)
+	rpcCache.Load(context.Background())
 
 	intr := exchange.NewSubstreamIntrinsics(rpcClient, rpcCache, true)
 	_ = subgraphDef
@@ -96,7 +100,8 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 		blk := block.ToProtocol().(*pbcodec.Block)
 		intr.SetCurrentBlock(blk)
 
-		fmt.Println("block", blk.Num(), blk.ID())
+		fmt.Println("-------------------------------------------------------------------")
+		fmt.Println("BLOCK", blk.Num(), blk.ID())
 
 		pairs, err := pairExtractor.Map(blk)
 		if err != nil {
@@ -114,12 +119,7 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 			return fmt.Errorf("processing pair cache: %w", err)
 		}
 
-		if len(pairsStore.Deltas) != 0 {
-			fmt.Println("state deltas:")
-			cnt, _ := json.MarshalIndent(pairsStore.Deltas, "", "  ")
-			fmt.Println(string(cnt))
-			// TODO: flush the StateDeltas produced in the "Process" step above, apply for downstream
-		}
+		pairsStore.PrintDeltas()
 
 		pairsStore.Flush()
 
@@ -129,6 +129,9 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 				return fmt.Errorf("processing total pairs: %w", err)
 			}
 		}
+
+		totalPairsStore.PrintDeltas()
+		totalPairsStore.Flush()
 
 		reserveUpdates, err := reservesExtractor.Map(blk, pairsStore)
 		if err != nil {
@@ -146,11 +149,16 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 			return fmt.Errorf("pairs price building: %w", err)
 		}
 
+		pairsPriceStore.PrintDeltas()
+		pairsPriceStore.Flush()
 
 		// Build a new "ReserveFilter{Pairs: []}"
 		// followed by a AvgPriceStateBuilder
 		// The idea is to replace: https://github.com/streamingfast/substream-pancakeswap/blob/master/exchange/handle_pair_sync_event.go#L249 into a stream.
 
+		if block.Number%100 == 0 {
+			rpcCache.Save(context.Background())
+		}
 
 		return nil
 	})

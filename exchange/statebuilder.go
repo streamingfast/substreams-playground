@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 )
 
 type StateReader interface {
@@ -25,6 +26,18 @@ func NewStateBuilder(name string) *StateBuilder {
 	return &StateBuilder{
 		name: name,
 		KV:   make(map[string][]byte),
+	}
+}
+
+func (b *StateBuilder) PrintDeltas() {
+	if len(b.Deltas) == 0 {
+		return
+	}
+	fmt.Println("State deltas for", b.name)
+	for _, delta := range b.Deltas {
+		fmt.Printf("  %s (%d) KEY: %q\n", strings.ToUpper(delta.Op), delta.Ordinal, delta.Key)
+		fmt.Printf("    OLD: %s\n", string(delta.OldValue))
+		fmt.Printf("    NEW: %s\n", string(delta.NewValue))
 	}
 }
 

@@ -45,5 +45,4 @@ func TestStateBuilder(t *testing.T) {
 	val, found = s.GetLast("1")
 	assert.Equal(t, string("val7"), string(val))
 	assert.True(t, found)
-
 }
