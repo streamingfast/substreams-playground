@@ -9,11 +9,11 @@ type PCSPair struct {
 	Token1                ERC20Token
 	CreationTransactionID string
 
-	CallStartOrdinal      uint64
-	CallEndOrdinal        uint64
-	TrxStartOrdinal       uint64
-	TrxEndOrdinal         uint64
-	LogOrdinal            uint64
+	CallStartOrdinal uint64
+	CallEndOrdinal   uint64
+	TrxStartOrdinal  uint64
+	TrxEndOrdinal    uint64
+	LogOrdinal       uint64
 }
 
 type ERC20Tokens []ERC20Token
@@ -29,8 +29,10 @@ type PCSReserveUpdates []PCSReserveUpdate
 
 type PCSReserveUpdate struct {
 	PairAddress string
-	Reserve0 string
-	Reserve1 string
+	Reserve0    string
+	Reserve1    string
 
-	LogOrdinal uint64
+	LogOrdinal  uint64
+	Token0Price string
+	Token1Price string
 }

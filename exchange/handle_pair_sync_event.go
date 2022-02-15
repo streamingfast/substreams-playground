@@ -53,7 +53,6 @@ func (s *Subgraph) HandlePairSyncEvent(event *PairSyncEvent) error {
 
 	s.Log.Debug("removed tracked reserved BNB", zap.Stringer("value", pancake.TotalLiquidityBNB.Float()))
 
-
 	// TODO: unmodeled in substreams
 	token0.TotalLiquidity = F(bf().Sub(token0.TotalLiquidity.Float(), pair.Reserve0.Float()))
 	token1.TotalLiquidity = F(bf().Sub(token1.TotalLiquidity.Float(), pair.Reserve1.Float()))
@@ -158,8 +157,8 @@ func (s *Subgraph) HandlePairSyncEvent(event *PairSyncEvent) error {
 
 	pair.ReserveBNB = F(bf().Add(
 		bf().Mul(
-			pair.Reserve0.Float(),  // amount of TOK
-			t0DerivedBNB,           // price in BNB / TOK, multiplied: BNB
+			pair.Reserve0.Float(), // amount of TOK
+			t0DerivedBNB,          // price in BNB / TOK, multiplied: BNB
 		),
 		bf().Mul(
 			pair.Reserve1.Float(),
@@ -206,7 +205,7 @@ func (s *Subgraph) HandlePairSyncEvent(event *PairSyncEvent) error {
 var MINIMUM_LIQUIDITY_THRESHOLD_BNB = big.NewFloat(10)
 
 // Find the PRICE In BNB/TOK
-func (s *Subgraph) FindBnbPerToken(tokenAddress string, logOrdinal uint64) (*big.Float, error) {
+func (s *Subgraph) FindBnbPerToken(tokenAddress string) (*big.Float, error) {
 	if tokenAddress == WBNB_ADDRESS {
 		return big.NewFloat(1), nil
 	}

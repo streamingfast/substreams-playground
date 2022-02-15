@@ -50,13 +50,13 @@ func (p *ReservesExtractor) Map(block *pbcodec.Block, pairsState StateReader) (r
 				if len(ev.Reserve1.Bits()) == 0 {
 					token0Price = "0"
 				} else {
-					token0Price = F(bf().Quo(reserve0, reserve1).String()
+					token0Price = bf().Quo(reserve0.Float(), reserve1.Float()).String()
 				}
 
 				if len(ev.Reserve0.Bits()) == 0 {
 					token1Price = "0"
 				} else {
-					token1Price = F(bf().Quo(reserve1, reserve0).String()
+					token1Price = bf().Quo(reserve1.Float(), reserve0.Float()).String()
 				}
 
 				reserves = append(reserves, PCSReserveUpdate{
@@ -73,7 +73,7 @@ func (p *ReservesExtractor) Map(block *pbcodec.Block, pairsState StateReader) (r
 	return
 }
 
-func toFloatString(in *big.Int, decimals uint32) entity.Float {
+func toFloat(in *big.Int, decimals uint32) entity.Float {
 	bf := entity.ConvertTokenToDecimal(in, int64(decimals))
 	return entity.NewFloat(bf)
 }
