@@ -167,7 +167,20 @@ func (b *StateBuilder) Flush() {
 }
 
 func (b *StateBuilder) StoreAndFlush(blockNumber uint64, dataFolder string) error {
+
+	// if b.BundleCompleted() {
+	//cnt, _ := json.MarshalIndent(b.KV, "", "  ")
+	//err := ioutil.WriteFile(fmt.Sprintf("%s/%d-%s.kv", dataFolder, blockNumber, b.name), cnt, os.ModePerm)
+	//if err != nil {
+	//	return fmt.Errorf("writing %s kv at block %d: %w", b.name, blockNumber, err)
+	//}
+
+	//b.bundle.commit()
+	//b.bundle.purge()
+	//}
+
 	if blockNumber%100 == 0 {
+
 		cnt, _ := json.MarshalIndent(b.KV, "", "  ")
 		err := ioutil.WriteFile(fmt.Sprintf("%s/%d-%s.kv", dataFolder, blockNumber, b.name), cnt, os.ModePerm)
 		if err != nil {
