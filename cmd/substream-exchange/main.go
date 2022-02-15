@@ -83,7 +83,7 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 	pairExtractor := &exchange.PairExtractor{SubstreamIntrinsics: intr, Contract: eth.Address(exchange.FactoryAddressBytes)}
 	pcsPairsStateBuilder := &exchange.PCSPairsStateBuilder{SubstreamIntrinsics: intr}
 	pcsTotalPairsStateBuilder := &exchange.PCSTotalPairsStateBuilder{SubstreamIntrinsics: intr}
-	pcsPairsPriceStateBuilder := &exchange.PCSPairsPriceStateBuilder{SubstreamIntrinsics: intr}
+	pcsReservesStateBuilder := &exchange.PCSReservesStateBuilder{SubstreamIntrinsics: intr}
 	reservesExtractor := &exchange.ReservesExtractor{SubstreamIntrinsics: intr}
 
 	return bstream.HandlerFunc(func(block *bstream.Block, obj interface{}) error {
@@ -141,11 +141,16 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 			fmt.Println(string(cnt))
 		}
 
-		err = pcsPairsPriceStateBuilder.BuildState(reserveUpdates, pairsPriceStore)
+		err = pcsReservesStateBuilder.BuildState(reserveUpdates, pairsPriceStore)
 		if err != nil {
 			return fmt.Errorf("pairs price building: %w", err)
 		}
-		// TODO: flush those `reserveUpdates` somewhere, as the output of the reserves extractor
+
+
+		// Build a new "ReserveFilter{Pairs: []}"
+		// followed by a AvgPriceStateBuilder
+		// The idea is to replace: https://github.com/streamingfast/substream-pancakeswap/blob/master/exchange/handle_pair_sync_event.go#L249 into a stream.
+
 
 		return nil
 	})

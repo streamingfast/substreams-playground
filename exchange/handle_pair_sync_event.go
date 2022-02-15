@@ -45,6 +45,7 @@ func (s *Subgraph) HandlePairSyncEvent(event *PairSyncEvent) error {
 	)
 
 	// reset factory liquidity by subtracting only tracked liquidity
+	// TODO: unmodeled in substreams
 	pancake.TotalLiquidityBNB = F(bf().Sub(
 		pancake.TotalLiquidityBNB.Float(),
 		pair.TrackedReserveBNB.Float(),
@@ -52,6 +53,8 @@ func (s *Subgraph) HandlePairSyncEvent(event *PairSyncEvent) error {
 
 	s.Log.Debug("removed tracked reserved BNB", zap.Stringer("value", pancake.TotalLiquidityBNB.Float()))
 
+
+	// TODO: unmodeled in substreams
 	token0.TotalLiquidity = F(bf().Sub(token0.TotalLiquidity.Float(), pair.Reserve0.Float()))
 	token1.TotalLiquidity = F(bf().Sub(token1.TotalLiquidity.Float(), pair.Reserve1.Float()))
 
@@ -155,19 +158,19 @@ func (s *Subgraph) HandlePairSyncEvent(event *PairSyncEvent) error {
 
 	pair.ReserveBNB = F(bf().Add(
 		bf().Mul(
-			pair.Reserve0.Float(),
-			t0DerivedBNB,
+			pair.Reserve0.Float(),  // amount of TOK
+			t0DerivedBNB,           // price in BNB / TOK, multiplied: BNB
 		),
 		bf().Mul(
 			pair.Reserve1.Float(),
 			t1DerivedBNB,
 		),
-	))
+	)) // this is the sum of value within this pair, denominated in BNB
 
 	pair.ReserveUSD = F(bf().Mul(
 		pair.ReserveBNB.Float(),
 		bnbPrice,
-	))
+	)) // this is the sum value held in this pair, denominated in USD
 
 	// use tracked amounts globally
 
@@ -202,12 +205,17 @@ func (s *Subgraph) HandlePairSyncEvent(event *PairSyncEvent) error {
 
 var MINIMUM_LIQUIDITY_THRESHOLD_BNB = big.NewFloat(10)
 
-func (s *Subgraph) FindBnbPerToken(tokenAddress string) (*big.Float, error) {
+// Find the PRICE In BNB/TOK
+func (s *Subgraph) FindBnbPerToken(tokenAddress string, logOrdinal uint64) (*big.Float, error) {
 	if tokenAddress == WBNB_ADDRESS {
 		return big.NewFloat(1), nil
 	}
 
 	for _, otherToken := range whitelist {
+		// pairAddress, err := GetAt(logOrdinal, generateTokensKey(tokenAddress, otherToken))
+		// if err == NotFound {
+		//     continue // check for other..
+		// }
 		pairAddress := s.getPairAddressForTokens(tokenAddress, otherToken)
 		if pairAddress == "" {
 			s.Log.Debug("pair not found for tokens", zap.String("left", tokenAddress), zap.String("right", otherToken))
@@ -218,6 +226,8 @@ func (s *Subgraph) FindBnbPerToken(tokenAddress string) (*big.Float, error) {
 		if err := s.Load(pair); err != nil {
 			return nil, err
 		}
+
+		// get pair WBNB + pair.PairAddress, get its pair, and its price?!
 
 		if pair.Token0 == tokenAddress && pair.ReserveBNB.Float().Cmp(MINIMUM_LIQUIDITY_THRESHOLD_BNB) > 0 {
 			token1 := NewToken(pair.Token1)

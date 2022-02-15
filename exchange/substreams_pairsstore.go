@@ -25,6 +25,7 @@ func (p *PCSPairsStateBuilder) Process(pairs PCSPairs, pairsStore *StateBuilder)
 		}
 
 		pairsStore.Set(pair.LogOrdinal, pair.Address, cnt)
+		pairsStore.Set(pair.LogOrdinal, generateTokensKey(pair.Token0.Address, pair.Token1.Address), []byte(pair.Address))
 	}
 	return nil
 }

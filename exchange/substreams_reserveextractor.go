@@ -42,10 +42,29 @@ func (p *ReservesExtractor) Map(block *pbcodec.Block, pairsState StateReader) (r
 					return nil, err
 				}
 
+				reserve0 := toFloat(ev.Reserve0, pair.Token0.Decimals)
+				reserve1 := toFloat(ev.Reserve1, pair.Token1.Decimals)
+
+				// https://stackoverflow.com/questions/64257065/is-there-another-way-of-testing-if-a-big-int-is-0
+				var token0Price, token1Price string
+				if len(ev.Reserve1.Bits()) == 0 {
+					token0Price = "0"
+				} else {
+					token0Price = F(bf().Quo(reserve0, reserve1).String()
+				}
+
+				if len(ev.Reserve0.Bits()) == 0 {
+					token1Price = "0"
+				} else {
+					token1Price = F(bf().Quo(reserve1, reserve0).String()
+				}
+
 				reserves = append(reserves, PCSReserveUpdate{
 					PairAddress: eth.Address(log.Address).Pretty(),
-					Reserve0:    toFloatString(ev.Reserve0, pair.Token0.Decimals),
-					Reserve1:    toFloatString(ev.Reserve1, pair.Token1.Decimals),
+					Reserve0:    reserve0.String(),
+					Reserve1:    reserve1.String(),
+					Token0Price: token0Price,
+					Token1Price: token1Price,
 					LogOrdinal:  uint64(log.BlockIndex),
 				})
 			}
@@ -54,7 +73,7 @@ func (p *ReservesExtractor) Map(block *pbcodec.Block, pairsState StateReader) (r
 	return
 }
 
-func toFloatString(in *big.Int, decimals uint32) string {
+func toFloatString(in *big.Int, decimals uint32) entity.Float {
 	bf := entity.ConvertTokenToDecimal(in, int64(decimals))
-	return entity.NewFloat(bf).String()
+	return entity.NewFloat(bf)
 }
