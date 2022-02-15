@@ -15,10 +15,10 @@ type StateReader interface {
 }
 
 type StateBuilder struct {
-	readOnly bool
-	name     string
-	KV       map[string][]byte
-	Deltas   []StateDelta
+	name string
+
+	KV     map[string][]byte // KV is the state, and assumes all Deltas were already applied to it.
+	Deltas []StateDelta      // Deltas are always deltas for the given block.
 }
 
 func NewStateBuilder(name string) *StateBuilder {
@@ -64,104 +64,104 @@ type StateDelta struct {
 var NotFound = errors.New("state key not found")
 
 func (b *StateBuilder) GetFirst(key string) ([]byte, bool) {
-	val, found := b.KV[key]
-	return val, found
+	for _, delta := range b.Deltas {
+		if delta.Key == key {
+			switch delta.Op {
+			case "d", "u":
+				return delta.OldValue, true
+			case "c":
+				return nil, false
+			default:
+				// WARN: is that legit? what if some upstream stream is broken? can we trust all those streams?
+				panic(fmt.Sprintf("invalid value %q for StateDelta::Op for key %q", delta.Op, delta.Key))
+			}
+		}
+	}
+	return b.GetLast(key)
 }
 
 func (b *StateBuilder) GetLast(key string) ([]byte, bool) {
-	// TODO: FLIP the GetLast and GetFirst, so `GetLast` is the always the fastest, and we
-	// rather UNDO the steps until `ord` when we do a GetAt (and undo all when GetFirst)
-	// because most of the time, people will want to read the state at the completed block
-	// boundary.
+	val, found := b.KV[key]
+	return val, found
 
-	// So upon receiving the deltas, we'll apply them, and consider their reverse values
-	// when doing a `GetAt`
-	for i := len(b.Deltas) - 1; i >= 0; i-- {
-		delta := b.Deltas[i]
-		if delta.Key == key {
-			switch delta.Op {
-			case "d":
-				return nil, false
-			case "u", "c":
-				return delta.NewValue, true
-			default:
-				// WARN: is that legit? what if some upstream stream is broken? can we trust all those streams?
-				panic(fmt.Sprintf("invalid value %q for StateDelta::Op for key %q", delta.Op, delta.Key))
-			}
-		}
-	}
-	return b.GetFirst(key)
 }
 
 // GetAt returns the key for the state that includes the processing of `ord`.
-func (b *StateBuilder) GetAt(ord uint64, key string) ([]byte, bool) {
+func (b *StateBuilder) GetAt(ord uint64, key string) (out []byte, found bool) {
+	out, found = b.GetLast(key)
+
 	for i := len(b.Deltas) - 1; i >= 0; i-- {
 		delta := b.Deltas[i]
-		if delta.Ordinal > ord {
-			continue
+		if delta.Ordinal <= ord {
+			break
 		}
 		if delta.Key == key {
 			switch delta.Op {
-			case "d":
-				return nil, false
-			case "u", "c":
-				return delta.NewValue, true
+			case "d", "u":
+				out = delta.OldValue
+				found = true
+			case "c":
+				out = nil
+				found = false
 			default:
 				// WARN: is that legit? what if some upstream stream is broken? can we trust all those streams?
 				panic(fmt.Sprintf("invalid value %q for StateDelta::Op for key %q", delta.Op, delta.Key))
 			}
 		}
 	}
-	return b.GetFirst(key)
+	return
 }
 func (b *StateBuilder) Del(ord uint64, key string) {
-	if b.readOnly {
-		panic("cannot write")
-	}
 	val, found := b.GetLast(key)
 	if found {
-		b.Deltas = append(b.Deltas, StateDelta{
+		delta := &StateDelta{
 			Op:       "d",
 			Ordinal:  ord,
 			Key:      key,
 			OldValue: val,
 			NewValue: nil,
-		})
+		}
+		b.applyDelta(delta)
+		b.Deltas = append(b.Deltas, *delta)
 	}
 }
 func (b *StateBuilder) Set(ord uint64, key string, value []byte) {
-	if b.readOnly {
-		panic("cannot write")
-	}
-
 	val, found := b.GetLast(key)
+	var delta *StateDelta
 	if found {
-		b.Deltas = append(b.Deltas, StateDelta{
+		delta = &StateDelta{
 			Op:       "u",
 			Ordinal:  ord,
 			Key:      key,
 			OldValue: val,
 			NewValue: value,
-		})
+		}
 	} else {
-		b.Deltas = append(b.Deltas, StateDelta{
+		delta = &StateDelta{
 			Op:       "c",
 			Ordinal:  ord,
 			Key:      key,
 			OldValue: nil,
 			NewValue: value,
-		})
+		}
 	}
+	b.applyDelta(delta)
+	b.Deltas = append(b.Deltas, *delta)
+}
+
+func (b *StateBuilder) applyDelta(delta *StateDelta) {
+	switch delta.Op {
+	case "u", "c":
+		b.KV[delta.Key] = delta.NewValue
+	case "d":
+		delete(b.KV, delta.Key)
+	}
+
 }
 
 func (b *StateBuilder) Flush() {
 	for _, delta := range b.Deltas {
-		switch delta.Op {
-		case "u", "c":
-			b.KV[delta.Key] = delta.NewValue
-		case "d":
-			delete(b.KV, delta.Key)
-		}
+		b.applyDelta(&delta)
 	}
 	b.Deltas = nil
 }
