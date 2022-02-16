@@ -189,7 +189,7 @@ func (b *StateBuilder) Flush() {
 	b.Deltas = nil
 }
 
-func (b *StateBuilder) StoreAndFlush(ctx context.Context, blockNumber uint64, dataFolder string) error {
+func (b *StateBuilder) StoreAndFlush(ctx context.Context, blockNumber uint64) error {
 	if b.bundler == nil {
 		exclusiveHighestBlockLimit := ((blockNumber / 100) * 100) + 100
 		b.bundler = bundle.NewBundler(100, exclusiveHighestBlockLimit)
@@ -208,13 +208,10 @@ func (b *StateBuilder) StoreAndFlush(ctx context.Context, blockNumber uint64, da
 			for _, file := range oneBlockFilesToDelete {
 				_ = b.io.DeleteDeltaFile(ctx, file)
 			}
-
 		})
-	}
 
-	if blockNumber%100 == 0 {
 		content, _ := json.MarshalIndent(b.KV, "", "  ")
-		err := b.io.WriteStateFile(ctx, content, blockNumber)
+		err = b.io.WriteStateFile(ctx, content, blockNumber)
 		if err != nil {
 			return fmt.Errorf("writing %s kv at block %d: %w", b.name, blockNumber, err)
 		}

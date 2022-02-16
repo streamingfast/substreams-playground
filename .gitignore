@@ -18,3 +18,5 @@ secrets.go
 
 /deploy/subgraph
 /deploy/exchange
+
+rpc-cache
