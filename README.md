@@ -22,6 +22,33 @@ go run -v ./cmd/substream-exchange
 ```
 
 
+## Current layout
+
+```mermaid
+
+graph TD;
+  PE["PairExtractor(Contract)"]
+  PSB[PCSPairStateBuilder]
+  TPSB[PCSTotalPairsStateBuilder] 
+  RE[ReservesExtractor]
+  B[Raw Chain Block]
+  PRSB[PCSPricesStateBuilder]
+  END[Consumable stream by user]
+  SWAP[SwapsExtractor]
+  VOL24[Volume24hStateBuilder]
+  
+  B -- ETH Block --> PE
+  PE -- "[]PCSPair" --> PSB
+  PE -- "[]PCSPair" --> TPSB 
+  TPSB -- Total Pairs Store --> END
+  PSB -- "Pairs Store" --> RE
+  B -- ETH Block --> RE
+  RE -- Reserves Updates --> PRSB
+  PRSB -- Prices Store --> END
+  B -- ETH Block --> SWAP
+  SWAP -- "[]PCSSwap" --> VOL24
+```
+
 
 ## Contributing
 
