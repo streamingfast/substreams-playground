@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/streamingfast/bstream"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -189,7 +191,9 @@ func (b *StateBuilder) Flush() {
 	b.Deltas = nil
 }
 
-func (b *StateBuilder) StoreAndFlush(ctx context.Context, blockNumber uint64) error {
+func (b *StateBuilder) StoreBlock(ctx context.Context, block *bstream.Block) error {
+	blockNumber := block.Number
+
 	if b.bundler == nil {
 		exclusiveHighestBlockLimit := ((blockNumber / 100) * 100) + 100
 		b.bundler = bundle.NewBundler(100, exclusiveHighestBlockLimit)
@@ -223,21 +227,21 @@ func (b *StateBuilder) StoreAndFlush(ctx context.Context, blockNumber uint64) er
 		return fmt.Errorf("writing %s delta at block %d: %w", b.name, blockNumber, err)
 	}
 
-	obf := MustDeltaToOneBlockFile(GetDeltaFileName(b.name, blockNumber))
+	obf := b.mustBlockToOneBlockFile(block)
 	b.bundler.AddOneBlockFile(obf)
 
 	b.Flush()
 	return nil
 }
 
-func MustDeltaToOneBlockFile(filename string) *bundle.OneBlockFile {
-	blockNum, lib := ParseFileName(filename)
-
+func (b *StateBuilder) mustBlockToOneBlockFile(block *bstream.Block) *bundle.OneBlockFile {
 	getUint64Pointer := func(n uint64) *uint64 {
 		var ptr *uint64
 		*ptr = n
 		return ptr
 	}
+
+	filename := GetDeltaFileName(b.name, block.Num())
 
 	return &bundle.OneBlockFile{
 		CanonicalName: filename,
@@ -245,8 +249,8 @@ func MustDeltaToOneBlockFile(filename string) *bundle.OneBlockFile {
 			filename: {},
 		},
 		BlockTime:   time.Time{},
-		Num:         blockNum,
-		InnerLibNum: getUint64Pointer(lib),
+		Num:         block.Num(),
+		InnerLibNum: getUint64Pointer(block.LibNum),
 	}
 }
 
@@ -258,9 +262,8 @@ func GetStateFileName(name string, blockNum uint64) string {
 	return fmt.Sprintf("%d-%s.kv", blockNum, name)
 }
 
-func ParseFileName(filename string) (blockNum uint64, lib uint64) {
-	//todo
-	return 0, 0
+func GetDeltaMergedFileName(name string, blockNum uint64) string {
+	return fmt.Sprintf("%d-%s.deltas", blockNum, name)
 }
 
 type StateIO interface {
@@ -305,8 +308,23 @@ func (d *DiskStateIO) WalkDeltas(ctx context.Context) ([]*bundle.OneBlockFile, e
 }
 
 func (d *DiskStateIO) MergeDeltas(ctx context.Context, lowerBlockBoundary uint64, files []*bundle.OneBlockFile) error {
-	//TODO implement me
-	panic("implement me")
+	bundleReader := bundle.NewBundleReader(ctx, files, func(ctx context.Context, oneBlockFile *bundle.OneBlockFile) (data []byte, err error) {
+		err = d.ReadDelta(ctx, data, oneBlockFile)
+		return
+	})
+
+	path := filepath.Join(d.dataFolder, GetDeltaMergedFileName(d.name, lowerBlockBoundary))
+	bundleWriter, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("opening bundle file %s: %w", path, err)
+	}
+
+	_, err = io.Copy(bundleWriter, bundleReader)
+	if err != nil {
+		return fmt.Errorf("copying data from bundleReader at block boundary %d: %w", lowerBlockBoundary, err)
+	}
+
+	return nil
 }
 
 func (d *DiskStateIO) WriteState(ctx context.Context, content []byte, blockNum uint64) error {
