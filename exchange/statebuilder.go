@@ -1,12 +1,17 @@
 package exchange
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
+	"time"
+
+	"github.com/streamingfast/merger/bundle"
 )
 
 type StateReader interface {
@@ -18,14 +23,19 @@ type StateReader interface {
 type StateBuilder struct {
 	name string
 
+	bundler *bundle.Bundler
+	io      StateIO
+
 	KV     map[string][]byte // KV is the state, and assumes all Deltas were already applied to it.
 	Deltas []StateDelta      // Deltas are always deltas for the given block.
 }
 
 func NewStateBuilder(name string) *StateBuilder {
 	return &StateBuilder{
-		name: name,
-		KV:   make(map[string][]byte),
+		name:    name,
+		KV:      make(map[string][]byte),
+		bundler: nil,
+		io:      &NoopStateIO{},
 	}
 }
 
@@ -179,35 +189,170 @@ func (b *StateBuilder) Flush() {
 	b.Deltas = nil
 }
 
-func (b *StateBuilder) StoreAndFlush(blockNumber uint64, dataFolder string) error {
+func (b *StateBuilder) StoreAndFlush(ctx context.Context, blockNumber uint64, dataFolder string) error {
+	if b.bundler == nil {
+		exclusiveHighestBlockLimit := ((blockNumber / 100) * 100) + 100
+		b.bundler = bundle.NewBundler(100, exclusiveHighestBlockLimit)
+	}
 
-	// if b.BundleCompleted() {
-	//cnt, _ := json.MarshalIndent(b.KV, "", "  ")
-	//err := ioutil.WriteFile(fmt.Sprintf("%s/%d-%s.kv", dataFolder, blockNumber, b.name), cnt, os.ModePerm)
-	//if err != nil {
-	//	return fmt.Errorf("writing %s kv at block %d: %w", b.name, blockNumber, err)
-	//}
+	bundleCompleted, highestBlockLimit := b.bundler.BundleCompleted()
+	if bundleCompleted {
+		files := b.bundler.ToBundle(highestBlockLimit)
+		err := b.io.MergeDeltaFiles(ctx, b.bundler.BundleInclusiveLowerBlock(), files)
+		if err != nil {
+			return err
+		}
 
-	//todo: maybe delta to merge = b.toBundle()
+		b.bundler.Commit(highestBlockLimit)
+		b.bundler.Purge(func(oneBlockFilesToDelete []*bundle.OneBlockFile) {
+			for _, file := range oneBlockFilesToDelete {
+				_ = b.io.DeleteDeltaFile(ctx, file)
+			}
 
-	//b.bundle.commit()
-	//b.bundle.purge()
-	//}
+		})
+	}
 
 	if blockNumber%100 == 0 {
-
-		cnt, _ := json.MarshalIndent(b.KV, "", "  ")
-		err := ioutil.WriteFile(fmt.Sprintf("%s/%d-%s.kv", dataFolder, blockNumber, b.name), cnt, os.ModePerm)
+		content, _ := json.MarshalIndent(b.KV, "", "  ")
+		err := b.io.WriteStateFile(ctx, content, blockNumber)
 		if err != nil {
 			return fmt.Errorf("writing %s kv at block %d: %w", b.name, blockNumber, err)
 		}
 	}
 
-	cnt, _ := json.MarshalIndent(b.Deltas, "", "  ")
-	err := ioutil.WriteFile(fmt.Sprintf("%s/%d-%s.delta", dataFolder, blockNumber, b.name), cnt, os.ModePerm)
+	content, _ := json.MarshalIndent(b.Deltas, "", "  ")
+	err := b.io.WriteDeltaFile(ctx, content, blockNumber)
 	if err != nil {
 		return fmt.Errorf("writing %s delta at block %d: %w", b.name, blockNumber, err)
 	}
+
+	obf := MustDeltaToOneBlockFile(GetDeltaFileName(b.name, blockNumber))
+	b.bundler.AddOneBlockFile(obf)
+
 	b.Flush()
+	return nil
+}
+
+func MustDeltaToOneBlockFile(filename string) *bundle.OneBlockFile {
+	blockNum, lib := ParseFileName(filename)
+
+	getUint64Pointer := func(n uint64) *uint64 {
+		var ptr *uint64
+		*ptr = n
+		return ptr
+	}
+
+	return &bundle.OneBlockFile{
+		CanonicalName: filename,
+		Filenames: map[string]struct{}{
+			filename: {},
+		},
+		BlockTime:   time.Time{},
+		Num:         blockNum,
+		InnerLibNum: getUint64Pointer(lib),
+	}
+}
+
+func GetDeltaFileName(name string, blockNum uint64) string {
+	return fmt.Sprintf("%d-%s.delta", blockNum, name)
+}
+
+func GetStateFileName(name string, blockNum uint64) string {
+	return fmt.Sprintf("%d-%s.kv", blockNum, name)
+}
+
+func ParseFileName(filename string) (blockNum uint64, lib uint64) {
+	//todo
+	return 0, 0
+}
+
+type StateIO interface {
+	WriteDeltaFile(ctx context.Context, content []byte, blockNum uint64) error
+	ReadDeltaFile(ctx context.Context, into []byte, file *bundle.OneBlockFile) error
+	DeleteDeltaFile(ctx context.Context, file *bundle.OneBlockFile) error
+
+	WalkDeltaFiles(ctx context.Context) ([]*bundle.OneBlockFile, error)
+	MergeDeltaFiles(ctx context.Context, lowerBlockBoundary uint64, files []*bundle.OneBlockFile) error
+
+	WriteStateFile(ctx context.Context, content []byte, blockNum uint64) error
+	ReadStateFile(ctx context.Context, into []byte, blockNum uint64) error
+}
+
+type DiskStateIO struct {
+	name       string
+	dataFolder string
+}
+
+func (d *DiskStateIO) WriteDeltaFile(ctx context.Context, content []byte, blockNum uint64) error {
+	err := ioutil.WriteFile(filepath.Join(d.dataFolder, GetDeltaFileName(d.name, blockNum)), content, os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("writing %s delta at block %d: %w", d.name, blockNum, err)
+	}
+
+	return nil
+}
+
+func (d *DiskStateIO) ReadDeltaFile(ctx context.Context, into []byte, file *bundle.OneBlockFile) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *DiskStateIO) DeleteDeltaFile(ctx context.Context, file *bundle.OneBlockFile) error {
+	err := os.Remove(filepath.Join(d.dataFolder, file.CanonicalName))
+	return err
+}
+
+func (d *DiskStateIO) WalkDeltaFiles(ctx context.Context) ([]*bundle.OneBlockFile, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *DiskStateIO) MergeDeltaFiles(ctx context.Context, lowerBlockBoundary uint64, files []*bundle.OneBlockFile) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (d *DiskStateIO) WriteStateFile(ctx context.Context, content []byte, blockNum uint64) error {
+	err := ioutil.WriteFile(filepath.Join(d.dataFolder, GetStateFileName(d.name, blockNum)), content, os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("writing %s kv at block %d: %w", d.name, blockNum, err)
+	}
+
+	return nil
+}
+
+func (d *DiskStateIO) ReadStateFile(ctx context.Context, into []byte, blockNumber uint64) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+type NoopStateIO struct {
+}
+
+func (n *NoopStateIO) WriteDeltaFile(ctx context.Context, content []byte, blockNum uint64) error {
+	return nil
+}
+
+func (n *NoopStateIO) ReadDeltaFile(ctx context.Context, into []byte, file *bundle.OneBlockFile) error {
+	return nil
+}
+
+func (n *NoopStateIO) DeleteDeltaFile(ctx context.Context, file *bundle.OneBlockFile) error {
+	return nil
+}
+
+func (n *NoopStateIO) WalkDeltaFiles(ctx context.Context) ([]*bundle.OneBlockFile, error) {
+	return nil, nil
+}
+
+func (n *NoopStateIO) MergeDeltaFiles(ctx context.Context, lowerBlockBoundary uint64, files []*bundle.OneBlockFile) error {
+	return nil
+}
+
+func (n *NoopStateIO) WriteStateFile(ctx context.Context, content []byte, blockNum uint64) error {
+	return nil
+}
+
+func (n *NoopStateIO) ReadStateFile(ctx context.Context, into []byte, blockNum uint64) error {
 	return nil
 }
