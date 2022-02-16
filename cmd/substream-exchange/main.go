@@ -40,12 +40,18 @@ func main() {
 		log.Fatalln("error setting up blocks store:", err)
 	}
 
+	irrStore, err := dstore.NewStore("./localirr", "", "", false)
+	if err != nil {
+		log.Fatalln("error setting up blocks store:", err)
+	}
+
 	//const startBlock = 6810700 // 6809737
 	const startBlock = 6810700
 	pipe := setupPipeline(rpcEndpoint, startBlock)
 
 	hose := firehose.New([]dstore.Store{blocksStore}, startBlock, pipe,
 		firehose.WithForkableSteps(bstream.StepIrreversible),
+		firehose.WithIrreversibleBlocksIndex(irrStore, true, []uint64{1000, 100}),
 	)
 
 	if err := hose.Run(context.Background()); err != nil {
@@ -148,6 +154,11 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 		if block.Number%100 == 0 {
 			rpcCache.Save(context.Background())
 		}
+
+		// MARK INDEX:
+		// if len(pairs) != 0 || len(reserveUpdates) != 0 {
+		// 	indexer.MarkBlock(block) // each 100 blocks y'écrit whatever
+		// }
 
 		return nil
 	})
