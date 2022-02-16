@@ -76,3 +76,41 @@ type PCSReserveUpdate struct {
 // 		return bf().Quo(reserve1.Float(), reserve0.Float())
 // 	}
 // }
+
+// type PairPrice struct {}
+// type TokenPrice struct {}
+
+// type Volume24hStateBuidler struct {}
+
+// type VolumeStateBuilderPerPair struct {}
+// type VolumeStateBuilderPerToken struct {}
+
+type Swaps []PCSSwap
+
+type PCSSwap struct {
+	PairAddress string
+	// Token0      string
+	// Token1      string
+
+	Transaction string
+
+	Amount0In  string
+	Amount1In  string
+	Amount0Out string
+	Amount1Out string
+
+	AmountUSD string
+
+	Sender string
+	To     string
+	From   string
+
+	LogOrdinal uint64
+}
+
+type VolumeAggregate struct {
+	Pair string
+	Date int64
+
+	VolumeUSD float64
+}

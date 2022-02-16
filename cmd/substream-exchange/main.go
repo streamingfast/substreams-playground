@@ -89,12 +89,15 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 	//totalPairsStore.Init(startBlockNum, "/Users/cbillett/t/substream-data")
 
 	pairsPriceStore := exchange.NewStateBuilder("pairs_price")
+	volume24hStore := exchange.NewStateBuilder("volume24h")
 
 	pairExtractor := &exchange.PairExtractor{SubstreamIntrinsics: intr, Contract: eth.Address(exchange.FactoryAddressBytes)}
 	pcsPairsStateBuilder := &exchange.PCSPairsStateBuilder{SubstreamIntrinsics: intr}
 	pcsTotalPairsStateBuilder := &exchange.PCSTotalPairsStateBuilder{SubstreamIntrinsics: intr}
 	pcsPricesStateBuilder := &exchange.PCSPricesStateBuilder{SubstreamIntrinsics: intr}
 	reservesExtractor := &exchange.ReservesExtractor{SubstreamIntrinsics: intr}
+	swapsExtractor := &exchange.SwapsExtractor{SubstreamIntrinsics: intr}
+	volume24hStateBuilder := &exchange.PCSVolume24hStateBuilder{SubstreamIntrinsics: intr}
 
 	return bstream.HandlerFunc(func(block *bstream.Block, obj interface{}) error {
 
@@ -120,36 +123,45 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 		if err := pcsPairsStateBuilder.BuildState(pairs, pairsStore); err != nil {
 			return fmt.Errorf("processing pair cache: %w", err)
 		}
-
 		//pairsStore.PrintDeltas()
-
-		pairsStore.Flush()
 
 		if err := pcsTotalPairsStateBuilder.BuildState(pairs, totalPairsStore); err != nil {
 			return fmt.Errorf("processing total pairs: %w", err)
 		}
-
 		//totalPairsStore.PrintDeltas()
-		totalPairsStore.Flush()
 
 		reserveUpdates, err := reservesExtractor.Map(blk, pairsStore)
 		if err != nil {
 			return fmt.Errorf("processing reserves extractor: %w", err)
 		}
-
 		reserveUpdates.Print()
 
-		err = pcsPricesStateBuilder.BuildState(reserveUpdates, pairsPriceStore)
-		if err != nil {
+		if err := pcsPricesStateBuilder.BuildState(reserveUpdates, pairsPriceStore); err != nil {
 			return fmt.Errorf("pairs price building: %w", err)
 		}
-
 		pairsPriceStore.PrintDeltas()
-		pairsPriceStore.Flush()
+
+		swaps,  err := swapsExtractor.Map(blk, pairsStore)
+		if err != nil {
+			return fmt.Errorf("swaps extractor: %w", err)
+		}
+
+
+		if err := volume24hStateBuilder.BuildState(blk, swapUpdates, volume24hStore); err != nil {
+			return fmt.Errorf("volume24 builder: %w", err)
+		}
+
+		volume24hStore.PrintDeltas()
 
 		// Build a new "ReserveFilter{Pairs: []}"
 		// followed by a AvgPriceStateBuilder
 		// The idea is to replace: https://github.com/streamingfast/substream-pancakeswap/blob/master/exchange/handle_pair_sync_event.go#L249 into a stream.
+
+		// Prep for next block
+		pairsStore.Flush()
+		totalPairsStore.Flush()
+		pairsPriceStore.Flush()
+		volume24hStore.Flush()
 
 		if block.Number%100 == 0 {
 			rpcCache.Save(context.Background())

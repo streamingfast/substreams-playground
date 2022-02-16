@@ -51,7 +51,6 @@ graph TD;
   SWAP -- "[]PCSSwap" --> VOL24
 ```
 
-
 ## Contributing
 
 **Issues and PR in this repo related strictly to Pancake Generated.**

@@ -97,6 +97,7 @@ func isWhitelistedAddress(address string) bool {
 		return true
 	}
 
+	// FIXME: if our token doesn't match the whitelist, we continually loop?!?
 	for _, addr := range whitelist {
 		if addr != address {
 			continue

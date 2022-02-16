@@ -55,7 +55,7 @@ func (s *Subgraph) HandlePairSwapEvent(ev *PairSwapEvent) error {
 		big.NewFloat(2),
 	)
 
-	derivedAmountUSD := bf().Mul(derivedAmountBNB, bundle.BnbPrice.Float())
+	derivedAmountUSD := bf().Mul(derivedAmountBNB, bundle.BnbPrice.Float() /* OUR EQUIVALENT is the "bnb_usd_price" key */)
 
 	// only accounts for volume through white listed tokens
 	trackedAmountUSD := getTrackedVolumeUSD(bundle, amount0Total, token0, amount1Total, token1)
