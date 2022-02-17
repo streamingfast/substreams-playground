@@ -33,22 +33,23 @@ graph TD;
   RE[ReservesExtractor]
   B[Raw Chain Block]
   PRICES[PCSPricesStateBuilder]
-  END[Consumable stream by user]
   SWAP[SwapsExtractor]
   VOL24[Volume24hStateBuilder]
+  HUB[Subscription hub]
   
   B -- ETH Block --> PE
   PE -- "[]PCSPair" --> PAIRS
   PE -- "[]PCSPair" --> TPSB 
-  TPSB -- Total Pairs Store --> END
+  TPSB -- Total Pairs Store --> HUB
   PAIRS -- "Pairs Store" --> RE
   B -- ETH Block --> RE
   RE -- Reserves Updates --> PRICES
-  PRICES -- Prices Store --> END
+  PRICES -- Prices Store --> HUB
   PRICES -- Prices Store --> SWAP
   PAIRS -- Pairs Store --> SWAP
   B -- ETH Block --> SWAP
   SWAP -- "[]PCSSwap" --> VOL24
+  VOL24 -- "Volume Store" --> HUB
 ```
 
 ## Contributing
