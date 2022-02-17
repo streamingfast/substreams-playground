@@ -189,7 +189,7 @@ func (p *Pipeline) handlerFactory() bstream.Handler {
 		if err != nil {
 			return fmt.Errorf("extracting pairs: %w", err)
 		}
-		//pairs.Print()
+		pairs.Print()
 
 		if err := pcsPairsStateBuilder.BuildState(pairs, p.stores["pairs"]); err != nil {
 			return fmt.Errorf("processing pair cache: %w", err)
@@ -200,18 +200,18 @@ func (p *Pipeline) handlerFactory() bstream.Handler {
 			return fmt.Errorf("broadcasting deltas for topic [pairs]")
 		}
 
-		//pairsStore.PrintDeltas()
+		p.stores["pairs"].PrintDeltas()
 
 		if err := pcsTotalPairsStateBuilder.BuildState(pairs, p.stores["total_pairs"]); err != nil {
 			return fmt.Errorf("processing total pairs: %w", err)
 		}
-		//totalPairsStore.PrintDeltas()
+		p.stores["total_pairs"].PrintDeltas()
 
 		reserveUpdates, err := reservesExtractor.Map(blk, p.stores["pairs"])
 		if err != nil {
 			return fmt.Errorf("processing reserves extractor: %w", err)
 		}
-		//reserveUpdates.Print()
+		reserveUpdates.Print()
 
 		if err := pcsPricesStateBuilder.BuildState(reserveUpdates, p.stores["pairs"], p.stores["prices"]); err != nil {
 			return fmt.Errorf("pairs price building: %w", err)

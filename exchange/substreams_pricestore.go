@@ -21,7 +21,7 @@ func (p *PCSPricesStateBuilder) BuildState(reserveUpdates PCSReserveUpdates, pai
 	for _, update := range reserveUpdates {
 		// TODO: cache those pairs we've already decoded in this `BuildState` run
 		var pair *PCSPair
-		pairData, found := pairs.GetLast(update.PairAddress)
+		pairData, found := pairs.GetLast("pair:" + update.PairAddress)
 		if !found {
 			zlog.Warn("pair not found for a reserve update!", zap.String("pair", update.PairAddress))
 			continue

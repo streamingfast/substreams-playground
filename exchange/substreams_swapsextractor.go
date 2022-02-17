@@ -23,7 +23,7 @@ func (p *SwapsExtractor) Map(block *pbcodec.Block, pairsState state.Reader, pric
 			// we do that in the `GetLast()` stack, optimized
 			// heuristics.
 			addr := eth.Address(log.Address).Pretty()
-			pairCnt, found := pairsState.GetLast(addr)
+			pairCnt, found := pairsState.GetLast("pair:" + addr)
 			if !found {
 				continue
 			}

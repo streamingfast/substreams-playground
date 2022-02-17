@@ -3,10 +3,10 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/streamingfast/sparkle-pancakeswap/state"
 	"math/big"
 
 	eth "github.com/streamingfast/eth-go"
+	"github.com/streamingfast/sparkle-pancakeswap/state"
 	"github.com/streamingfast/sparkle/entity"
 	pbcodec "github.com/streamingfast/sparkle/pb/sf/ethereum/codec/v1"
 )
@@ -26,7 +26,7 @@ func (p *ReservesExtractor) Map(block *pbcodec.Block, pairsState state.Reader) (
 			// we do that in the `GetLast()` stack, optimized
 			// heuristics.
 			addr := eth.Address(log.Address).Pretty()
-			pairCnt, found := pairsState.GetLast(addr)
+			pairCnt, found := pairsState.GetLast("pair:" + addr)
 			if !found {
 				continue
 			}

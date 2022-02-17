@@ -61,6 +61,7 @@ func (p *PairExtractor) Map(block *pbcodec.Block) (pairs PCSPairs, err error) {
 				Token0:                *erc20Token0,
 				Token1:                *erc20Token1,
 				CreationTransactionID: eth.Hash(trx.Hash).Pretty(),
+				BlockNum:              block.Number,
 
 				// FIXME: When we have boundaries, let's sprinkle some in here, for greater precision.
 				LogOrdinal:       ord,

@@ -22,6 +22,7 @@ type PCSPair struct {
 	Token0                ERC20Token
 	Token1                ERC20Token
 	CreationTransactionID string
+	BlockNum              uint64
 
 	CallStartOrdinal uint64
 	CallEndOrdinal   uint64
