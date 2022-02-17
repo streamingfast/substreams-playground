@@ -192,10 +192,14 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 		// The idea is to replace: https://github.com/streamingfast/substream-pancakeswap/blob/master/exchange/handle_pair_sync_event.go#L249 into a stream.
 
 		// Prep for next block
-		pairsStore.Flush()
-		totalPairsStore.Flush()
-		pairsPriceStore.Flush()
-		volume24hStore.Flush()
+		//pairsStore.Flush()
+		pairsStore.StoreBlock(context.Background(), block)
+		//totalPairsStore.Flush()
+		totalPairsStore.StoreBlock(context.Background(), block)
+		//pairsPriceStore.Flush()
+		pairsPriceStore.StoreBlock(context.Background(), block)
+		//volume24hStore.Flush()
+		volume24hStore.StoreBlock(context.Background(), block)
 
 		if block.Number%100 == 0 {
 			rpcCache.Save(context.Background())

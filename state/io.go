@@ -187,7 +187,7 @@ func GetDeltaFileName(name string, block *bstream.Block) string {
 }
 
 func GetStateFileName(name string, block *bstream.Block) string {
-	blockNum := block.Num()
+	blockNum := (block.Num() / 100) * 100
 	return fmt.Sprintf("%d-%s.kv", blockNum, name)
 }
 
@@ -227,6 +227,7 @@ func mustParseFileToOneBlockFile(path string) *bundle.OneBlockFile {
 func mustBlockToOneBlockFile(name string, block *bstream.Block) *bundle.OneBlockFile {
 	getUint64Pointer := func(n uint64) *uint64 {
 		var ptr *uint64
+		ptr = new(uint64)
 		*ptr = n
 		return ptr
 	}
