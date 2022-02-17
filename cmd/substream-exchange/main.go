@@ -92,8 +92,15 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 
 	pairsStore := state.NewStateBuilder("pairs", ioFactory)
 	pairsStore.Init(startBlockNum)
-	
-	err = subscriptionHub.RegisterTopic(pairsStor
+	totalPairsStore := state.NewStateBuilder("total_pairs", ioFactory)
+	totalPairsStore.Init(startBlockNum)
+	pricesStore := state.NewStateBuilder("prices", ioFactory)
+	pricesStore.Init(startBlockNum)
+	volume24hStore := state.NewStateBuilder("volume24h", ioFactory)
+	volume24hStore.Init(startBlockNum)
+
+	/// Subscription hub
+	err = subscriptionHub.RegisterTopic(pairsStore.Name)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -118,15 +125,7 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 
 		}
 	}()
-
-	totalPairsStore := state.NewStateBuilder("total_pairs", ioFactory)
-	totalPairsStore.Init(startBlockNum)
-
-	pairsPriceStore := state.NewStateBuilder("pairs_price", ioFactory)
-	pairsPriceStore.Init(startBlockNum)
-
-	volume24hStore := state.NewStateBuilder("volume24h", ioFactory)
-	volume24hStore.Init(startBlockNum)
+	// End subscription hub
 
 	pairExtractor := &exchange.PairExtractor{SubstreamIntrinsics: intr, Contract: eth.Address(exchange.FactoryAddressBytes)}
 	pcsPairsStateBuilder := &exchange.PCSPairsStateBuilder{SubstreamIntrinsics: intr}
@@ -198,15 +197,17 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 		// followed by a AvgPriceStateBuilder
 		// The idea is to replace: https://github.com/streamingfast/substream-pancakeswap/blob/master/exchange/handle_pair_sync_event.go#L249 into a stream.
 
-		// Prep for next block
-		//pairsStore.Flush()
+		// Flush all things to disk
 		pairsStore.StoreBlock(context.Background(), block)
-		pricesStore.Flush()
 		totalPairsStore.StoreBlock(context.Background(), block)
-		//pairsPriceStore.Flush()
-		pairsPriceStore.StoreBlock(context.Background(), block)
-		//volume24hStore.Flush()
+		pricesStore.StoreBlock(context.Background(), block)
 		volume24hStore.StoreBlock(context.Background(), block)
+
+		// Prep for next block, clean-up all deltas.
+		pairsStore.Flush()
+		pricesStore.Flush()
+		pricesStore.Flush()
+		volume24hStore.Flush()
 
 		if block.Number%100 == 0 {
 			rpcCache.Save(context.Background())

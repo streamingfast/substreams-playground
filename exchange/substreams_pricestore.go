@@ -3,8 +3,9 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/streamingfast/sparkle-pancakeswap/state"
 	"math/big"
+
+	"github.com/streamingfast/sparkle-pancakeswap/state"
 
 	"github.com/streamingfast/sparkle/entity"
 	"go.uber.org/zap"
@@ -14,7 +15,7 @@ type PCSPricesStateBuilder struct {
 	*SubstreamIntrinsics
 }
 
-func (p *PCSPricesStateBuilder) BuildState(reserveUpdates PCSReserveUpdates, pairs state.Reader, builder *state.Builder) error {
+func (p *PCSPricesStateBuilder) BuildState(reserveUpdates PCSReserveUpdates, pairs state.Reader, prices *state.Builder) error {
 	// TODO: could we get rid of `pairs` as a dependency, by packaging `Token0.Address` directly in the `ReserveUpdate` ?
 
 	for _, update := range reserveUpdates {
@@ -64,7 +65,7 @@ func (p *PCSPricesStateBuilder) BuildState(reserveUpdates PCSReserveUpdates, pai
 	return nil
 }
 
-func (p *PCSPricesStateBuilder) findBnbPricePerToken(logOrdinal uint64, tokenAddr string, pairs StateReader, prices StateReader) *big.Float {
+func (p *PCSPricesStateBuilder) findBnbPricePerToken(logOrdinal uint64, tokenAddr string, pairs state.Reader, prices state.Reader) *big.Float {
 	if tokenAddr == WBNB_ADDRESS {
 		return big.NewFloat(1) // BNB price of a BNB is always 1
 	}
@@ -120,7 +121,7 @@ func (p *PCSPricesStateBuilder) findBnbPricePerToken(logOrdinal uint64, tokenAdd
 	return bf()
 
 }
-func (p *PCSPricesStateBuilder) computeUSDPrice(update PCSReserveUpdate, state *state.Builder) *big.Float {
+func (p *PCSPricesStateBuilder) computeUSDPrice(update PCSReserveUpdate, prices *state.Builder) *big.Float {
 	usdtPairData, usdtFound := prices.GetAt(update.LogOrdinal, USDT_WBNB_PAIR) // usdt is token0
 	busdPairData, busdFound := prices.GetAt(update.LogOrdinal, BUSD_WBNB_PAIR) // busd is token1
 
