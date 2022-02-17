@@ -7,7 +7,7 @@ import (
 )
 
 func TestStateBuilder(t *testing.T) {
-	s := NewStateBuilder("")
+	s := New("", nil)
 	s.Set(0, "1", []byte("val1"))
 	s.Set(1, "1", []byte("val2"))
 	s.Set(3, "1", []byte("val3"))

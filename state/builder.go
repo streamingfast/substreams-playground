@@ -23,13 +23,16 @@ type Builder struct {
 	Deltas []StateDelta      // Deltas are always deltas for the given block.
 }
 
-func NewStateBuilder(name string, ioFactory IOFactory) *Builder {
-	return &Builder{
+func New(name string, ioFactory IOFactory) *Builder {
+	b := &Builder{
 		Name:    name,
 		KV:      make(map[string][]byte),
 		bundler: nil,
-		io:      ioFactory.New(name),
 	}
+	if ioFactory != nil {
+		b.io = ioFactory.New(name)
+	}
+	return b
 }
 
 func (b *Builder) PrintDeltas() {
@@ -52,19 +55,14 @@ func (b *Builder) PrintDelta(delta *StateDelta) {
 func (b *Builder) Init(startBlockNum uint64) error {
 	relativeKvStartBlock := (startBlockNum / 100) * 100
 
-	data, err := b.io.ReadState(context.TODO(), relativeKvStartBlock)
-	if err != nil {
+	if err := b.ReadState(context.TODO(), relativeKvStartBlock); err != nil {
 		return err
-	}
-	err = json.Unmarshal(data, &b.KV)
-	if err != nil {
-		return fmt.Errorf("unmarshalling kv for %s at block %d: %w", b.Name, relativeKvStartBlock, err)
 	}
 
 	var deltas []*bundle.OneBlockFile
 
 	// walk from last kv checkpoint to current start block
-	err = b.io.WalkDeltas(context.TODO(), relativeKvStartBlock, startBlockNum, func(obf *bundle.OneBlockFile) error {
+	err := b.io.WalkDeltas(context.TODO(), relativeKvStartBlock, startBlockNum, func(obf *bundle.OneBlockFile) error {
 		deltas = append(deltas, obf)
 		return nil
 	})
@@ -239,10 +237,8 @@ func (b *Builder) StoreBlock(ctx context.Context, block *bstream.Block) error {
 			}
 		})
 
-		content, _ := json.MarshalIndent(b.KV, "", "  ")
-		err = b.io.WriteState(ctx, content, block)
-		if err != nil {
-			return fmt.Errorf("writing %s kv at block %d: %w", b.Name, blockNumber, err)
+		if err := b.WriteState(ctx, block); err != nil {
+			return err
 		}
 	}
 
@@ -255,7 +251,56 @@ func (b *Builder) StoreBlock(ctx context.Context, block *bstream.Block) error {
 	}
 
 	b.bundler.AddOneBlockFile(obf)
-	b.Flush()
 
 	return nil
+}
+
+func (b *Builder) ReadState(ctx context.Context, startBlockNum uint64) error {
+	data, err := b.io.ReadState(ctx, startBlockNum)
+	if err != nil {
+		return err
+	}
+
+	kv := map[string]string{}
+
+	if err = json.Unmarshal(data, &kv); err != nil {
+		return fmt.Errorf("unmarshalling kv for %s at block %d: %w", b.Name, startBlockNum, err)
+	}
+
+	b.KV = byteMap(kv) // FOR READABILITY ON DISK
+
+	fmt.Printf("loading KV from disk for %q: %d entries", b.Name, len(b.KV))
+
+	return nil
+}
+
+func (b *Builder) WriteState(ctx context.Context, block *bstream.Block) error {
+	kv := stringMap(b.KV) // FOR READABILITY ON DISK
+
+	content, err := json.MarshalIndent(kv, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshal kv state: %w", err)
+	}
+
+	if err = b.io.WriteState(ctx, content, block); err != nil {
+		return fmt.Errorf("writing %s kv at block %d: %w", b.Name, block.Num(), err)
+	}
+
+	return nil
+}
+
+func stringMap(in map[string][]byte) map[string]string {
+	out := map[string]string{}
+	for k, v := range in {
+		out[k] = string(v)
+	}
+	return out
+}
+
+func byteMap(in map[string]string) map[string][]byte {
+	out := map[string][]byte{}
+	for k, v := range in {
+		out[k] = []byte(v)
+	}
+	return out
 }
