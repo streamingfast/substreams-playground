@@ -3,13 +3,14 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/streamingfast/sparkle-pancakeswap/state"
 )
 
 type PCSTotalPairsStateBuilder struct {
 	*SubstreamIntrinsics
 }
 
-func (p *PCSTotalPairsStateBuilder) BuildState(pairs PCSPairs, totalPairsStore *StateBuilder) error {
+func (p *PCSTotalPairsStateBuilder) BuildState(pairs PCSPairs, totalPairsStore *state.Builder) error {
 	if len(pairs) == 0 {
 		return nil
 	}

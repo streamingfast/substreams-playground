@@ -3,6 +3,7 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/streamingfast/sparkle-pancakeswap/state"
 
 	pbcodec "github.com/streamingfast/sparkle/pb/sf/ethereum/codec/v1"
 )
@@ -11,7 +12,7 @@ type PCSVolume24hStateBuilder struct {
 	*SubstreamIntrinsics
 }
 
-func (p *PCSVolume24hStateBuilder) BuildState(block *pbcodec.Block, swaps Swaps, volume24hStore *StateBuilder) error {
+func (p *PCSVolume24hStateBuilder) BuildState(block *pbcodec.Block, swaps Swaps, volume24hStore *state.Builder) error {
 	timestamp := block.MustTime().Unix()
 	dayId := timestamp / 86400
 	dayStartTimestamp := dayId * 86400

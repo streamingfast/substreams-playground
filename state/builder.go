@@ -1,4 +1,4 @@
-package exchange
+package state
 
 import (
 	"context"
@@ -16,13 +16,7 @@ import (
 	"github.com/streamingfast/merger/bundle"
 )
 
-type StateReader interface {
-	GetFirst(key string) ([]byte, bool)
-	GetLast(key string) ([]byte, bool)
-	GetAt(ord uint64, key string) ([]byte, bool)
-}
-
-type StateBuilder struct {
+type Builder struct {
 	name string
 
 	bundler *bundle.Bundler
@@ -32,8 +26,8 @@ type StateBuilder struct {
 	Deltas []StateDelta      // Deltas are always deltas for the given block.
 }
 
-func NewStateBuilder(name string) *StateBuilder {
-	return &StateBuilder{
+func NewStateBuilder(name string) *Builder {
+	return &Builder{
 		name:    name,
 		KV:      make(map[string][]byte),
 		bundler: nil,
@@ -41,7 +35,7 @@ func NewStateBuilder(name string) *StateBuilder {
 	}
 }
 
-func (b *StateBuilder) PrintDeltas() {
+func (b *Builder) PrintDeltas() {
 	if len(b.Deltas) == 0 {
 		return
 	}
@@ -53,7 +47,7 @@ func (b *StateBuilder) PrintDeltas() {
 	}
 }
 
-func (b *StateBuilder) Init(startBlockNum uint64, dataFolder string) error {
+func (b *Builder) Init(startBlockNum uint64, dataFolder string) error {
 	relativeKvStartBlock := (startBlockNum / 100) * 100
 	kvTotalPairFile := fmt.Sprintf("%s/%d-%s.kv", dataFolder, relativeKvStartBlock, b.name)
 	if _, err := os.Stat(kvTotalPairFile); err == nil {
@@ -88,7 +82,7 @@ type StateDelta struct {
 
 var NotFound = errors.New("state key not found")
 
-func (b *StateBuilder) GetFirst(key string) ([]byte, bool) {
+func (b *Builder) GetFirst(key string) ([]byte, bool) {
 	for _, delta := range b.Deltas {
 		if delta.Key == key {
 			switch delta.Op {
@@ -105,14 +99,14 @@ func (b *StateBuilder) GetFirst(key string) ([]byte, bool) {
 	return b.GetLast(key)
 }
 
-func (b *StateBuilder) GetLast(key string) ([]byte, bool) {
+func (b *Builder) GetLast(key string) ([]byte, bool) {
 	val, found := b.KV[key]
 	return val, found
 
 }
 
 // GetAt returns the key for the state that includes the processing of `ord`.
-func (b *StateBuilder) GetAt(ord uint64, key string) (out []byte, found bool) {
+func (b *Builder) GetAt(ord uint64, key string) (out []byte, found bool) {
 	out, found = b.GetLast(key)
 
 	for i := len(b.Deltas) - 1; i >= 0; i-- {
@@ -136,7 +130,7 @@ func (b *StateBuilder) GetAt(ord uint64, key string) (out []byte, found bool) {
 	}
 	return
 }
-func (b *StateBuilder) Del(ord uint64, key string) {
+func (b *Builder) Del(ord uint64, key string) {
 	val, found := b.GetLast(key)
 	if found {
 		delta := &StateDelta{
@@ -150,7 +144,7 @@ func (b *StateBuilder) Del(ord uint64, key string) {
 		b.Deltas = append(b.Deltas, *delta)
 	}
 }
-func (b *StateBuilder) Set(ord uint64, key string, value []byte) {
+func (b *Builder) Set(ord uint64, key string, value []byte) {
 	val, found := b.GetLast(key)
 	var delta *StateDelta
 	if found {
@@ -174,7 +168,7 @@ func (b *StateBuilder) Set(ord uint64, key string, value []byte) {
 	b.Deltas = append(b.Deltas, *delta)
 }
 
-func (b *StateBuilder) applyDelta(delta *StateDelta) {
+func (b *Builder) applyDelta(delta *StateDelta) {
 	switch delta.Op {
 	case "u", "c":
 		b.KV[delta.Key] = delta.NewValue
@@ -184,14 +178,14 @@ func (b *StateBuilder) applyDelta(delta *StateDelta) {
 
 }
 
-func (b *StateBuilder) Flush() {
+func (b *Builder) Flush() {
 	for _, delta := range b.Deltas {
 		b.applyDelta(&delta)
 	}
 	b.Deltas = nil
 }
 
-func (b *StateBuilder) StoreBlock(ctx context.Context, block *bstream.Block) error {
+func (b *Builder) StoreBlock(ctx context.Context, block *bstream.Block) error {
 	blockNumber := block.Number
 
 	if b.bundler == nil {
@@ -234,7 +228,7 @@ func (b *StateBuilder) StoreBlock(ctx context.Context, block *bstream.Block) err
 	return nil
 }
 
-func (b *StateBuilder) mustBlockToOneBlockFile(block *bstream.Block) *bundle.OneBlockFile {
+func (b *Builder) mustBlockToOneBlockFile(block *bstream.Block) *bundle.OneBlockFile {
 	getUint64Pointer := func(n uint64) *uint64 {
 		var ptr *uint64
 		*ptr = n

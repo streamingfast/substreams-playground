@@ -3,6 +3,7 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/streamingfast/sparkle-pancakeswap/state"
 	"math/big"
 
 	eth "github.com/streamingfast/eth-go"
@@ -14,7 +15,7 @@ type SwapsExtractor struct {
 	*SubstreamIntrinsics
 }
 
-func (p *SwapsExtractor) Map(block *pbcodec.Block, pairsState StateReader, pricesState StateReader) (swaps Swaps, err error) {
+func (p *SwapsExtractor) Map(block *pbcodec.Block, pairsState state.Reader, pricesState state.Reader) (swaps Swaps, err error) {
 	for _, trx := range block.TransactionTraces {
 		for _, log := range trx.Receipt.Logs {
 			// perhaps we can optimize in a small local map, if we
@@ -54,7 +55,6 @@ func (p *SwapsExtractor) Map(block *pbcodec.Block, pairsState StateReader, price
 				if !found {
 					usdPrice = bf()
 				}
-
 
 				_ = amount0Total
 				_ = amount1Total

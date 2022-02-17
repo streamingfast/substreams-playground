@@ -1,4 +1,4 @@
-package exchange
+package state
 
 import (
 	"testing"
@@ -38,7 +38,7 @@ func TestStateBuilder(t *testing.T) {
 	assert.Nil(t, val)
 	assert.False(t, found)
 
-	val, found = s.GetAt(5,  "1")
+	val, found = s.GetAt(5, "1")
 	assert.Equal(t, string("val7"), string(val))
 	assert.True(t, found)
 

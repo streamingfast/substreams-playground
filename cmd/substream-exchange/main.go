@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/streamingfast/sparkle-pancakeswap/state"
 	"io"
 	"log"
 	"net/http"
@@ -82,14 +83,14 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 	intr := exchange.NewSubstreamIntrinsics(rpcClient, rpcCache, true)
 	_ = subgraphDef
 
-	pairsStore := exchange.NewStateBuilder("pairs")
+	pairsStore := state.NewStateBuilder("pairs")
 	//pairsStore.Init(startBlockNum, "/Users/cbillett/t/substream-data")
 
-	totalPairsStore := exchange.NewStateBuilder("total_pairs")
+	totalPairsStore := state.NewStateBuilder("total_pairs")
 	//totalPairsStore.Init(startBlockNum, "/Users/cbillett/t/substream-data")
 
-	pairsPriceStore := exchange.NewStateBuilder("pairs_price")
-	volume24hStore := exchange.NewStateBuilder("volume24h")
+	pairsPriceStore := state.NewStateBuilder("pairs_price")
+	volume24hStore := state.NewStateBuilder("volume24h")
 
 	pairExtractor := &exchange.PairExtractor{SubstreamIntrinsics: intr, Contract: eth.Address(exchange.FactoryAddressBytes)}
 	pcsPairsStateBuilder := &exchange.PCSPairsStateBuilder{SubstreamIntrinsics: intr}
@@ -136,18 +137,17 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 		}
 		reserveUpdates.Print()
 
-		if err := pcsPricesStateBuilder.BuildState(reserveUpdates, pairsPriceStore); err != nil {
+		if err := pcsPricesStateBuilder.BuildState(reserveUpdates, pairsPriceStore, pairsStore); err != nil {
 			return fmt.Errorf("pairs price building: %w", err)
 		}
 		pairsPriceStore.PrintDeltas()
 
-		swaps,  err := swapsExtractor.Map(blk, pairsStore)
+		swaps, err := swapsExtractor.Map(blk, pairsStore, pairsPriceStore)
 		if err != nil {
 			return fmt.Errorf("swaps extractor: %w", err)
 		}
 
-
-		if err := volume24hStateBuilder.BuildState(blk, swapUpdates, volume24hStore); err != nil {
+		if err := volume24hStateBuilder.BuildState(blk, swaps, volume24hStore); err != nil {
 			return fmt.Errorf("volume24 builder: %w", err)
 		}
 
