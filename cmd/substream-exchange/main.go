@@ -54,7 +54,7 @@ func main() {
 
 	hose := firehose.New([]dstore.Store{blocksStore}, startBlock, pipe,
 		firehose.WithForkableSteps(bstream.StepIrreversible),
-		firehose.WithIrreversibleBlocksIndex(irrStore, true, []uint64{1000, 100}),
+		firehose.WithIrreversibleBlocksIndex(irrStore, true, []uint64{10000, 1000, 100}),
 	)
 
 	if err := hose.Run(context.Background()); err != nil {
@@ -92,8 +92,8 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 
 	pairsStore := state.NewStateBuilder("pairs", ioFactory)
 	pairsStore.Init(startBlockNum)
-
-	err = subscriptionHub.RegisterTopic(pairsStore.Name)
+	
+	err = subscriptionHub.RegisterTopic(pairsStor
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -140,7 +140,7 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 
 		// TODO: eventually, handle the `undo` signals.
 		//  NOTE: The RUNTIME will handle the undo signals. It'll have all it needs.
-		if block.Number >= startBlockNum+10000 {
+		if block.Number >= startBlockNum+30000 {
 			return io.EOF
 		}
 
@@ -148,7 +148,7 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 		intr.SetCurrentBlock(blk)
 
 		fmt.Println("-------------------------------------------------------------------")
-		fmt.Println("BLOCK", blk.Num(), blk.ID())
+		fmt.Println("BLOCK", blk.Num()-startBlockNum, blk.Num(), blk.ID())
 
 		pairs, err := pairExtractor.Map(blk)
 		if err != nil {
@@ -178,12 +178,12 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 		}
 		//reserveUpdates.Print()
 
-		if err := pcsPricesStateBuilder.BuildState(reserveUpdates, pairsPriceStore, pairsStore); err != nil {
+		if err := pcsPricesStateBuilder.BuildState(reserveUpdates, pairsStore, pricesStore); err != nil {
 			return fmt.Errorf("pairs price building: %w", err)
 		}
-		//pairsPriceStore.PrintDeltas()
+		pricesStore.PrintDeltas()
 
-		swaps, err := swapsExtractor.Map(blk, pairsStore, pairsPriceStore)
+		swaps, err := swapsExtractor.Map(blk, pairsStore, pricesStore)
 		if err != nil {
 			return fmt.Errorf("swaps extractor: %w", err)
 		}
@@ -201,7 +201,7 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 		// Prep for next block
 		//pairsStore.Flush()
 		pairsStore.StoreBlock(context.Background(), block)
-		//totalPairsStore.Flush()
+		pricesStore.Flush()
 		totalPairsStore.StoreBlock(context.Background(), block)
 		//pairsPriceStore.Flush()
 		pairsPriceStore.StoreBlock(context.Background(), block)

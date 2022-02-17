@@ -1,14 +1,16 @@
 package state
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/streamingfast/bstream"
-	"github.com/streamingfast/merger/bundle"
 	"sort"
 	"strings"
+
+	"github.com/streamingfast/bstream"
+	"github.com/streamingfast/merger/bundle"
 )
 
 type Builder struct {
@@ -41,9 +43,6 @@ func (b *Builder) PrintDeltas() {
 }
 
 func (b *Builder) PrintDelta(delta *StateDelta) {
-	if len(b.Deltas) == 0 {
-		return
-	}
 	fmt.Println("State deltas for", b.Name)
 	fmt.Printf("  %s (%d) KEY: %q\n", strings.ToUpper(delta.Op), delta.Ordinal, delta.Key)
 	fmt.Printf("    OLD: %s\n", string(delta.OldValue))
@@ -150,6 +149,7 @@ func (b *Builder) GetAt(ord uint64, key string) (out []byte, found bool) {
 	}
 	return
 }
+
 func (b *Builder) Del(ord uint64, key string) {
 	val, found := b.GetLast(key)
 	if found {
@@ -164,10 +164,18 @@ func (b *Builder) Del(ord uint64, key string) {
 		b.Deltas = append(b.Deltas, *delta)
 	}
 }
+
 func (b *Builder) Set(ord uint64, key string, value []byte) {
+	// WARN: if we `Set()`  for a PREVIOUS ordinal, we'll have a hard time here!
+	// We need to ensure we always increment the ordinals.
+
 	val, found := b.GetLast(key)
 	var delta *StateDelta
 	if found {
+		//Uncomment when finished debugging:
+		if bytes.Compare(value, val) == 0 {
+			return
+		}
 		delta = &StateDelta{
 			Op:       "u",
 			Ordinal:  ord,

@@ -51,7 +51,7 @@ func (p *SwapsExtractor) Map(block *pbcodec.Block, pairsState state.Reader, pric
 				amount1Total := entity.FloatAdd(amount1Out, amount1In)
 
 				var usdPrice *big.Float
-				usdPriceData, found := pricesState.GetAt(logOrdinal, "usd")
+				usdPriceData, found := pricesState.GetAt(logOrdinal, "price:usd:bnb")
 				if !found {
 					usdPrice = bf()
 				}
