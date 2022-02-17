@@ -110,7 +110,6 @@ func isWhitelistedAddress(address string) bool {
 	return false
 }
 
-
 func byteMap(in map[string]string) map[string][]byte {
 	out := map[string][]byte{}
 	for k, v := range in {
@@ -125,4 +124,11 @@ func stringMap(in map[string][]byte) map[string]string {
 		out[k] = string(v)
 	}
 	return out
+}
+
+func foundOrZeroFloat(in []byte, found bool) *big.Float {
+	if !found {
+		return bf()
+	}
+	return bytesToFloat(in).Ptr().Float()
 }

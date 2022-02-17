@@ -193,7 +193,7 @@ func (p *Pipeline) handlerFactory(blockCount uint64) bstream.Handler {
 		p.intr.SetCurrentBlock(blk)
 
 		fmt.Println("-------------------------------------------------------------------")
-		fmt.Println("BLOCK", blk.Num()-p.startBlockNum, blk.Num(), blk.ID())
+		fmt.Printf("BLOCK +%d %d %s\n", blk.Num()-p.startBlockNum, blk.Num(), blk.ID())
 
 		pairs, err := pairExtractor.Map(blk)
 		if err != nil {
@@ -233,11 +233,13 @@ func (p *Pipeline) handlerFactory(blockCount uint64) bstream.Handler {
 			return fmt.Errorf("swaps extractor: %w", err)
 		}
 
+		swaps.Print()
+
 		if err := volume24hStateBuilder.BuildState(blk, swaps, p.stores["volume24h"]); err != nil {
 			return fmt.Errorf("volume24 builder: %w", err)
 		}
 
-		//volume24hStore.PrintDeltas()
+		p.stores["volume24h"].PrintDeltas()
 
 		// Build a new "ReserveFilter{Pairs: []}"
 		// followed by a AvgPriceStateBuilder

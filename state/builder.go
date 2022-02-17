@@ -269,7 +269,7 @@ func (b *Builder) ReadState(ctx context.Context, startBlockNum uint64) error {
 
 	b.KV = byteMap(kv) // FOR READABILITY ON DISK
 
-	fmt.Printf("loading KV from disk for %q: %d entries", b.Name, len(b.KV))
+	fmt.Printf("loading KV from disk for %q: %d entries\n", b.Name, len(b.KV))
 
 	return nil
 }

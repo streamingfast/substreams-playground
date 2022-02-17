@@ -3,8 +3,9 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/streamingfast/sparkle-pancakeswap/state"
 	"math/big"
+
+	"github.com/streamingfast/sparkle-pancakeswap/state"
 
 	eth "github.com/streamingfast/eth-go"
 	"github.com/streamingfast/sparkle/entity"
@@ -50,17 +51,31 @@ func (p *SwapsExtractor) Map(block *pbcodec.Block, pairsState state.Reader, pric
 				amount0Total := entity.FloatAdd(amount0Out, amount0In)
 				amount1Total := entity.FloatAdd(amount1Out, amount1In)
 
-				var usdPrice *big.Float
+				token0Price := foundOrZeroFloat(pricesState.GetAt(logOrdinal, fmt.Sprintf("price:%s:bnb", pair.Token0.Address)))
+				token1Price := foundOrZeroFloat(pricesState.GetAt(logOrdinal, fmt.Sprintf("price:%s:bnb", pair.Token1.Address)))
+
+				derivedAmountBNB := bf().Quo(
+					bf().Add(
+						bf().Mul(token0Price, amount0Total.Ptr().Float()),
+						bf().Mul(token1Price, amount1Total.Ptr().Float()),
+					),
+					big.NewFloat(2),
+				)
+
+				var amountUSD string
+
 				usdPriceData, found := pricesState.GetAt(logOrdinal, "price:usd:bnb")
-				if !found {
-					usdPrice = bf()
+				if found {
+					usdPrice := bytesToFloat(usdPriceData).Ptr().Float()
+					// TODO: revise this, that's not really what the Swap does
+
+					amountUSD = floatToStr(bf().Mul(derivedAmountBNB, usdPrice))
 				}
 
+				//prices.GetAt(logOrdinal, fmt.Sprintf(""))
+				// TODO: DO SOMETHING HERE! It's always 123.. quite the shortcut :)
 				_ = amount0Total
 				_ = amount1Total
-				_ = usdPrice
-				_ = usdPriceData
-				amountUSD := "123"
 
 				swap := PCSSwap{
 					PairAddress: addr,

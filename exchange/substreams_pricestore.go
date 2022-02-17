@@ -59,19 +59,20 @@ func (p *PCSPricesStateBuilder) BuildState(reserveUpdates PCSReserveUpdates, pai
 			latestUSD = strToFloat(string(latestUSDData)).Ptr().Float()
 		}
 
-		t0DerivedBNB := p.findBnbPricePerToken(update.LogOrdinal, pair.Token0.Address, pairs, prices)
-		t1DerivedBNB := p.findBnbPricePerToken(update.LogOrdinal, pair.Token1.Address, pairs, prices)
-		t0DerivedUSD := bf().Mul(t0DerivedBNB, latestUSD)
-		t1DerivedUSD := bf().Mul(t1DerivedBNB, latestUSD)
+		t0DerivedBNBPrice := p.findBnbPricePerToken(update.LogOrdinal, pair.Token0.Address, pairs, prices)
+		t1DerivedBNBPrice := p.findBnbPricePerToken(update.LogOrdinal, pair.Token1.Address, pairs, prices)
+		t0DerivedUSDPrice := bf().Mul(t0DerivedBNBPrice, latestUSD)
+		t1DerivedUSDPrice := bf().Mul(t1DerivedBNBPrice, latestUSD)
 
-		prices.Set(update.LogOrdinal, fmt.Sprintf("price:%s:bnb", pair.Token0.Address), []byte(floatToStr(t0DerivedBNB)))
-		prices.Set(update.LogOrdinal, fmt.Sprintf("price:%s:bnb", pair.Token1.Address), []byte(floatToStr(t1DerivedBNB)))
-		prices.Set(update.LogOrdinal, fmt.Sprintf("price:%s:usd", pair.Token0.Address), []byte(floatToStr(t0DerivedUSD)))
-		prices.Set(update.LogOrdinal, fmt.Sprintf("price:%s:usd", pair.Token1.Address), []byte(floatToStr(t1DerivedUSD)))
+		prices.Set(update.LogOrdinal, fmt.Sprintf("price:%s:bnb", pair.Token0.Address), []byte(floatToStr(t0DerivedBNBPrice)))
+		prices.Set(update.LogOrdinal, fmt.Sprintf("price:%s:bnb", pair.Token1.Address), []byte(floatToStr(t1DerivedBNBPrice)))
+		prices.Set(update.LogOrdinal, fmt.Sprintf("price:%s:usd", pair.Token0.Address), []byte(floatToStr(t0DerivedUSDPrice)))
+		prices.Set(update.LogOrdinal, fmt.Sprintf("price:%s:usd", pair.Token1.Address), []byte(floatToStr(t1DerivedUSDPrice)))
 	}
 	return nil
 }
 
+// findBnbPricePerToken provides a derived price multiplier from this token to BNB, transiting through trusted pairs.
 func (p *PCSPricesStateBuilder) findBnbPricePerToken(logOrdinal uint64, tokenAddr string, pairs state.Reader, prices state.Reader) *big.Float {
 	if tokenAddr == WBNB_ADDRESS {
 		return big.NewFloat(1) // BNB price of a BNB is always 1

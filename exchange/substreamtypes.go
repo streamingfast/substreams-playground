@@ -88,6 +88,15 @@ type PCSReserveUpdate struct {
 
 type Swaps []PCSSwap
 
+func (p Swaps) Print() {
+	if len(p) == 0 {
+		return
+	}
+	fmt.Println("Swaps updates:")
+	cnt, _ := json.MarshalIndent(p, "", "  ")
+	fmt.Println(string(cnt))
+}
+
 type PCSSwap struct {
 	PairAddress string
 	// Token0      string
