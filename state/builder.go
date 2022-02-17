@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/streamingfast/bstream"
 	"io"
 	"io/ioutil"
 	"os"
@@ -13,11 +12,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/streamingfast/bstream"
 	"github.com/streamingfast/merger/bundle"
 )
 
 type Builder struct {
-	name string
+	Name string
 
 	bundler *bundle.Bundler
 	io      StateIO
@@ -28,7 +28,7 @@ type Builder struct {
 
 func NewStateBuilder(name string) *Builder {
 	return &Builder{
-		name:    name,
+		Name:    name,
 		KV:      make(map[string][]byte),
 		bundler: nil,
 		io:      &NoopStateIO{},
@@ -39,32 +39,40 @@ func (b *Builder) PrintDeltas() {
 	if len(b.Deltas) == 0 {
 		return
 	}
-	fmt.Println("State deltas for", b.name)
+	fmt.Println("State deltas for", b.Name)
 	for _, delta := range b.Deltas {
-		fmt.Printf("  %s (%d) KEY: %q\n", strings.ToUpper(delta.Op), delta.Ordinal, delta.Key)
-		fmt.Printf("    OLD: %s\n", string(delta.OldValue))
-		fmt.Printf("    NEW: %s\n", string(delta.NewValue))
+		b.PrintDelta(&delta)
 	}
+}
+
+func (b *Builder) PrintDelta(delta *StateDelta) {
+	if len(b.Deltas) == 0 {
+		return
+	}
+	fmt.Println("State deltas for", b.Name)
+	fmt.Printf("  %s (%d) KEY: %q\n", strings.ToUpper(delta.Op), delta.Ordinal, delta.Key)
+	fmt.Printf("    OLD: %s\n", string(delta.OldValue))
+	fmt.Printf("    NEW: %s\n", string(delta.NewValue))
 }
 
 func (b *Builder) Init(startBlockNum uint64, dataFolder string) error {
 	relativeKvStartBlock := (startBlockNum / 100) * 100
-	kvTotalPairFile := fmt.Sprintf("%s/%d-%s.kv", dataFolder, relativeKvStartBlock, b.name)
+	kvTotalPairFile := fmt.Sprintf("%s/%d-%s.kv", dataFolder, relativeKvStartBlock, b.Name)
 	if _, err := os.Stat(kvTotalPairFile); err == nil {
 		data, _ := ioutil.ReadFile(kvTotalPairFile)
 		err = json.Unmarshal(data, &b.KV)
 		if err != nil {
-			return fmt.Errorf("unmarshalling kv for %s at block %d: %w", b.name, relativeKvStartBlock, err)
+			return fmt.Errorf("unmarshalling kv for %s at block %d: %w", b.Name, relativeKvStartBlock, err)
 		}
 	}
 
 	for i := relativeKvStartBlock; i < startBlockNum; i++ {
-		deltaFile := fmt.Sprintf("%s/%d-%s.delta", dataFolder, i, b.name)
+		deltaFile := fmt.Sprintf("%s/%d-%s.delta", dataFolder, i, b.Name)
 		if _, err := os.Stat(deltaFile); err == nil {
 			data, _ := ioutil.ReadFile(deltaFile)
 			err = json.Unmarshal(data, &b.Deltas)
 			if err != nil {
-				return fmt.Errorf("unmarshalling delta for %s at block %d: %s", b.name, i, err)
+				return fmt.Errorf("unmarshalling delta for %s at block %d: %s", b.Name, i, err)
 			}
 			b.Flush()
 		}
@@ -211,14 +219,14 @@ func (b *Builder) StoreBlock(ctx context.Context, block *bstream.Block) error {
 		content, _ := json.MarshalIndent(b.KV, "", "  ")
 		err = b.io.WriteState(ctx, content, blockNumber)
 		if err != nil {
-			return fmt.Errorf("writing %s kv at block %d: %w", b.name, blockNumber, err)
+			return fmt.Errorf("writing %s kv at block %d: %w", b.Name, blockNumber, err)
 		}
 	}
 
 	content, _ := json.MarshalIndent(b.Deltas, "", "  ")
 	err := b.io.WriteDelta(ctx, content, blockNumber)
 	if err != nil {
-		return fmt.Errorf("writing %s delta at block %d: %w", b.name, blockNumber, err)
+		return fmt.Errorf("writing %s delta at block %d: %w", b.Name, blockNumber, err)
 	}
 
 	obf := b.mustBlockToOneBlockFile(block)
@@ -235,7 +243,7 @@ func (b *Builder) mustBlockToOneBlockFile(block *bstream.Block) *bundle.OneBlock
 		return ptr
 	}
 
-	filename := GetDeltaFileName(b.name, block.Num())
+	filename := GetDeltaFileName(b.Name, block.Num())
 
 	return &bundle.OneBlockFile{
 		CanonicalName: filename,

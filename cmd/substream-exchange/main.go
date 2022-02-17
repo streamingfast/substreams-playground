@@ -3,12 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/streamingfast/sparkle-pancakeswap/state"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/streamingfast/sparkle-pancakeswap/subscription"
 
 	"github.com/streamingfast/bstream"
 	"github.com/streamingfast/bstream/firehose"
@@ -16,6 +17,7 @@ import (
 	"github.com/streamingfast/eth-go"
 	"github.com/streamingfast/eth-go/rpc"
 	"github.com/streamingfast/sparkle-pancakeswap/exchange"
+	"github.com/streamingfast/sparkle-pancakeswap/state"
 	"github.com/streamingfast/sparkle/indexer"
 	pbcodec "github.com/streamingfast/sparkle/pb/sf/ethereum/codec/v1"
 )
@@ -77,6 +79,8 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 		log.Fatalln("setting up store for rpc-cache:", err)
 	}
 
+	subscriptionHub := subscription.NewHub()
+
 	rpcCache := indexer.NewCache(rpcCacheStore, rpcCacheStore, 0, 999)
 	rpcCache.Load(context.Background())
 
@@ -84,6 +88,28 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 	_ = subgraphDef
 
 	pairsStore := state.NewStateBuilder("pairs")
+	err = subscriptionHub.RegisterTopic(pairsStore.Name)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	pairSubscriber := subscription.NewSubscriber()
+	err = subscriptionHub.Subscribe(pairSubscriber, pairsStore.Name)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	go func() {
+		for {
+			delta, err := pairSubscriber.Next()
+			if err != nil {
+				log.Fatalln(err)
+			}
+			fmt.Print("pair subscriber next delta: ")
+			pairsStore.PrintDelta(delta)
+		}
+	}()
+
 	//pairsStore.Init(startBlockNum, "/Users/cbillett/t/substream-data")
 
 	totalPairsStore := state.NewStateBuilder("total_pairs")
@@ -118,12 +144,17 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 		if err != nil {
 			return fmt.Errorf("extracting pairs: %w", err)
 		}
-
 		//pairs.Print()
 
 		if err := pcsPairsStateBuilder.BuildState(pairs, pairsStore); err != nil {
 			return fmt.Errorf("processing pair cache: %w", err)
 		}
+
+		err = subscriptionHub.BroadcastDeltas(pairsStore.Name, pairsStore.Deltas)
+		if err != nil {
+			return fmt.Errorf("broadcasting deltas for topic [%s]", pairsStore.Name)
+		}
+
 		//pairsStore.PrintDeltas()
 
 		if err := pcsTotalPairsStateBuilder.BuildState(pairs, totalPairsStore); err != nil {
@@ -135,12 +166,12 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 		if err != nil {
 			return fmt.Errorf("processing reserves extractor: %w", err)
 		}
-		reserveUpdates.Print()
+		//reserveUpdates.Print()
 
 		if err := pcsPricesStateBuilder.BuildState(reserveUpdates, pairsPriceStore, pairsStore); err != nil {
 			return fmt.Errorf("pairs price building: %w", err)
 		}
-		pairsPriceStore.PrintDeltas()
+		//pairsPriceStore.PrintDeltas()
 
 		swaps, err := swapsExtractor.Map(blk, pairsStore, pairsPriceStore)
 		if err != nil {
@@ -151,7 +182,7 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 			return fmt.Errorf("volume24 builder: %w", err)
 		}
 
-		volume24hStore.PrintDeltas()
+		//volume24hStore.PrintDeltas()
 
 		// Build a new "ReserveFilter{Pairs: []}"
 		// followed by a AvgPriceStateBuilder
