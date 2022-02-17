@@ -87,7 +87,10 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 	intr := exchange.NewSubstreamIntrinsics(rpcClient, rpcCache, true)
 	_ = subgraphDef
 
-	pairsStore := state.NewStateBuilder("pairs")
+	folder := "./localdata"
+	ioFactory := state.NewDiskStateIOFactory(folder)
+
+	pairsStore := state.NewStateBuilder("pairs", ioFactory)
 	err = subscriptionHub.RegisterTopic(pairsStore.Name)
 	if err != nil {
 		log.Fatalln(err)
@@ -110,13 +113,13 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 		}
 	}()
 
-	//pairsStore.Init(startBlockNum, "/Users/cbillett/t/substream-data")
+	//pairsStore.Init(startBlockNum)
 
-	totalPairsStore := state.NewStateBuilder("total_pairs")
-	//totalPairsStore.Init(startBlockNum, "/Users/cbillett/t/substream-data")
+	totalPairsStore := state.NewStateBuilder("total_pairs", ioFactory)
+	//totalPairsStore.Init(startBlockNum)
 
-	pairsPriceStore := state.NewStateBuilder("pairs_price")
-	volume24hStore := state.NewStateBuilder("volume24h")
+	pairsPriceStore := state.NewStateBuilder("pairs_price", ioFactory)
+	volume24hStore := state.NewStateBuilder("volume24h", ioFactory)
 
 	pairExtractor := &exchange.PairExtractor{SubstreamIntrinsics: intr, Contract: eth.Address(exchange.FactoryAddressBytes)}
 	pcsPairsStateBuilder := &exchange.PCSPairsStateBuilder{SubstreamIntrinsics: intr}
