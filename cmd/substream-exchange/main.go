@@ -91,6 +91,8 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 	ioFactory := state.NewDiskStateIOFactory(folder)
 
 	pairsStore := state.NewStateBuilder("pairs", ioFactory)
+	pairsStore.Init(startBlockNum)
+
 	err = subscriptionHub.RegisterTopic(pairsStore.Name)
 	if err != nil {
 		log.Fatalln(err)
@@ -117,13 +119,14 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 		}
 	}()
 
-	//pairsStore.Init(startBlockNum)
-
 	totalPairsStore := state.NewStateBuilder("total_pairs", ioFactory)
-	//totalPairsStore.Init(startBlockNum)
+	totalPairsStore.Init(startBlockNum)
 
 	pairsPriceStore := state.NewStateBuilder("pairs_price", ioFactory)
+	pairsPriceStore.Init(startBlockNum)
+
 	volume24hStore := state.NewStateBuilder("volume24h", ioFactory)
+	volume24hStore.Init(startBlockNum)
 
 	pairExtractor := &exchange.PairExtractor{SubstreamIntrinsics: intr, Contract: eth.Address(exchange.FactoryAddressBytes)}
 	pcsPairsStateBuilder := &exchange.PCSPairsStateBuilder{SubstreamIntrinsics: intr}

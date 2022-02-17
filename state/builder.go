@@ -63,7 +63,9 @@ func (b *Builder) Init(startBlockNum uint64) error {
 	}
 
 	var deltas []*bundle.OneBlockFile
-	err = b.io.WalkDeltas(context.TODO(), relativeKvStartBlock, func(obf *bundle.OneBlockFile) error {
+
+	// walk from last kv checkpoint to current start block
+	err = b.io.WalkDeltas(context.TODO(), relativeKvStartBlock, startBlockNum, func(obf *bundle.OneBlockFile) error {
 		deltas = append(deltas, obf)
 		return nil
 	})

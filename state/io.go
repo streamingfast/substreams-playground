@@ -37,7 +37,7 @@ type StateIO interface {
 	ReadDelta(ctx context.Context, obf *bundle.OneBlockFile) ([]byte, error)
 	DeleteDelta(ctx context.Context, obf *bundle.OneBlockFile) error
 
-	WalkDeltas(ctx context.Context, startBlockNumber uint64, f func(obf *bundle.OneBlockFile) error) error
+	WalkDeltas(ctx context.Context, startBlockNumber, endBlockNumber uint64, f func(obf *bundle.OneBlockFile) error) error
 	MergeDeltas(ctx context.Context, lowerBlockBoundary uint64, files []*bundle.OneBlockFile) error
 
 	WriteState(ctx context.Context, content []byte, block *bstream.Block) error
@@ -59,8 +59,7 @@ func (d *DiskStateIO) WriteDelta(ctx context.Context, content []byte, obf *bundl
 }
 
 func (d *DiskStateIO) ReadDelta(ctx context.Context, obf *bundle.OneBlockFile) (data []byte, err error) {
-	for filename := range obf.Filenames { // will try to get MemoizeData from any of those files
-		path := filepath.Join(d.dataFolder, filename)
+	for path := range obf.Filenames { // will try to get MemoizeData from any of those files
 		if _, err = os.Stat(path); err != nil {
 			err = fmt.Errorf("file %s does not exist", path)
 			continue
@@ -72,7 +71,7 @@ func (d *DiskStateIO) ReadDelta(ctx context.Context, obf *bundle.OneBlockFile) (
 		default:
 		}
 
-		data, err = ioutil.ReadFile(filepath.Join(d.dataFolder, filename))
+		data, err = ioutil.ReadFile(path)
 		if err != nil {
 			continue
 		}
@@ -87,7 +86,7 @@ func (d *DiskStateIO) DeleteDelta(ctx context.Context, obf *bundle.OneBlockFile)
 	return nil
 }
 
-func (d *DiskStateIO) WalkDeltas(ctx context.Context, startBlockNumber uint64, f func(obf *bundle.OneBlockFile) error) error {
+func (d *DiskStateIO) WalkDeltas(ctx context.Context, startBlockNumber, endBlockNumber uint64, f func(obf *bundle.OneBlockFile) error) error {
 	return filepath.WalkDir(d.dataFolder, func(path string, de fs.DirEntry, err error) error {
 		if de.IsDir() {
 			return nil
@@ -97,16 +96,29 @@ func (d *DiskStateIO) WalkDeltas(ctx context.Context, startBlockNumber uint64, f
 			return nil
 		}
 
-		pathPrefix := fmt.Sprintf("%s%b", d.dataFolder, filepath.Separator)
+		isRelativePath := strings.HasPrefix(d.dataFolder, "./")
+
+		pathPrefix := fmt.Sprintf("%s%s", strings.TrimPrefix(d.dataFolder, "./"), string(filepath.Separator))
 		fileName := path
 		if strings.HasPrefix(path, pathPrefix) {
 			fileName = path[len(pathPrefix):]
 		}
 
+		if !strings.HasSuffix(fileName, fmt.Sprintf("-%s.delta", d.name)) {
+			return nil
+		}
+
 		obf := mustParseFileToOneBlockFile(fileName)
+		if isRelativePath {
+			path = fmt.Sprintf("%s%s", "./", path)
+		}
 		obf.Filenames[path] = struct{}{}
 
 		if obf.Num < startBlockNumber {
+			return nil
+		}
+
+		if obf.Num >= endBlockNumber {
 			return nil
 		}
 
@@ -151,37 +163,6 @@ func (d *DiskStateIO) ReadState(ctx context.Context, blockNumber uint64) ([]byte
 	return data, nil
 }
 
-type NoopStateIO struct {
-}
-
-func (n *NoopStateIO) WriteDelta(ctx context.Context, content []byte, obf *bundle.OneBlockFile) error {
-	return nil
-}
-
-func (n *NoopStateIO) ReadDelta(ctx context.Context, obf *bundle.OneBlockFile) ([]byte, error) {
-	return nil, nil
-}
-
-func (n *NoopStateIO) DeleteDelta(ctx context.Context, obf *bundle.OneBlockFile) error {
-	return nil
-}
-
-func (n *NoopStateIO) WalkDeltas(ctx context.Context, startBlockNumber uint64, f func(obf *bundle.OneBlockFile) error) error {
-	return nil
-}
-
-func (n *NoopStateIO) MergeDeltas(ctx context.Context, lowerBlockBoundary uint64, files []*bundle.OneBlockFile) error {
-	return nil
-}
-
-func (n *NoopStateIO) WriteState(ctx context.Context, content []byte, block *bstream.Block) error {
-	return nil
-}
-
-func (n *NoopStateIO) ReadState(ctx context.Context, blockNum uint64) ([]byte, error) {
-	return nil, nil
-}
-
 func GetDeltaFileName(name string, block *bstream.Block) string {
 	return fmt.Sprintf("%d-%d-%s-%s-%s.delta", block.Num(), block.LIBNum(), block.ID(), block.PreviousID(), name)
 }
@@ -200,6 +181,7 @@ func mustParseFileToOneBlockFile(path string) *bundle.OneBlockFile {
 
 	uint64ToPtr := func(num uint64) *uint64 {
 		var p *uint64
+		p = new(uint64)
 		*p = num
 		return p
 	}
@@ -221,6 +203,7 @@ func mustParseFileToOneBlockFile(path string) *bundle.OneBlockFile {
 		Num:           uint64(blockNum),
 		InnerLibNum:   uint64ToPtr(uint64(blockLibNum)),
 		PreviousID:    blockPrevId,
+		Filenames:     map[string]struct{}{},
 	}
 }
 
