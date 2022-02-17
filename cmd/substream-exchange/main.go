@@ -7,9 +7,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
-
-	"github.com/streamingfast/sparkle-pancakeswap/subscription"
 
 	"github.com/streamingfast/bstream"
 	"github.com/streamingfast/bstream/firehose"
@@ -18,6 +17,7 @@ import (
 	"github.com/streamingfast/eth-go/rpc"
 	"github.com/streamingfast/sparkle-pancakeswap/exchange"
 	"github.com/streamingfast/sparkle-pancakeswap/state"
+	"github.com/streamingfast/sparkle-pancakeswap/subscription"
 	"github.com/streamingfast/sparkle/indexer"
 	pbcodec "github.com/streamingfast/sparkle/pb/sf/ethereum/codec/v1"
 )
@@ -108,8 +108,12 @@ func setupPipeline(rpcEndpoint string, startBlockNum uint64) bstream.Handler {
 			if err != nil {
 				log.Fatalln(err)
 			}
-			fmt.Print("pair subscriber next delta: ")
+			if !strings.HasPrefix(delta.Key, "pair") {
+				continue
+			}
+
 			pairsStore.PrintDelta(delta)
+
 		}
 	}()
 

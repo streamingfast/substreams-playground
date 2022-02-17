@@ -38,8 +38,7 @@ func (h *Hub) BroadcastDeltas(topic string, deltas []state.StateDelta) error {
 	if subscriptions, found := h.topicSubscriptions[topic]; found {
 		for _, delta := range deltas {
 			for _, subscription := range subscriptions {
-				//todo: check subscription cap before sending
-				subscription.input <- &delta
+				subscription.input <- delta
 			}
 		}
 		return nil
@@ -48,7 +47,7 @@ func (h *Hub) BroadcastDeltas(topic string, deltas []state.StateDelta) error {
 	return fmt.Errorf("topic [%s] not found", topic)
 }
 
-func (h *Hub) BroadcastDelta(topic string, delta *state.StateDelta) error {
+func (h *Hub) BroadcastDelta(topic string, delta state.StateDelta) error {
 	h.subscribersMutex.Lock()
 	defer h.subscribersMutex.Unlock()
 	if subscriptions, found := h.topicSubscriptions[topic]; found {

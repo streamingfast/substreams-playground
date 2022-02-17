@@ -5,14 +5,14 @@ import (
 )
 
 type Subscriber struct {
-	input             chan *state.StateDelta
+	input             chan state.StateDelta
 	passedGracePeriod bool // allows blocks to go in channel even if len > h.sourceChannelSize
 	Shutdown          func(error)
 }
 
 func NewSubscriber() *Subscriber {
 	return &Subscriber{
-		input:             make(chan *state.StateDelta, 100),
+		input:             make(chan state.StateDelta, 100),
 		passedGracePeriod: false,
 		Shutdown:          nil,
 	}
@@ -21,7 +21,7 @@ func NewSubscriber() *Subscriber {
 func (s *Subscriber) Next() (*state.StateDelta, error) {
 	select {
 	case next := <-s.input:
-		return next, nil
+		return &next, nil
 	}
 
 	//return nil, io.EOF

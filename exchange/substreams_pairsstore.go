@@ -2,6 +2,7 @@ package exchange
 
 import (
 	"encoding/json"
+
 	"github.com/streamingfast/sparkle-pancakeswap/state"
 )
 
@@ -25,8 +26,8 @@ func (p *PCSPairsStateBuilder) BuildState(pairs PCSPairs, pairsStore *state.Buil
 			return err
 		}
 
-		pairsStore.Set(pair.LogOrdinal, pair.Address, cnt)
-		pairsStore.Set(pair.LogOrdinal, generateTokensKey(pair.Token0.Address, pair.Token1.Address), []byte(pair.Address))
+		pairsStore.Set(pair.LogOrdinal, "pair:"+pair.Address, cnt)
+		pairsStore.Set(pair.LogOrdinal, "tokens:"+generateTokensKey(pair.Token0.Address, pair.Token1.Address), []byte(pair.Address))
 	}
 	return nil
 }
