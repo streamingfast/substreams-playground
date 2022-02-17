@@ -90,3 +90,7 @@ func strToFloat(in string) entity.Float {
 
 	return entity.NewFloat(newFloat)
 }
+
+func bytesToFloat(in []byte) entity.Float {
+	return strToFloat(string(in))
+}

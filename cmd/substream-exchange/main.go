@@ -30,9 +30,10 @@ func main() {
 		localBlockPath = "./localblocks"
 	}
 
+	// TODO: use cobra for those freaking flags!
 	startBlockNum := int64(6810700)
 	forceLoadState := false
-	if len(os.Args) == 2 {
+	if len(os.Args) > 1 {
 		val, err := strconv.ParseInt(os.Args[1], 10, 64)
 		if err != nil {
 			log.Fatalln("invalid start block: ", os.Args[1])
@@ -41,7 +42,14 @@ func main() {
 		startBlockNum = val
 		forceLoadState = true
 	}
-	// Start piping blocks from a Firehose instance
+	var blockCount uint64 = 1000
+	if len(os.Args) > 2 {
+		val, err := strconv.ParseInt(os.Args[2], 10, 64)
+		if err != nil {
+			log.Fatalln("invalid block count: ", os.Args[2])
+		}
+		blockCount = uint64(val)
+	}
 
 	rpcEndpoint := os.Getenv("BSC_ENDPOINT")
 	if rpcEndpoint == "" {
@@ -92,7 +100,7 @@ func main() {
 	}
 	pipe.setupSubscriptionHub()
 	pipe.setupPrintPairUpdates()
-	handler := pipe.handlerFactory()
+	handler := pipe.handlerFactory(blockCount)
 
 	hose := firehose.New([]dstore.Store{blocksStore}, startBlockNum, handler,
 		firehose.WithForkableSteps(bstream.StepIrreversible),
@@ -154,7 +162,7 @@ func (p *Pipeline) setupPrintPairUpdates() {
 	// End subscription hub
 
 }
-func (p *Pipeline) handlerFactory() bstream.Handler {
+func (p *Pipeline) handlerFactory(blockCount uint64) bstream.Handler {
 	pairExtractor := &exchange.PairExtractor{SubstreamIntrinsics: p.intr, Contract: eth.Address(exchange.FactoryAddressBytes)}
 	pcsPairsStateBuilder := &exchange.PCSPairsStateBuilder{SubstreamIntrinsics: p.intr}
 	pcsTotalPairsStateBuilder := &exchange.PCSTotalPairsStateBuilder{SubstreamIntrinsics: p.intr}
@@ -167,7 +175,7 @@ func (p *Pipeline) handlerFactory() bstream.Handler {
 
 		// TODO: eventually, handle the `undo` signals.
 		//  NOTE: The RUNTIME will handle the undo signals. It'll have all it needs.
-		if block.Number >= p.startBlockNum+10000 {
+		if block.Number >= p.startBlockNum+blockCount {
 			//
 			// FLUSH ALL THE STORES TO DISK
 			// PRINT THE BLOCK NUMBER WHERE WE STOP, NEXT TIME START FROM THERE
@@ -175,6 +183,8 @@ func (p *Pipeline) handlerFactory() bstream.Handler {
 			for _, s := range p.stores {
 				s.WriteState(context.Background(), block)
 			}
+
+			p.rpcCache.Save(context.Background())
 
 			return io.EOF
 		}
@@ -233,19 +243,16 @@ func (p *Pipeline) handlerFactory() bstream.Handler {
 		// followed by a AvgPriceStateBuilder
 		// The idea is to replace: https://github.com/streamingfast/substream-pancakeswap/blob/master/exchange/handle_pair_sync_event.go#L249 into a stream.
 
-		// Flush state periodically, and deltas at all blocks, on disk.
+		//Flush state periodically, and deltas at all blocks, on disk.
 		// pairsStore.StoreBlock(context.Background(), block)
 		// totalPairsStore.StoreBlock(context.Background(), block)
 		// pricesStore.StoreBlock(context.Background(), block)
 		// volume24hStore.StoreBlock(context.Background(), block)
 
-		// Prep for next block, clean-up all deltas. This ought to be done by the runtime, when doing clean-up between blocks.
+		// Prep for next block, clean-up all deltas. This ought to be
+		// done by the runtime, when doing clean-up between blocks.
 		for _, s := range p.stores {
 			s.Flush()
-		}
-
-		if block.Number%100 == 0 {
-			p.rpcCache.Save(context.Background())
 		}
 
 		// MARK INDEX:

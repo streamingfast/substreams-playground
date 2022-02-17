@@ -38,6 +38,13 @@ func (p *PCSPricesStateBuilder) BuildState(reserveUpdates PCSReserveUpdates, pai
 
 		// HERE set: "reserve0bnb:%s", and fetch the Reserve0's price in BNB (from price:%s:bnb), and handle things if the price isn't there. DON'T write the key if we can't set a price. This will trickle down the "unset" value to where it belongs downstream.
 		// HERE set: "reserve1bnb:%s", and fetch the Reserve1's price in BNB (from price:%s:bnb), and handle things if the price isn't there.
+		reserve0BNB := p.setReserveInBNB(update.LogOrdinal, "reserve0", update.PairAddress, pair.Token0.Address, strToFloat(update.Reserve0), prices)
+		reserve1BNB := p.setReserveInBNB(update.LogOrdinal, "reserve1", update.PairAddress, pair.Token1.Address, strToFloat(update.Reserve1), prices)
+
+		reservesBNBSum := bf().Add(reserve0BNB, reserve1BNB)
+		if reservesBNBSum.Cmp(bf()) != 0 {
+			prices.Set(update.LogOrdinal, "reserves_bnb:"+update.PairAddress, []byte(floatToStr(reservesBNBSum)))
+		}
 
 		if update.PairAddress == USDT_WBNB_PAIR || update.PairAddress == BUSD_WBNB_PAIR {
 			newPrice := p.computeUSDPrice(update, prices /* FIX ME */)
@@ -72,35 +79,36 @@ func (p *PCSPricesStateBuilder) findBnbPricePerToken(logOrdinal uint64, tokenAdd
 
 	// loop all whitelist for a matching pair
 	for _, otherToken := range whitelist {
-		pairAddr, found := pairs.GetAt(logOrdinal, generateTokensKey(tokenAddr, otherToken))
+		pairAddr, found := pairs.GetAt(logOrdinal, "tokens:"+generateTokensKey(tokenAddr, otherToken))
 		if !found {
 			zlog.Debug("pair not found for tokens", zap.String("left", tokenAddr), zap.String("right", otherToken))
 			continue
 		}
 
 		var pair *PCSPair
-		pairData, _ := pairs.GetAt(logOrdinal, string(pairAddr))
+		pairData, _ := pairs.GetAt(logOrdinal, "pair:"+string(pairAddr))
 		json.Unmarshal(pairData, pair)
 
-		prices.GetLast(fmt.Sprintf("price:%s:bnb", otherToken))
-
 		_ = otherToken
-		// pairAddress := s.getPairAddressForTokens(tokenAddress, otherToken)
-		// if pairAddress == "" {
-		// 	s.Log.Debug("pair not found for tokens", zap.String("left", tokenAddress), zap.String("right", otherToken))
-		// 	continue
-		// }
 
-		// pair := NewPair(pairAddress)
-		// if err := s.Load(pair); err != nil {
-		// 	return nil, err
-		// }
+		val, found := prices.GetLast(fmt.Sprintf("reserves_bnb:%s", pairAddr))
+		if !found {
+			continue
+		}
+		if bytesToFloat(val).Ptr().Float().Cmp(MINIMUM_LIQUIDITY_THRESHOLD_BNB) <= 0 {
+			continue
+		}
 
-		// // get pair WBNB + pair.PairAddress, get its pair, and its price?!
+		val1, found := prices.GetLast(fmt.Sprintf("price:%s:bnb", otherToken))
+		if !found {
+			continue
+		}
+		val2, found := prices.GetLast(fmt.Sprintf("price:%s:%s", tokenAddr, otherToken))
+		if !found {
+			continue
+		}
 
-		// PROBLEM: WHO COMPUTES RESERVEBNB?!? Isn't that looping on your own head?
-		// It requires that we have processed the reserves, and marked them as BNB
-		// Handle things if that ReserveBNB key isn't present.
+		return entity.FloatMul(bytesToFloat(val1), bytesToFloat(val2)).Ptr().Float()
 
 		// if pair.Token0 == tokenAddress && pair.ReserveBNB.Float().Cmp(MINIMUM_LIQUIDITY_THRESHOLD_BNB) > 0 {
 		// 	token1 := NewToken(pair.Token1)
@@ -121,6 +129,26 @@ func (p *PCSPricesStateBuilder) findBnbPricePerToken(logOrdinal uint64, tokenAdd
 	return bf()
 
 }
+
+func (p *PCSPricesStateBuilder) setReserveInBNB(ord uint64, reserveName string, pairAddr string, tokenAddr string, reserveAmount entity.Float, prices *state.Builder) (out *big.Float) {
+	zero := bf()
+	val, found := prices.GetLast(fmt.Sprintf("price:%s:bnb", tokenAddr))
+	if !found {
+		return zero
+	}
+
+	bnbPrice := strToFloat(string(val))
+	bnbAmount := entity.FloatMul(bnbPrice, reserveAmount)
+
+	out = bnbAmount.Ptr().Float()
+
+	if out.Cmp(zero) != 0 {
+		prices.Set(ord, fmt.Sprintf("%sbnb:%s", reserveName, pairAddr), []byte(floatToStr(out)))
+	}
+
+	return out
+}
+
 func (p *PCSPricesStateBuilder) computeUSDPrice(update PCSReserveUpdate, prices *state.Builder) *big.Float {
 	usdtPairData, usdtFound := prices.GetAt(update.LogOrdinal, USDT_WBNB_PAIR) // usdt is token0
 	busdPairData, busdFound := prices.GetAt(update.LogOrdinal, BUSD_WBNB_PAIR) // busd is token1
