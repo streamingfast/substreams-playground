@@ -15,6 +15,7 @@ type PCSVolume24hStateBuilder struct {
 func (p *PCSVolume24hStateBuilder) BuildState(block *pbcodec.Block, swaps Swaps, volume24hStore *state.Builder) error {
 	timestamp := block.MustTime().Unix()
 	dayId := timestamp / 86400
+	//prevDayId := dayId - 1
 	//dayStartTimestamp := dayId * 86400, downstream can compute it
 
 	for _, swap := range swaps {
@@ -25,10 +26,14 @@ func (p *PCSVolume24hStateBuilder) BuildState(block *pbcodec.Block, swaps Swaps,
 		newVolume := bf().Add(volume, amountUSD).SetPrec(100)
 
 		volume24hStore.Set(swap.LogOrdinal, dayPairId, floatToStr(newVolume))
+		// volume24hStore.SetExpireBlock(dayPairId, block.Number + 1000)
+		// "_db:REV_BLOCK_NUM:key" -> ""
+		// "_dt:REV_TIMESTAMP:key" -> ""
+		// volume24hStore.SetExpireSeconds(dayPairId, 86400)
 
 		// timestamp := block.Timestamp()
 		// ttl := timestamp.Add(-2 * 86400 * time.Second)
-		// volume24hStore.Set(swap.LogOrdinal, "delete-key", fmt.Sprintf("%s %s", ttl, dayPairId))
+		// volume24hStore.Set(swap.LogOrdinal, "delete-key-%d", dayId fmt.Sprintf("%s %s", ttl, dayPairId))
 	}
 
 	// Each 3 days, we clean-up all the keys

@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/streamingfast/sparkle-pancakeswap/state"
-
 	eth "github.com/streamingfast/eth-go"
+	"github.com/streamingfast/sparkle-pancakeswap/state"
 	"github.com/streamingfast/sparkle/entity"
 	pbcodec "github.com/streamingfast/sparkle/pb/sf/ethereum/codec/v1"
 )
