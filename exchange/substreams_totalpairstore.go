@@ -7,11 +7,11 @@ import (
 	"github.com/streamingfast/sparkle-pancakeswap/state"
 )
 
-type PCSTotalPairsStateBuilder struct {
+type TotalPairsStateBuilder struct {
 	*SubstreamIntrinsics
 }
 
-func (p *PCSTotalPairsStateBuilder) BuildState(pairs PCSPairs, swapEvents Swaps /* burnEvents, mintEvents */, totalPairsStore *state.Builder) error {
+func (p *TotalPairsStateBuilder) BuildState(pairs PCSPairs, swapEvents Swaps /* burnEvents, mintEvents */, totalPairsStore *state.Builder) error {
 	if len(pairs) == 0 && len(swapEvents) == 0 {
 		return nil
 	}

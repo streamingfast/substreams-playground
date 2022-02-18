@@ -10,7 +10,7 @@ import (
 )
 
 func TestPriceStore(t *testing.T) {
-	b := &PCSPricesStateBuilder{SubstreamIntrinsics: nil}
+	b := &PricesStateBuilder{SubstreamIntrinsics: nil}
 
 	pairs := state.New("pairs", nil)
 	prices := state.New("prices", nil)

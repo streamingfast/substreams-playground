@@ -11,11 +11,11 @@ import (
 	"go.uber.org/zap"
 )
 
-type PCSPricesStateBuilder struct {
+type PricesStateBuilder struct {
 	*SubstreamIntrinsics
 }
 
-func (p *PCSPricesStateBuilder) BuildState(reserveUpdates PCSReserveUpdates, pairs state.Reader, prices *state.Builder) error {
+func (p *PricesStateBuilder) BuildState(reserveUpdates PCSReserveUpdates, pairs state.Reader, prices *state.Builder) error {
 	// TODO: could we get rid of `pairs` as a dependency, by packaging `Token0.Address` directly in the `ReserveUpdate` ?
 
 	for _, update := range reserveUpdates {
@@ -69,7 +69,7 @@ func (p *PCSPricesStateBuilder) BuildState(reserveUpdates PCSReserveUpdates, pai
 }
 
 // findBnbPricePerToken provides a derived price multiplier from this token to BNB, transiting through trusted pairs.
-func (p *PCSPricesStateBuilder) findBnbPricePerToken(logOrdinal uint64, tokenAddr string, pairs state.Reader, prices state.Reader) *big.Float {
+func (p *PricesStateBuilder) findBnbPricePerToken(logOrdinal uint64, tokenAddr string, pairs state.Reader, prices state.Reader) *big.Float {
 	if tokenAddr == WBNB_ADDRESS {
 		return big.NewFloat(1) // BNB price of a BNB is always 1
 	}
@@ -127,7 +127,7 @@ func (p *PCSPricesStateBuilder) findBnbPricePerToken(logOrdinal uint64, tokenAdd
 
 }
 
-func (p *PCSPricesStateBuilder) setReserveInBNB(ord uint64, reserveName string, pairAddr string, tokenAddr string, reserveAmount entity.Float, prices *state.Builder) (out *big.Float) {
+func (p *PricesStateBuilder) setReserveInBNB(ord uint64, reserveName string, pairAddr string, tokenAddr string, reserveAmount entity.Float, prices *state.Builder) (out *big.Float) {
 	zero := bf()
 	val, found := prices.GetLast(fmt.Sprintf("price:%s:bnb", tokenAddr))
 	if !found {
@@ -153,7 +153,7 @@ const (
 	USDT_PRICE_KEY     = "price:0x55d398326f99059ff775485246999027b3197955:0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"
 )
 
-func (p *PCSPricesStateBuilder) computeUSDPrice(update PCSReserveUpdate, prices *state.Builder) *big.Float {
+func (p *PricesStateBuilder) computeUSDPrice(update PCSReserveUpdate, prices *state.Builder) *big.Float {
 	busdBNBReserve := foundOrZeroFloat(prices.GetAt(update.LogOrdinal, fmt.Sprintf("reserve0:%s", BUSD_WBNB_PAIR))) // strToFloat(busdPair.Reserve0)
 	usdtBNBReserve := foundOrZeroFloat(prices.GetAt(update.LogOrdinal, fmt.Sprintf("reserve1:%s", USDT_WBNB_PAIR))) // strToFloat(usdtPair.Reserve1)
 	totalLiquidityBNB := bf().Add(busdBNBReserve, usdtBNBReserve).SetPrec(100)

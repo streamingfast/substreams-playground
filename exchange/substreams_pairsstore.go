@@ -6,7 +6,7 @@ import (
 	"github.com/streamingfast/sparkle-pancakeswap/state"
 )
 
-type PCSPairsStateBuilder struct {
+type PairsStateBuilder struct {
 	*SubstreamIntrinsics
 }
 
@@ -19,7 +19,7 @@ type PCSPairsStateBuilder struct {
 
 // input: pbcodec.Block
 // output: STATE (path-to-storage, unique ID for storage)
-func (p *PCSPairsStateBuilder) BuildState(pairs PCSPairs, pairsStore *state.Builder) error {
+func (p *PairsStateBuilder) BuildState(pairs PCSPairs, pairsStore *state.Builder) error {
 	for _, pair := range pairs {
 		cnt, err := json.Marshal(pair)
 		if err != nil {

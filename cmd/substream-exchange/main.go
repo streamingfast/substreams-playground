@@ -164,9 +164,9 @@ func (p *Pipeline) setupPrintPairUpdates() {
 }
 func (p *Pipeline) handlerFactory(blockCount uint64) bstream.Handler {
 	pairExtractor := &exchange.PairExtractor{SubstreamIntrinsics: p.intr, Contract: eth.Address(exchange.FactoryAddressBytes)}
-	pcsPairsStateBuilder := &exchange.PCSPairsStateBuilder{SubstreamIntrinsics: p.intr}
-	pcsTotalPairsStateBuilder := &exchange.PCSTotalPairsStateBuilder{SubstreamIntrinsics: p.intr}
-	pcsPricesStateBuilder := &exchange.PCSPricesStateBuilder{SubstreamIntrinsics: p.intr}
+	pairsStateBuilder := &exchange.PairsStateBuilder{SubstreamIntrinsics: p.intr}
+	totalPairsStateBuilder := &exchange.TotalPairsStateBuilder{SubstreamIntrinsics: p.intr}
+	pricesStateBuilder := &exchange.PricesStateBuilder{SubstreamIntrinsics: p.intr}
 	reservesExtractor := &exchange.ReservesExtractor{SubstreamIntrinsics: p.intr}
 	swapsExtractor := &exchange.SwapsExtractor{SubstreamIntrinsics: p.intr}
 	volume24hStateBuilder := &exchange.PCSVolume24hStateBuilder{SubstreamIntrinsics: p.intr}
@@ -201,7 +201,7 @@ func (p *Pipeline) handlerFactory(blockCount uint64) bstream.Handler {
 		}
 		pairs.Print()
 
-		if err := pcsPairsStateBuilder.BuildState(pairs, p.stores["pairs"]); err != nil {
+		if err := pairsStateBuilder.BuildState(pairs, p.stores["pairs"]); err != nil {
 			return fmt.Errorf("processing pair cache: %w", err)
 		}
 
@@ -218,7 +218,7 @@ func (p *Pipeline) handlerFactory(blockCount uint64) bstream.Handler {
 		}
 		reserveUpdates.Print()
 
-		if err := pcsPricesStateBuilder.BuildState(reserveUpdates, p.stores["pairs"], p.stores["prices"]); err != nil {
+		if err := pricesStateBuilder.BuildState(reserveUpdates, p.stores["pairs"], p.stores["prices"]); err != nil {
 			return fmt.Errorf("pairs price building: %w", err)
 		}
 		p.stores["prices"].PrintDeltas()
@@ -230,7 +230,7 @@ func (p *Pipeline) handlerFactory(blockCount uint64) bstream.Handler {
 
 		swaps.Print()
 
-		if err := pcsTotalPairsStateBuilder.BuildState(pairs, swaps, p.stores["total_pairs"]); err != nil {
+		if err := totalPairsStateBuilder.BuildState(pairs, swaps, p.stores["total_pairs"]); err != nil {
 			return fmt.Errorf("processing total pairs: %w", err)
 		}
 		p.stores["total_pairs"].PrintDeltas()
