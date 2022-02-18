@@ -6,6 +6,7 @@ import (
 )
 
 func getTrackedVolumeUSD(bundle *Bundle, tokenAmount0 *big.Float, token0 *Token, tokenAmount1 *big.Float, token1 *Token) *big.Float {
+	// price:token0:bnb * price:usd:bnb
 	price0 := bf().Mul(token0.DerivedBNB.Float(), bundle.BnbPrice.Float())
 	price1 := bf().Mul(token1.DerivedBNB.Float(), bundle.BnbPrice.Float())
 
@@ -74,9 +75,9 @@ func getTrackedLiquidityUSD(bundle *Bundle, tokenAmount0 *big.Float, token0 *Tok
 
 func generateTokensKey(token0, token1 string) string {
 	if token0 > token1 {
-		return token1 + token0
+		return token1 + ":" + token0
 	}
-	return token0 + token1
+	return token0 + ":" + token1
 }
 
 // whitelist is a slice because we need to respect the order when using it in certain location, so

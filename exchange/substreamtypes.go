@@ -97,8 +97,8 @@ func (p Swaps) Print() {
 
 type PCSSwap struct {
 	PairAddress string
-	// Token0      string
-	// Token1      string
+	Token0      string
+	Token1      string
 
 	Transaction string
 
@@ -107,6 +107,7 @@ type PCSSwap struct {
 	Amount0Out string
 	Amount1Out string
 
+	AmountBNB string
 	AmountUSD string
 
 	Sender string

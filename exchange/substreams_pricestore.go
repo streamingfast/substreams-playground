@@ -46,21 +46,29 @@ func (p *PricesStateBuilder) BuildState(reserveUpdates PCSReserveUpdates, pairs 
 		if update.PairAddress == USDT_WBNB_PAIR || update.PairAddress == BUSD_WBNB_PAIR {
 			newPrice := p.computeUSDPrice(update, prices)
 			prices.Set(update.LogOrdinal, "price:usd:bnb", floatToStr(newPrice))
-			//os.Exit(0)
-			//log.Fatalln("stop!")
 		}
 
 		latestUSD := foundOrZeroFloat(prices.GetLast("price:usd:bnb"))
+		usdPriceValid := latestUSD.Cmp(bf()) != 0
 
 		t0DerivedBNBPrice := p.findBnbPricePerToken(update.LogOrdinal, pair.Token0.Address, pairs, prices)
 		t1DerivedBNBPrice := p.findBnbPricePerToken(update.LogOrdinal, pair.Token1.Address, pairs, prices)
-		t0DerivedUSDPrice := bf().Mul(t0DerivedBNBPrice, latestUSD)
-		t1DerivedUSDPrice := bf().Mul(t1DerivedBNBPrice, latestUSD)
 
-		prices.Set(update.LogOrdinal, fmt.Sprintf("price:%s:bnb", pair.Token0.Address), floatToStr(t0DerivedBNBPrice))
-		prices.Set(update.LogOrdinal, fmt.Sprintf("price:%s:bnb", pair.Token1.Address), floatToStr(t1DerivedBNBPrice))
-		prices.Set(update.LogOrdinal, fmt.Sprintf("price:%s:usd", pair.Token0.Address), floatToStr(t0DerivedUSDPrice))
-		prices.Set(update.LogOrdinal, fmt.Sprintf("price:%s:usd", pair.Token1.Address), floatToStr(t1DerivedUSDPrice))
+		if t0DerivedBNBPrice != nil {
+			prices.Set(update.LogOrdinal, fmt.Sprintf("price:%s:bnb", pair.Token0.Address), floatToStr(t0DerivedBNBPrice))
+			if usdPriceValid {
+				t0DerivedUSDPrice := bf().Mul(t0DerivedBNBPrice, latestUSD)
+				prices.Set(update.LogOrdinal, fmt.Sprintf("price:%s:usd", pair.Token0.Address), floatToStr(t0DerivedUSDPrice))
+			}
+		}
+		if t1DerivedBNBPrice != nil {
+			prices.Set(update.LogOrdinal, fmt.Sprintf("price:%s:bnb", pair.Token1.Address), floatToStr(t1DerivedBNBPrice))
+			if usdPriceValid {
+				t1DerivedUSDPrice := bf().Mul(t1DerivedBNBPrice, latestUSD)
+				prices.Set(update.LogOrdinal, fmt.Sprintf("price:%s:usd", pair.Token1.Address), floatToStr(t1DerivedUSDPrice))
+			}
+		}
+
 	}
 	return nil
 }
@@ -105,8 +113,7 @@ func (p *PricesStateBuilder) findBnbPricePerToken(logOrdinal uint64, tokenAddr s
 		return entity.FloatMul(bytesToFloat(val1), bytesToFloat(val2)).Ptr().Float()
 	}
 
-	return bf()
-
+	return nil
 }
 
 func (p *PricesStateBuilder) setReserveInBNB(ord uint64, reserveName string, pairAddr string, tokenAddr string, reserveAmount entity.Float, prices *state.Builder) (out *big.Float) {

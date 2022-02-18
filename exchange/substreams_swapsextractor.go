@@ -15,7 +15,7 @@ type SwapsExtractor struct {
 	*SubstreamIntrinsics
 }
 
-func (p *SwapsExtractor) Map(block *pbcodec.Block, pairsState state.Reader, pricesState state.Reader) (swaps Swaps, err error) {
+func (p *SwapsExtractor) Map(block *pbcodec.Block, pairsState state.Reader, prices state.Reader) (swaps Swaps, err error) {
 	for _, trx := range block.TransactionTraces {
 		for _, log := range trx.Receipt.Logs {
 			// perhaps we can optimize in a small local map, if we
@@ -50,28 +50,16 @@ func (p *SwapsExtractor) Map(block *pbcodec.Block, pairsState state.Reader, pric
 				amount0Total := entity.FloatAdd(amount0Out, amount0In)
 				amount1Total := entity.FloatAdd(amount1Out, amount1In)
 
-				token0Price := foundOrZeroFloat(pricesState.GetAt(logOrdinal, fmt.Sprintf("price:%s:bnb", pair.Token0.Address)))
-				token1Price := foundOrZeroFloat(pricesState.GetAt(logOrdinal, fmt.Sprintf("price:%s:bnb", pair.Token1.Address)))
-
-				derivedAmountBNB := bf().Quo(
-					bf().Add(
-						bf().Mul(token0Price, amount0Total.Ptr().Float()),
-						bf().Mul(token1Price, amount1Total.Ptr().Float()),
-					),
-					big.NewFloat(2),
+				derivedAmountBNB := avgFloats(
+					getDerivedPrice(logOrdinal, prices, "bnb", amount0Total.Ptr().Float(), pair.Token0.Address),
+					getDerivedPrice(logOrdinal, prices, "bnb", amount1Total.Ptr().Float(), pair.Token1.Address),
 				)
 
-				var derivedAmountUSD string
+				trackedAmountUSD := avgFloats(
+					getDerivedPrice(logOrdinal, prices, "usd", amount0Total.Ptr().Float(), pair.Token0.Address),
+					getDerivedPrice(logOrdinal, prices, "usd", amount1Total.Ptr().Float(), pair.Token0.Address),
+				)
 
-				usdPriceData, found := pricesState.GetAt(logOrdinal, "price:usd:bnb")
-				if found {
-					usdPrice := bytesToFloat(usdPriceData).Ptr().Float()
-					// TODO: revise this, that's not really what the Swap does
-
-					derivedAmountUSD = floatToStr(bf().Mul(derivedAmountBNB, usdPrice))
-				}
-
-				// TODO: HANDLE all the `trackedAmountUSD`
 				// populate all those `token:trade_volume`, `token:trade_volume_usd`
 				// count TotalTransactions for each token
 
@@ -81,15 +69,17 @@ func (p *SwapsExtractor) Map(block *pbcodec.Block, pairsState state.Reader, pric
 
 				swap := PCSSwap{
 					PairAddress: addr,
-					// Token0: pair.Token0.Address,
-					// Token1: pair.Token1.Address,
+					Token0:      pair.Token0.Address,
+					Token1:      pair.Token1.Address,
 					Transaction: eth.Hash(trx.Hash).Pretty(),
-					Amount0In:   amount0In.String(),
-					Amount1In:   amount1In.String(),
-					Amount0Out:  amount0Out.String(),
-					Amount1Out:  amount1Out.String(),
 
-					AmountUSD: derivedAmountUSD, // should be `trackedAmountUSD` in precedence
+					Amount0In:  amount0In.String(),
+					Amount1In:  amount1In.String(),
+					Amount0Out: amount0Out.String(),
+					Amount1Out: amount1Out.String(),
+
+					AmountBNB: floatToStr(derivedAmountBNB),
+					AmountUSD: floatToStr(trackedAmountUSD),
 					From:      eth.Address(trx.From).Pretty(),
 					To:        ev.To.Pretty(),
 					Sender:    ev.Sender.Pretty(),
@@ -102,4 +92,31 @@ func (p *SwapsExtractor) Map(block *pbcodec.Block, pairsState state.Reader, pric
 		}
 	}
 	return
+}
+
+func getDerivedPrice(ord uint64, prices state.Reader, derivedToken string, tokenAmount *big.Float, tokenAddr string) *big.Float {
+	usdPrice := foundOrZeroFloat(prices.GetAt(ord, fmt.Sprintf("price:%s:usd", tokenAddr, derivedToken)))
+	if usdPrice.Cmp(big.NewFloat(0)) == 0 {
+		return nil
+	}
+
+	return bf().Mul(tokenAmount, usdPrice)
+}
+
+func avgFloats(f ...*big.Float) *big.Float {
+	sum := big.NewFloat(0)
+	var count float64 = 0
+	for _, fl := range f {
+		if fl == nil {
+			continue
+		}
+		sum = bf().Add(sum, fl)
+		count++
+	}
+
+	if count == 0 {
+		return sum
+	}
+
+	return bf().Quo(sum, big.NewFloat(count))
 }
