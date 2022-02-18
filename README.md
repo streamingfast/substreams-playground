@@ -34,7 +34,7 @@ go run -v ./cmd/substream-exchange 6830300 2000 | tee /tmp/sub
 graph TD;
   PE["PairExtractor(Contract)"]
   PAIRS[PCSPairStateBuilder]
-  TPSB[PCSTotalPairsStateBuilder <img src="https://cdn3d.iconscout.com/3d/premium/thumb/database-2997182-2516220.png" alt="Database 3D Illustration" width="267" height="267" loading="lazy">]
+  TOTAL[PCSTotalPairsStateBuilder]
   RE[ReservesExtractor]
   B[Raw Chain Block]
   PRICES[PCSPricesStateBuilder]
@@ -44,8 +44,8 @@ graph TD;
 
   B -- ETH Block --> PE
   PE -- "[]PCSPair" --> PAIRS
-  PE -- "[]PCSPair" --> TPSB
-  TPSB -- Total Pairs Store --> HUB
+  PE -- "[]PCSPair" --> TOTAL
+  TOTAL -- Total Pairs Store --> HUB
   PAIRS -- "Pairs Store" --> RE
   B -- ETH Block --> RE
   RE -- Reserves Updates --> PRICES
@@ -54,6 +54,7 @@ graph TD;
   PAIRS -- Pairs Store --> SWAP
   B -- ETH Block --> SWAP
   SWAP -- "[]PCSSwap" --> VOL24
+  SWAP -- "[]PCSSwap" --> TOTAL
   VOL24 -- "Volume Store" --> HUB
 ```
 
