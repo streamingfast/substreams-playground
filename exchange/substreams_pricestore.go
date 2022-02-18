@@ -6,7 +6,6 @@ import (
 	"math/big"
 
 	"github.com/streamingfast/sparkle-pancakeswap/state"
-
 	"github.com/streamingfast/sparkle/entity"
 	"go.uber.org/zap"
 )
@@ -147,15 +146,13 @@ func (p *PricesStateBuilder) setReserveInBNB(ord uint64, reserveName string, pai
 }
 
 const (
-	BUSD_WBNB_PAIR_KEY = "pair:0x58f876857a02d6762e0101bb5c46a8c1ed44dc16"
-	USDT_WBNB_PAIR_KEY = "pair:0x16b9a82891338f9ba80e2d6970fdda79d1eb0dae"
-	BUSD_PRICE_KEY     = "price:0xe9e7cea3dedca5984780bafc599bd69add087d56:0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"
-	USDT_PRICE_KEY     = "price:0x55d398326f99059ff775485246999027b3197955:0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"
+	BUSD_PRICE_KEY = "price:0xe9e7cea3dedca5984780bafc599bd69add087d56:0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"
+	USDT_PRICE_KEY = "price:0x55d398326f99059ff775485246999027b3197955:0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"
 )
 
 func (p *PricesStateBuilder) computeUSDPrice(update PCSReserveUpdate, prices *state.Builder) *big.Float {
-	busdBNBReserve := foundOrZeroFloat(prices.GetAt(update.LogOrdinal, fmt.Sprintf("reserve0:%s", BUSD_WBNB_PAIR))) // strToFloat(busdPair.Reserve0)
-	usdtBNBReserve := foundOrZeroFloat(prices.GetAt(update.LogOrdinal, fmt.Sprintf("reserve1:%s", USDT_WBNB_PAIR))) // strToFloat(usdtPair.Reserve1)
+	busdBNBReserve := foundOrZeroFloat(prices.GetAt(update.LogOrdinal, fmt.Sprintf("reserve0:%s", BUSD_WBNB_PAIR)))
+	usdtBNBReserve := foundOrZeroFloat(prices.GetAt(update.LogOrdinal, fmt.Sprintf("reserve1:%s", USDT_WBNB_PAIR)))
 	totalLiquidityBNB := bf().Add(busdBNBReserve, usdtBNBReserve).SetPrec(100)
 
 	zero := bf()
