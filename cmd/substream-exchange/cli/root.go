@@ -3,6 +3,13 @@ package cli
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/streamingfast/bstream"
 	"github.com/streamingfast/bstream/firehose"
 	"github.com/streamingfast/dstore"
@@ -14,20 +21,14 @@ import (
 	"github.com/streamingfast/sparkle/indexer"
 	pbcodec "github.com/streamingfast/sparkle/pb/sf/ethereum/codec/v1"
 	"go.uber.org/zap"
-	"io"
-	"net/http"
-	"os"
-	"strconv"
-	"strings"
-	"time"
 
 	"github.com/spf13/cobra"
 )
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "sparkle-pancakeswap",
-	Short: "A brief description of your application",
+	Use:   "substream-pancakeswap",
+	Short: "A PancakeSwap substream",
 	RunE:  runRoot,
 }
 
@@ -43,38 +44,37 @@ func Execute() {
 const genesisBlock = int64(6810700)
 
 var dataStoreURI string
+var localBlockPath string
+var irrBlockPath string
 
 func init() {
-	rootCmd.Flags().StringVarP(&dataStoreURI, "data-store-uri", "d", "./localdata", "store url")
+	rootCmd.Flags().StringVar(&dataStoreURI, "state-store-url", "./localdata", "state snapshots store url")
+	rootCmd.Flags().StringVar(&localBlockPath, "blocks-store-url", "./localblocks", "blocks store url")
+	rootCmd.Flags().StringVar(&irrBlockPath, "irr-indexes-url", "./localirr", "blocks store url")
 }
 
 func runRoot(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
 
-	localBlockPath := os.Getenv("LOCALBLOCKS")
-	if localBlockPath == "" {
-		localBlockPath = "./localblocks"
+	var blockCount uint64 = 1000
+	if len(args) > 0 {
+		val, err := strconv.ParseInt(args[0], 10, 64)
+		if err != nil {
+			return fmt.Errorf("invalid block count %s", args[1])
+		}
+		blockCount = uint64(val)
 	}
 
 	startBlockNum := genesisBlock
 	forceLoadState := false
-	if len(args) > 0 {
-		val, err := strconv.ParseInt(args[0], 10, 64)
+	if len(args) > 1 {
+		val, err := strconv.ParseInt(args[1], 10, 64)
 		if err != nil {
 			return fmt.Errorf("invalid start block %s", args[0])
 		}
 
 		startBlockNum = val
 		forceLoadState = true
-	}
-
-	var blockCount uint64 = 1000
-	if len(args) > 1 {
-		val, err := strconv.ParseInt(args[1], 10, 64)
-		if err != nil {
-			return fmt.Errorf("invalid block count %s", args[1])
-		}
-		blockCount = uint64(val)
 	}
 
 	rpcEndpoint := os.Getenv("BSC_ENDPOINT")
@@ -88,7 +88,7 @@ func runRoot(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("setting up blocks store: %w", err)
 	}
 
-	irrStore, err := dstore.NewStore("./localirr", "", "", false)
+	irrStore, err := dstore.NewStore(irrBlockPath, "", "", false)
 	if err != nil {
 		return fmt.Errorf("setting up irr blocks store: %w", err)
 	}
