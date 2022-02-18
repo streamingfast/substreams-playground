@@ -40,6 +40,8 @@ func Execute() {
 	}
 }
 
+const genesisBlock = int64(6810700)
+
 var dataStoreURI string
 
 func init() {
@@ -54,7 +56,7 @@ func runRoot(cmd *cobra.Command, args []string) error {
 		localBlockPath = "./localblocks"
 	}
 
-	startBlockNum := int64(6810700)
+	startBlockNum := genesisBlock
 	forceLoadState := false
 	if len(args) > 0 {
 		val, err := strconv.ParseInt(args[0], 10, 64)
@@ -122,7 +124,10 @@ func runRoot(cmd *cobra.Command, args []string) error {
 	}
 
 	if forceLoadState {
-		loadStateFromDisk(stores, uint64(startBlockNum))
+		err := loadStateFromDisk(stores, uint64(startBlockNum))
+		if err != nil {
+			return err
+		}
 	}
 
 	pipe := Pipeline{
@@ -311,14 +316,11 @@ func (p *Pipeline) handlerFactory(blockCount uint64) bstream.Handler {
 	})
 }
 
-func loadStateFromDisk(stores map[string]*state.Builder, startBlockNum uint64) {
+func loadStateFromDisk(stores map[string]*state.Builder, startBlockNum uint64) error {
 	for storeName, store := range stores {
 		if err := store.Init(startBlockNum); err != nil {
-			zlog.Fatal("could not load state for store",
-				zap.String("store_name", storeName),
-				zap.Uint64("start_block_num", startBlockNum),
-				zap.Error(err),
-			)
+			return fmt.Errorf("could not load state for store %s at block num %d: %w", storeName, startBlockNum, err)
 		}
 	}
+	return nil
 }
