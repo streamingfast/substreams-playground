@@ -55,7 +55,9 @@ type StateIO interface {
 	ReadDelta(ctx context.Context, obf *bundle.OneBlockFile) ([]byte, error)
 	DeleteDelta(ctx context.Context, obf *bundle.OneBlockFile) error
 
+	// start and end block numbers should be inclusive
 	WalkDeltas(ctx context.Context, startBlockNumber, endBlockNumber uint64, f func(obf *bundle.OneBlockFile) error) error
+
 	MergeDeltas(ctx context.Context, lowerBlockBoundary uint64, files []*bundle.OneBlockFile) error
 
 	WriteState(ctx context.Context, content []byte, block *bstream.Block) error
@@ -115,7 +117,7 @@ func (s *StoreStateIO) WalkDeltas(ctx context.Context, startBlockNumber, endBloc
 			return nil
 		}
 
-		if obf.Num >= endBlockNumber {
+		if obf.Num > endBlockNumber {
 			return nil
 		}
 
@@ -224,7 +226,7 @@ func (d *DiskStateIO) WalkDeltas(ctx context.Context, startBlockNumber, endBlock
 			return nil
 		}
 
-		if obf.Num >= endBlockNumber {
+		if obf.Num > endBlockNumber {
 			return nil
 		}
 
