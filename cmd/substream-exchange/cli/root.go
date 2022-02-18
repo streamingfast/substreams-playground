@@ -47,6 +47,8 @@ func init() {
 }
 
 func runRoot(cmd *cobra.Command, args []string) error {
+	ctx := cmd.Context()
+
 	localBlockPath := os.Getenv("LOCALBLOCKS")
 	if localBlockPath == "" {
 		localBlockPath = "./localblocks"
@@ -57,17 +59,18 @@ func runRoot(cmd *cobra.Command, args []string) error {
 	if len(args) > 0 {
 		val, err := strconv.ParseInt(args[0], 10, 64)
 		if err != nil {
-			zlog.Fatal("invalid start block", zap.String("value", os.Args[1]))
+			return fmt.Errorf("invalid start block %s", args[0])
 		}
 
 		startBlockNum = val
 		forceLoadState = true
 	}
+
 	var blockCount uint64 = 1000
 	if len(args) > 1 {
 		val, err := strconv.ParseInt(args[1], 10, 64)
 		if err != nil {
-			zlog.Fatal("invalid block count", zap.String("value", os.Args[2]))
+			return fmt.Errorf("invalid block count %s", args[1])
 		}
 		blockCount = uint64(val)
 	}
@@ -80,17 +83,17 @@ func runRoot(cmd *cobra.Command, args []string) error {
 	//blocksStore, err := dstore.NewDBinStore("gs://dfuseio-global-blocks-us/eth-bsc-mainnet/v1")
 	blocksStore, err := dstore.NewDBinStore(localBlockPath)
 	if err != nil {
-		zlog.Fatal("setting up blocks store", zap.Error(err))
+		return fmt.Errorf("setting up blocks store: %w", err)
 	}
 
 	irrStore, err := dstore.NewStore("./localirr", "", "", false)
 	if err != nil {
-		zlog.Fatal("setting up irr blocks store", zap.Error(err))
+		return fmt.Errorf("setting up irr blocks store: %w", err)
 	}
 
 	rpcCacheStore, err := dstore.NewStore("./rpc-cache", "", "", false)
 	if err != nil {
-		zlog.Fatal("setting up store for rpc-cache", zap.Error(err))
+		return fmt.Errorf("setting up store for rpc-cache: %w", err)
 	}
 
 	httpClient := &http.Client{
@@ -102,19 +105,20 @@ func runRoot(cmd *cobra.Command, args []string) error {
 
 	rpcClient := rpc.NewClient(rpcEndpoint, rpc.WithHttpClient(httpClient))
 	rpcCache := indexer.NewCache(rpcCacheStore, rpcCacheStore, 0, 999)
-	rpcCache.Load(context.Background())
+	rpcCache.Load(ctx)
 	intr := exchange.NewSubstreamIntrinsics(rpcClient, rpcCache, true)
 
 	dataStore, err := dstore.NewStore(dataStoreURI, "", "", false)
 	if err != nil {
-		return err
+		return fmt.Errorf("setting up store for data: %w", err)
 	}
+
 	ioFactory := state.NewStoreStateIOFactory(dataStore)
 	stores := map[string]*state.Builder{}
 	for _, storeName := range []string{"pairs", "total_pairs", "prices", "volume24h"} {
-		newState := state.New(storeName, ioFactory)
-		//newState.Init(uint64(startBlockNum))
-		stores[storeName] = newState
+		s := state.New(storeName, ioFactory)
+		//s.Init(uint64(startBlockNum))
+		stores[storeName] = s
 	}
 
 	if forceLoadState {
@@ -139,7 +143,7 @@ func runRoot(cmd *cobra.Command, args []string) error {
 	)
 
 	if err := hose.Run(context.Background()); err != nil {
-		zlog.Fatal("running the firehose", zap.Error(err))
+		return fmt.Errorf("running the firehose: %w", err)
 	}
 	time.Sleep(5 * time.Second)
 

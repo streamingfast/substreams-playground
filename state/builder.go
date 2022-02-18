@@ -258,11 +258,11 @@ func (b *Builder) StoreBlock(ctx context.Context, block *bstream.Block) error {
 
 	obf := mustBlockToOneBlockFile(b.Name, block)
 
-	content, _ := json.MarshalIndent(b.Deltas, "", "  ")
-	err := b.io.WriteDelta(ctx, content, obf)
-	if err != nil {
-		return fmt.Errorf("writing %s delta at block %d: %w", b.Name, blockNumber, err)
-	}
+	//content, _ := json.MarshalIndent(b.Deltas, "", "  ")
+	//err := b.io.WriteDelta(ctx, content, obf)
+	//if err != nil {
+	//	return fmt.Errorf("writing %s delta at block %d: %w", b.Name, blockNumber, err)
+	//}
 
 	b.bundler.AddOneBlockFile(obf)
 
