@@ -40,16 +40,10 @@ func Execute() {
 	}
 }
 
+var dataStoreURI string
+
 func init() {
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.sparkle-pancakeswap.yaml)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.Flags().StringVarP(&dataStoreURI, "data-store-uri", "d", "./localdata", "store url")
 }
 
 func runRoot(cmd *cobra.Command, args []string) error {
@@ -58,11 +52,10 @@ func runRoot(cmd *cobra.Command, args []string) error {
 		localBlockPath = "./localblocks"
 	}
 
-	// TODO: use cobra for those freaking flags!
 	startBlockNum := int64(6810700)
 	forceLoadState := false
-	if len(args) > 1 {
-		val, err := strconv.ParseInt(args[1], 10, 64)
+	if len(args) > 0 {
+		val, err := strconv.ParseInt(args[0], 10, 64)
 		if err != nil {
 			zlog.Fatal("invalid start block", zap.String("value", os.Args[1]))
 		}
@@ -71,8 +64,8 @@ func runRoot(cmd *cobra.Command, args []string) error {
 		forceLoadState = true
 	}
 	var blockCount uint64 = 1000
-	if len(args) > 2 {
-		val, err := strconv.ParseInt(args[2], 10, 64)
+	if len(args) > 1 {
+		val, err := strconv.ParseInt(args[1], 10, 64)
 		if err != nil {
 			zlog.Fatal("invalid block count", zap.String("value", os.Args[2]))
 		}
@@ -112,14 +105,18 @@ func runRoot(cmd *cobra.Command, args []string) error {
 	rpcCache.Load(context.Background())
 	intr := exchange.NewSubstreamIntrinsics(rpcClient, rpcCache, true)
 
-	folder := "./localdata"
-	ioFactory := state.NewDiskStateIOFactory(folder)
+	dataStore, err := dstore.NewStore(dataStoreURI, "", "", false)
+	if err != nil {
+		return err
+	}
+	ioFactory := state.NewStoreStateIOFactory(dataStore)
 	stores := map[string]*state.Builder{}
 	for _, storeName := range []string{"pairs", "total_pairs", "prices", "volume24h"} {
 		newState := state.New(storeName, ioFactory)
 		//newState.Init(uint64(startBlockNum))
 		stores[storeName] = newState
 	}
+
 	if forceLoadState {
 		loadStateFromDisk(stores, uint64(startBlockNum))
 	}
@@ -131,6 +128,7 @@ func runRoot(cmd *cobra.Command, args []string) error {
 		intr:          intr,
 		stores:        stores,
 	}
+
 	pipe.setupSubscriptionHub()
 	pipe.setupPrintPairUpdates()
 	handler := pipe.handlerFactory(blockCount)
@@ -282,10 +280,17 @@ func (p *Pipeline) handlerFactory(blockCount uint64) bstream.Handler {
 		// The idea is to replace: https://github.com/streamingfast/substream-pancakeswap/blob/master/exchange/handle_pair_sync_event.go#L249 into a stream.
 
 		//Flush state periodically, and deltas at all blocks, on disk.
-		// pairsStore.StoreBlock(context.Background(), block)
-		// totalPairsStore.StoreBlock(context.Background(), block)
-		// pricesStore.StoreBlock(context.Background(), block)
-		// volume24hStore.StoreBlock(context.Background(), block)
+		//pairsStore.StoreBlock(context.Background(), block)
+		//totalPairsStore.StoreBlock(context.Background(), block)
+		//pricesStore.StoreBlock(context.Background(), block)
+		//volume24hStore.StoreBlock(context.Background(), block)
+
+		for _, s := range p.stores {
+			err := s.StoreBlock(context.Background(), block)
+			if err != nil {
+				return err
+			}
+		}
 
 		// Prep for next block, clean-up all deltas. This ought to be
 		// done by the runtime, when doing clean-up between blocks.
@@ -304,7 +309,7 @@ func (p *Pipeline) handlerFactory(blockCount uint64) bstream.Handler {
 
 func loadStateFromDisk(stores map[string]*state.Builder, startBlockNum uint64) {
 	for storeName, store := range stores {
-		if err := store.ReadState(context.Background(), startBlockNum); err != nil {
+		if err := store.Init(startBlockNum); err != nil {
 			zlog.Fatal("could not load state for store",
 				zap.String("store_name", storeName),
 				zap.Uint64("start_block_num", startBlockNum),
