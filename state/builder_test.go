@@ -8,14 +8,13 @@ import (
 
 func TestStateBuilder(t *testing.T) {
 	s := New("", nil)
-	s.SetBytes(0, "1", []byte("val1"))
-	s.SetBytes(1, "1", []byte("val2"))
-	s.SetBytes(3, "1", []byte("val3"))
+	s.Set(0, "1", "val1")
+	s.Set(1, "1", "val2")
+	s.Set(3, "1", "val3")
 	s.Flush()
-
-	s.SetBytes(0, "1", []byte("val4"))
-	s.SetBytes(1, "1", []byte("val5"))
-	s.SetBytes(3, "1", []byte("val6"))
+	s.Set(0, "1", "val4")
+	s.Set(1, "1", "val5")
+	s.Set(3, "1", "val6")
 	s.Del(4, "1")
 	s.Set(5, "1", "val7")
 
