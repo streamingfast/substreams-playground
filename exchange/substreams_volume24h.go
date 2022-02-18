@@ -1,8 +1,8 @@
 package exchange
 
 import (
-	"encoding/json"
 	"fmt"
+
 	"github.com/streamingfast/sparkle-pancakeswap/state"
 
 	pbcodec "github.com/streamingfast/sparkle/pb/sf/ethereum/codec/v1"
@@ -15,34 +15,16 @@ type PCSVolume24hStateBuilder struct {
 func (p *PCSVolume24hStateBuilder) BuildState(block *pbcodec.Block, swaps Swaps, volume24hStore *state.Builder) error {
 	timestamp := block.MustTime().Unix()
 	dayId := timestamp / 86400
-	dayStartTimestamp := dayId * 86400
+	//dayStartTimestamp := dayId * 86400, downstream can compute it
 
 	for _, swap := range swaps {
 		dayPairId := fmt.Sprintf("%s-%d", swap.PairAddress, dayId)
 
-		prevVolData, found := volume24hStore.GetAt(swap.LogOrdinal, dayPairId)
-		var volume *VolumeAggregate
-		if !found {
-			volume = &VolumeAggregate{
-				Pair:      swap.PairAddress,
-				Date:      dayStartTimestamp,
-				VolumeUSD: 0,
-			}
-		} else {
-			if err := json.Unmarshal(prevVolData, volume); err != nil {
-				return fmt.Errorf("unmarshal prev vol: %w", err)
-			}
-		}
+		volume := foundOrZeroFloat(volume24hStore.GetAt(swap.LogOrdinal, dayPairId))
+		amountUSD := strToFloat(swap.AmountUSD).Ptr().Float().SetPrec(100)
+		newVolume := bf().Add(volume, amountUSD).SetPrec(100)
 
-		amountUSD, _ := strToFloat(swap.AmountUSD).Ptr().Float().Float64()
-		volume.VolumeUSD += amountUSD
-
-		volumeData, err := json.Marshal(volume)
-		if err != nil {
-			return fmt.Errorf("volume marshal: %w", err)
-		}
-
-		volume24hStore.Set(swap.LogOrdinal, dayPairId, volumeData)
+		volume24hStore.Set(swap.LogOrdinal, dayPairId, floatToStr(newVolume))
 
 		// timestamp := block.Timestamp()
 		// ttl := timestamp.Add(-2 * 86400 * time.Second)

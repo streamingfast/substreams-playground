@@ -21,6 +21,8 @@ type Builder struct {
 
 	KV     map[string][]byte // KV is the state, and assumes all Deltas were already applied to it.
 	Deltas []StateDelta      // Deltas are always deltas for the given block.
+
+	lastOrdinal uint64
 }
 
 func New(name string, ioFactory IOFactory) *Builder {
@@ -39,14 +41,13 @@ func (b *Builder) PrintDeltas() {
 	if len(b.Deltas) == 0 {
 		return
 	}
-	fmt.Println("State deltas for", b.Name)
+	fmt.Printf("State deltas for %q\n", b.Name)
 	for _, delta := range b.Deltas {
 		b.PrintDelta(&delta)
 	}
 }
 
 func (b *Builder) PrintDelta(delta *StateDelta) {
-	fmt.Println("State deltas for", b.Name)
 	fmt.Printf("  %s (%d) KEY: %q\n", strings.ToUpper(delta.Op), delta.Ordinal, delta.Key)
 	fmt.Printf("    OLD: %s\n", string(delta.OldValue))
 	fmt.Printf("    NEW: %s\n", string(delta.NewValue))
@@ -149,6 +150,8 @@ func (b *Builder) GetAt(ord uint64, key string) (out []byte, found bool) {
 }
 
 func (b *Builder) Del(ord uint64, key string) {
+	b.bumpOrdinal(ord)
+
 	val, found := b.GetLast(key)
 	if found {
 		delta := &StateDelta{
@@ -163,9 +166,19 @@ func (b *Builder) Del(ord uint64, key string) {
 	}
 }
 
-func (b *Builder) Set(ord uint64, key string, value []byte) {
-	// WARN: if we `Set()`  for a PREVIOUS ordinal, we'll have a hard time here!
-	// We need to ensure we always increment the ordinals.
+func (b *Builder) bumpOrdinal(ord uint64) {
+	if b.lastOrdinal > ord {
+		panic("cannot Set or Del a value on a state.Builder with an ordinal lower than the previous")
+	}
+	b.lastOrdinal = ord
+}
+
+func (b *Builder) Set(ord uint64, key string, value string) {
+	b.SetBytes(ord, key, []byte(value))
+}
+
+func (b *Builder) SetBytes(ord uint64, key string, value []byte) {
+	b.bumpOrdinal(ord)
 
 	val, found := b.GetLast(key)
 	var delta *StateDelta
@@ -209,6 +222,7 @@ func (b *Builder) Flush() {
 		b.applyDelta(&delta)
 	}
 	b.Deltas = nil
+	b.lastOrdinal = 0
 }
 
 func (b *Builder) StoreBlock(ctx context.Context, block *bstream.Block) error {

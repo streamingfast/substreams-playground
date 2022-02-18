@@ -212,11 +212,6 @@ func (p *Pipeline) handlerFactory(blockCount uint64) bstream.Handler {
 
 		p.stores["pairs"].PrintDeltas()
 
-		if err := pcsTotalPairsStateBuilder.BuildState(pairs, p.stores["total_pairs"]); err != nil {
-			return fmt.Errorf("processing total pairs: %w", err)
-		}
-		p.stores["total_pairs"].PrintDeltas()
-
 		reserveUpdates, err := reservesExtractor.Map(blk, p.stores["pairs"])
 		if err != nil {
 			return fmt.Errorf("processing reserves extractor: %w", err)
@@ -234,6 +229,11 @@ func (p *Pipeline) handlerFactory(blockCount uint64) bstream.Handler {
 		}
 
 		swaps.Print()
+
+		if err := pcsTotalPairsStateBuilder.BuildState(pairs, swaps, p.stores["total_pairs"]); err != nil {
+			return fmt.Errorf("processing total pairs: %w", err)
+		}
+		p.stores["total_pairs"].PrintDeltas()
 
 		if err := volume24hStateBuilder.BuildState(blk, swaps, p.stores["volume24h"]); err != nil {
 			return fmt.Errorf("volume24 builder: %w", err)

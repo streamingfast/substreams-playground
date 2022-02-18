@@ -2,6 +2,7 @@ package exchange
 
 import (
 	"math/big"
+	"strconv"
 )
 
 func getTrackedVolumeUSD(bundle *Bundle, tokenAmount0 *big.Float, token0 *Token, tokenAmount1 *big.Float, token1 *Token) *big.Float {
@@ -131,4 +132,29 @@ func foundOrZeroFloat(in []byte, found bool) *big.Float {
 		return bf()
 	}
 	return bytesToFloat(in).Ptr().Float()
+}
+
+func foundOrZeroUint64(in []byte, found bool) uint64 {
+	if !found {
+		return 0
+	}
+	val, err := strconv.ParseInt(string(in), 10, 64)
+	if err != nil {
+		return 0
+	}
+	return uint64(val)
+}
+
+func orDie(err error) {
+	if err != nil {
+		panic("error: " + err.Error())
+	}
+}
+
+func floatToStr(f *big.Float) string {
+	return f.Text('g', -1)
+}
+
+func floatToBytes(f *big.Float) []byte {
+	return []byte(floatToStr(f))
 }

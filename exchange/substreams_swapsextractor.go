@@ -62,18 +62,21 @@ func (p *SwapsExtractor) Map(block *pbcodec.Block, pairsState state.Reader, pric
 					big.NewFloat(2),
 				)
 
-				var amountUSD string
+				var derivedAmountUSD string
 
 				usdPriceData, found := pricesState.GetAt(logOrdinal, "price:usd:bnb")
 				if found {
 					usdPrice := bytesToFloat(usdPriceData).Ptr().Float()
 					// TODO: revise this, that's not really what the Swap does
 
-					amountUSD = floatToStr(bf().Mul(derivedAmountBNB, usdPrice))
+					derivedAmountUSD = floatToStr(bf().Mul(derivedAmountBNB, usdPrice))
 				}
 
+				// TODO: HANDLE all the `trackedAmountUSD`
+				// populate all those `token:trade_volume`, `token:trade_volume_usd`
+				// count TotalTransactions for each token
+
 				//prices.GetAt(logOrdinal, fmt.Sprintf(""))
-				// TODO: DO SOMETHING HERE! It's always 123.. quite the shortcut :)
 				_ = amount0Total
 				_ = amount1Total
 
@@ -87,7 +90,10 @@ func (p *SwapsExtractor) Map(block *pbcodec.Block, pairsState state.Reader, pric
 					Amount0Out:  amount0Out.String(),
 					Amount1Out:  amount1Out.String(),
 
-					AmountUSD: amountUSD,
+					AmountUSD: derivedAmountUSD, // should be `trackedAmountUSD` in precedence
+					From:      eth.Address(trx.From).Pretty(),
+					To:        ev.To.Pretty(),
+					Sender:    ev.Sender.Pretty(),
 
 					LogOrdinal: logOrdinal,
 				}

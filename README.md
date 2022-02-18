@@ -12,13 +12,18 @@ Copy some blocks locally to speed things up:
 ```
 gsutil -m cp gs://dfuseio-global-blocks-us/eth-bsc-mainnet/v1/0006809* ./localblocks/
 gsutil -m cp gs://dfuseio-global-blocks-us/eth-bsc-mainnet/v1/000681* ./localblocks/
+gsutil -m cp gs://dfuseio-global-blocks-us/eth-bsc-mainnet/v1/000682* ./localblocks/
+gsutil -m cp gs://dfuseio-global-blocks-us/eth-bsc-mainnet/v1/000683* ./localblocks/
 ```
 
 Run with:
 
 ```bash
 
-go run -v ./cmd/substream-exchange
+go run -v ./cmd/substream-exchange | tee /tmp/sub
+go run -v ./cmd/substream-exchange 6811700 10000 | tee /tmp/sub
+go run -v ./cmd/substream-exchange 6821700 8600 | tee /tmp/sub
+go run -v ./cmd/substream-exchange 6830300 2000 | tee /tmp/sub
 ```
 
 
@@ -29,17 +34,17 @@ go run -v ./cmd/substream-exchange
 graph TD;
   PE["PairExtractor(Contract)"]
   PAIRS[PCSPairStateBuilder]
-  TPSB[PCSTotalPairsStateBuilder] 
+  TPSB[PCSTotalPairsStateBuilder <img src="https://cdn3d.iconscout.com/3d/premium/thumb/database-2997182-2516220.png" alt="Database 3D Illustration" width="267" height="267" loading="lazy">]
   RE[ReservesExtractor]
   B[Raw Chain Block]
   PRICES[PCSPricesStateBuilder]
   SWAP[SwapsExtractor]
   VOL24[Volume24hStateBuilder]
   HUB[Subscription hub]
-  
+
   B -- ETH Block --> PE
   PE -- "[]PCSPair" --> PAIRS
-  PE -- "[]PCSPair" --> TPSB 
+  PE -- "[]PCSPair" --> TPSB
   TPSB -- Total Pairs Store --> HUB
   PAIRS -- "Pairs Store" --> RE
   B -- ETH Block --> RE

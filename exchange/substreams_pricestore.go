@@ -31,10 +31,10 @@ func (p *PCSPricesStateBuilder) BuildState(reserveUpdates PCSReserveUpdates, pai
 		}
 
 		// We should compute the price in here, rather than having that data flow through ReservesUpdates (that Token0Price computation)
-		prices.Set(update.LogOrdinal, fmt.Sprintf("price:%s:%s", pair.Token0.Address, pair.Token1.Address), []byte(update.Token0Price)) // TRIPLE CHECK that the Token0Price really corresponds to Token0 / Token1
-		prices.Set(update.LogOrdinal, fmt.Sprintf("price:%s:%s", pair.Token1.Address, pair.Token0.Address), []byte(update.Token1Price)) // TRIPLE CHECK that the Token1Price really corresponds to Token1 / Token0
-		prices.Set(update.LogOrdinal, fmt.Sprintf("reserve0:%s", update.PairAddress), []byte(update.Reserve0))
-		prices.Set(update.LogOrdinal, fmt.Sprintf("reserve1:%s", update.PairAddress), []byte(update.Reserve1))
+		prices.Set(update.LogOrdinal, fmt.Sprintf("price:%s:%s", pair.Token0.Address, pair.Token1.Address), update.Token0Price) // TRIPLE CHECK that the Token0Price really corresponds to Token0 / Token1
+		prices.Set(update.LogOrdinal, fmt.Sprintf("price:%s:%s", pair.Token1.Address, pair.Token0.Address), update.Token1Price) // TRIPLE CHECK that the Token1Price really corresponds to Token1 / Token0
+		prices.Set(update.LogOrdinal, fmt.Sprintf("reserve0:%s", update.PairAddress), update.Reserve0)
+		prices.Set(update.LogOrdinal, fmt.Sprintf("reserve1:%s", update.PairAddress), update.Reserve1)
 
 		// HERE set: "reserve0bnb:%s", and fetch the Reserve0's price in BNB (from price:%s:bnb), and handle things if the price isn't there. DON'T write the key if we can't set a price. This will trickle down the "unset" value to where it belongs downstream.
 		// HERE set: "reserve1bnb:%s", and fetch the Reserve1's price in BNB (from price:%s:bnb), and handle things if the price isn't there.
@@ -43,31 +43,27 @@ func (p *PCSPricesStateBuilder) BuildState(reserveUpdates PCSReserveUpdates, pai
 
 		reservesBNBSum := bf().Add(reserve0BNB, reserve1BNB)
 		if reservesBNBSum.Cmp(bf()) != 0 {
-			prices.Set(update.LogOrdinal, "reserves_bnb:"+update.PairAddress, []byte(floatToStr(reservesBNBSum)))
+			prices.Set(update.LogOrdinal, "reserves_bnb:"+update.PairAddress, floatToStr(reservesBNBSum))
 		}
 
 		if update.PairAddress == USDT_WBNB_PAIR || update.PairAddress == BUSD_WBNB_PAIR {
-			newPrice := p.computeUSDPrice(update, prices /* FIX ME */)
-			prices.Set(update.LogOrdinal, "price:usd:bnb", []byte(newPrice.String()))
+			newPrice := p.computeUSDPrice(update, prices)
+			prices.Set(update.LogOrdinal, "price:usd:bnb", floatToStr(newPrice))
+			//os.Exit(0)
+			//log.Fatalln("stop!")
 		}
 
-		var latestUSD *big.Float
-		latestUSDData, found := prices.GetLast("price:usd:bnb")
-		if !found {
-			latestUSD = bf()
-		} else {
-			latestUSD = strToFloat(string(latestUSDData)).Ptr().Float()
-		}
+		latestUSD := foundOrZeroFloat(prices.GetLast("price:usd:bnb"))
 
 		t0DerivedBNBPrice := p.findBnbPricePerToken(update.LogOrdinal, pair.Token0.Address, pairs, prices)
 		t1DerivedBNBPrice := p.findBnbPricePerToken(update.LogOrdinal, pair.Token1.Address, pairs, prices)
 		t0DerivedUSDPrice := bf().Mul(t0DerivedBNBPrice, latestUSD)
 		t1DerivedUSDPrice := bf().Mul(t1DerivedBNBPrice, latestUSD)
 
-		prices.Set(update.LogOrdinal, fmt.Sprintf("price:%s:bnb", pair.Token0.Address), []byte(floatToStr(t0DerivedBNBPrice)))
-		prices.Set(update.LogOrdinal, fmt.Sprintf("price:%s:bnb", pair.Token1.Address), []byte(floatToStr(t1DerivedBNBPrice)))
-		prices.Set(update.LogOrdinal, fmt.Sprintf("price:%s:usd", pair.Token0.Address), []byte(floatToStr(t0DerivedUSDPrice)))
-		prices.Set(update.LogOrdinal, fmt.Sprintf("price:%s:usd", pair.Token1.Address), []byte(floatToStr(t1DerivedUSDPrice)))
+		prices.Set(update.LogOrdinal, fmt.Sprintf("price:%s:bnb", pair.Token0.Address), floatToStr(t0DerivedBNBPrice))
+		prices.Set(update.LogOrdinal, fmt.Sprintf("price:%s:bnb", pair.Token1.Address), floatToStr(t1DerivedBNBPrice))
+		prices.Set(update.LogOrdinal, fmt.Sprintf("price:%s:usd", pair.Token0.Address), floatToStr(t0DerivedUSDPrice))
+		prices.Set(update.LogOrdinal, fmt.Sprintf("price:%s:usd", pair.Token1.Address), floatToStr(t1DerivedUSDPrice))
 	}
 	return nil
 }
@@ -144,51 +140,48 @@ func (p *PCSPricesStateBuilder) setReserveInBNB(ord uint64, reserveName string, 
 	out = bnbAmount.Ptr().Float()
 
 	if out.Cmp(zero) != 0 {
-		prices.Set(ord, fmt.Sprintf("%sbnb:%s", reserveName, pairAddr), []byte(floatToStr(out)))
+		prices.Set(ord, fmt.Sprintf("%sbnb:%s", reserveName, pairAddr), floatToStr(out))
 	}
 
 	return out
 }
 
+const (
+	BUSD_WBNB_PAIR_KEY = "pair:0x58f876857a02d6762e0101bb5c46a8c1ed44dc16"
+	USDT_WBNB_PAIR_KEY = "pair:0x16b9a82891338f9ba80e2d6970fdda79d1eb0dae"
+	BUSD_PRICE_KEY     = "price:0xe9e7cea3dedca5984780bafc599bd69add087d56:0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"
+	USDT_PRICE_KEY     = "price:0x55d398326f99059ff775485246999027b3197955:0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"
+)
+
 func (p *PCSPricesStateBuilder) computeUSDPrice(update PCSReserveUpdate, prices *state.Builder) *big.Float {
-	usdtPairData, usdtFound := prices.GetAt(update.LogOrdinal, USDT_WBNB_PAIR) // usdt is token0
-	busdPairData, busdFound := prices.GetAt(update.LogOrdinal, BUSD_WBNB_PAIR) // busd is token1
+	busdBNBReserve := foundOrZeroFloat(prices.GetAt(update.LogOrdinal, fmt.Sprintf("reserve0:%s", BUSD_WBNB_PAIR))) // strToFloat(busdPair.Reserve0)
+	usdtBNBReserve := foundOrZeroFloat(prices.GetAt(update.LogOrdinal, fmt.Sprintf("reserve1:%s", USDT_WBNB_PAIR))) // strToFloat(usdtPair.Reserve1)
+	totalLiquidityBNB := bf().Add(busdBNBReserve, usdtBNBReserve).SetPrec(100)
 
-	var busdPair, usdtPair PCSReserveUpdate
+	zero := bf()
 
-	if busdFound && usdtFound {
-		orDie(json.Unmarshal(usdtPairData, &usdtPair))
-		orDie(json.Unmarshal(busdPairData, &busdPair))
-
-		busdBNBReserve := strToFloat(busdPair.Reserve0)                      // prices.GetAt(update.LogOrdinal, fmt.Sprintf("reserve0:%s", BUSD_WBNB_PAIR))
-		usdtBNBReserve := strToFloat(usdtPair.Reserve1)                      // prices.GetAt(update.LogOrdinal, fmt.Sprintf("reserve1:%s", USDT_WBNB_PAIR))
-		totalLiquidityBNB := entity.FloatAdd(busdBNBReserve, usdtBNBReserve) // skipped `SetPrec(100)` here
-
-		if totalLiquidityBNB.Float().Cmp(bf()) == 0 {
-			return big.NewFloat(0)
-		}
-
-		busdWeight := entity.FloatQuo(busdBNBReserve, totalLiquidityBNB) // skipping `SetPrec(100)` here
-		usdtWeight := entity.FloatQuo(usdtBNBReserve, totalLiquidityBNB) // skip `.SetPrec(100)`
-
-		return bf().Add(
-			bf().Mul(
-				strToFloat(busdPair.Token1Price).Ptr().Float(),
-				busdWeight.Ptr().Float(),
-			).SetPrec(100),
-			bf().Mul(
-				strToFloat(usdtPair.Token0Price).Ptr().Float(),
-				usdtWeight.Ptr().Float(),
-			).SetPrec(100),
-		).SetPrec(100)
-
-	} else if busdFound {
-		orDie(json.Unmarshal(busdPairData, &busdPair))
-		return strToFloat(busdPair.Token1Price).Ptr().Float() // skip `SetPrec(100)` here
-	} else if usdtFound {
-		orDie(json.Unmarshal(usdtPairData, &usdtPair))
-		return strToFloat(usdtPair.Token0Price).Ptr().Float()
+	if totalLiquidityBNB.Cmp(zero) == 0 {
+		return big.NewFloat(0)
 	}
 
-	return big.NewFloat(0)
+	if busdBNBReserve.Cmp(zero) == 0 {
+		fmt.Println("only usdt found")
+		return foundOrZeroFloat(prices.GetAt(update.LogOrdinal, USDT_PRICE_KEY))
+	} else if usdtBNBReserve.Cmp(zero) == 0 {
+		fmt.Println("only busd found")
+		return foundOrZeroFloat(prices.GetAt(update.LogOrdinal, BUSD_PRICE_KEY))
+	}
+
+	fmt.Println("both found")
+
+	busdWeight := bf().Quo(busdBNBReserve, totalLiquidityBNB).SetPrec(100)
+	usdtWeight := bf().Quo(usdtBNBReserve, totalLiquidityBNB).SetPrec(100)
+
+	busdPrice := foundOrZeroFloat(prices.GetAt(update.LogOrdinal, BUSD_PRICE_KEY))
+	usdtPrice := foundOrZeroFloat(prices.GetAt(update.LogOrdinal, USDT_PRICE_KEY))
+
+	return bf().Add(
+		bf().Mul(busdPrice, busdWeight).SetPrec(100),
+		bf().Mul(usdtPrice, usdtWeight).SetPrec(100),
+	).SetPrec(100)
 }

@@ -248,8 +248,8 @@ func (s *Subgraph) FindBnbPerToken(tokenAddress string) (*big.Float, error) {
 
 const (
 	WBNB_ADDRESS   = "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"
-	BUSD_WBNB_PAIR = "0x58f876857a02d6762e0101bb5c46a8c1ed44dc16" // created block 589414, rather 6810708  ?
-	USDT_WBNB_PAIR = "0x16b9a82891338f9ba80e2d6970fdda79d1eb0dae" // created block 648115, rather 6810780  ??
+	BUSD_WBNB_PAIR = "0x58f876857a02d6762e0101bb5c46a8c1ed44dc16" // created block 6810708
+	USDT_WBNB_PAIR = "0x16b9a82891338f9ba80e2d6970fdda79d1eb0dae" // created block 6810780
 )
 
 func (s *Subgraph) GetBnbPriceInUSD() (*big.Float, error) {

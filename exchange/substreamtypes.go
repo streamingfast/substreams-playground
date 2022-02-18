@@ -31,6 +31,8 @@ type PCSPair struct {
 	LogOrdinal       uint64
 }
 
+func (p PCSPair) GetOrdinal() uint64 { return p.LogOrdinal }
+
 type ERC20Tokens []ERC20Token
 
 type ERC20Token struct {
@@ -117,6 +119,8 @@ type PCSSwap struct {
 
 	LogOrdinal uint64
 }
+
+func (s PCSSwap) GetOrdinal() uint64 { return s.LogOrdinal }
 
 type VolumeAggregate struct {
 	Pair string
