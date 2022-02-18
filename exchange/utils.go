@@ -131,7 +131,7 @@ func foundOrZeroFloat(in []byte, found bool) *big.Float {
 	if !found {
 		return bf()
 	}
-	return bytesToFloat(in).Ptr().Float()
+	return bytesToFloat(in).Ptr().Float().SetPrec(100)
 }
 
 func foundOrZeroUint64(in []byte, found bool) uint64 {
