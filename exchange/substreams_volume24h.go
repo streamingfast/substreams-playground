@@ -48,6 +48,9 @@ func (p *PCSVolume24hStateBuilder) BuildState(block *pbcodec.Block, swaps Swaps,
 	// deleteme-at-[...] computed based on something
 	// for _, deleteKey := range volume24hStore.Prefix("delete-key") {
 	// }
+	// volume24hStore.DelPrefix(prefix)
+	// volume24hStore.DelPrefixPointers(prefix, keySeparator) // reads the key, and deletes keys that are stored in the value, with a `keySeparator`
+	// volume24hStore.DelScan(lowKey, highKey)
 	return nil
 }
 
