@@ -95,7 +95,7 @@ func (p *SwapsExtractor) Map(block *pbcodec.Block, pairsState state.Reader, pric
 }
 
 func getDerivedPrice(ord uint64, prices state.Reader, derivedToken string, tokenAmount *big.Float, tokenAddr string) *big.Float {
-	usdPrice := foundOrZeroFloat(prices.GetAt(ord, fmt.Sprintf("price:%s:usd", tokenAddr, derivedToken)))
+	usdPrice := foundOrZeroFloat(prices.GetAt(ord, fmt.Sprintf("price:%s:%s", tokenAddr, derivedToken)))
 	if usdPrice.Cmp(big.NewFloat(0)) == 0 {
 		return nil
 	}
