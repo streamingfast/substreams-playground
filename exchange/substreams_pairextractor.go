@@ -63,12 +63,7 @@ func (p *PairExtractor) Map(block *pbcodec.Block) (pairs PCSPairs, err error) {
 				CreationTransactionID: eth.Hash(trx.Hash).Pretty(),
 				BlockNum:              block.Number,
 
-				// FIXME: When we have boundaries, let's sprinkle some in here, for greater precision.
-				LogOrdinal:       ord,
-				CallStartOrdinal: ord,
-				CallEndOrdinal:   ord,
-				TrxStartOrdinal:  ord,
-				TrxEndOrdinal:    ord,
+				LogOrdinal: ord,
 			})
 		}
 	}

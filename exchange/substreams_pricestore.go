@@ -35,8 +35,6 @@ func (p *PricesStateBuilder) BuildState(reserveUpdates PCSReserveUpdates, pairs 
 		prices.Set(update.LogOrdinal, fmt.Sprintf("reserve0:%s", update.PairAddress), update.Reserve0)
 		prices.Set(update.LogOrdinal, fmt.Sprintf("reserve1:%s", update.PairAddress), update.Reserve1)
 
-		// HERE set: "reserve0bnb:%s", and fetch the Reserve0's price in BNB (from price:%s:bnb), and handle things if the price isn't there. DON'T write the key if we can't set a price. This will trickle down the "unset" value to where it belongs downstream.
-		// HERE set: "reserve1bnb:%s", and fetch the Reserve1's price in BNB (from price:%s:bnb), and handle things if the price isn't there.
 		reserve0BNB := p.setReserveInBNB(update.LogOrdinal, "reserve0", update.PairAddress, pair.Token0.Address, strToFloat(update.Reserve0), prices)
 		reserve1BNB := p.setReserveInBNB(update.LogOrdinal, "reserve1", update.PairAddress, pair.Token1.Address, strToFloat(update.Reserve1), prices)
 
@@ -105,21 +103,6 @@ func (p *PricesStateBuilder) findBnbPricePerToken(logOrdinal uint64, tokenAddr s
 		}
 
 		return entity.FloatMul(bytesToFloat(val1), bytesToFloat(val2)).Ptr().Float()
-
-		// if pair.Token0 == tokenAddress && pair.ReserveBNB.Float().Cmp(MINIMUM_LIQUIDITY_THRESHOLD_BNB) > 0 {
-		// 	token1 := NewToken(pair.Token1)
-		// 	if err := s.Load(token1); err != nil {
-		// 		return nil, err
-		// 	}
-		// 	return bf().Mul(pair.Token1Price.Float(), token1.DerivedBNB.Float()), nil
-		// }
-		// if pair.Token1 == tokenAddress && pair.ReserveBNB.Float().Cmp(MINIMUM_LIQUIDITY_THRESHOLD_BNB) > 0 {
-		// 	token0 := NewToken(pair.Token0)
-		// 	if err := s.Load(token0); err != nil {
-		// 		return nil, err
-		// 	}
-		// 	return bf().Mul(pair.Token0Price.Float(), token0.DerivedBNB.Float()), nil
-		// }
 	}
 
 	return bf()

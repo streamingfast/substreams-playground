@@ -93,22 +93,15 @@ var whitelist = []string{
 
 var whitelistCacheMap = map[string]bool{}
 
-func isWhitelistedAddress(address string) bool {
-	if _, ok := whitelistCacheMap[address]; ok {
-		return true
-	}
-
-	// FIXME: if our token doesn't match the whitelist, we continually loop?!?
+func init() {
 	for _, addr := range whitelist {
-		if addr != address {
-			continue
-		}
-
-		whitelistCacheMap[address] = true
-		return true
+		whitelistCacheMap[addr] = true
 	}
+}
 
-	return false
+func isWhitelistedAddress(address string) bool {
+	_, ok := whitelistCacheMap[address]
+	return ok
 }
 
 func byteMap(in map[string]string) map[string][]byte {

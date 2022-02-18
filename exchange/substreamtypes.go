@@ -24,11 +24,7 @@ type PCSPair struct {
 	CreationTransactionID string
 	BlockNum              uint64
 
-	CallStartOrdinal uint64
-	CallEndOrdinal   uint64
-	TrxStartOrdinal  uint64
-	TrxEndOrdinal    uint64
-	LogOrdinal       uint64
+	LogOrdinal uint64
 }
 
 func (p PCSPair) GetOrdinal() uint64 { return p.LogOrdinal }
