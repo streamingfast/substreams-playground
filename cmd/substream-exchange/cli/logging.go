@@ -8,5 +8,8 @@ import (
 var zlog *zap.Logger
 
 func init() {
-	logging.Register("github.com/streamingfast/substream-pancakeswap/cmd/substream-exchange", &zlog)
+	zlog = zap.NewNop()
+	_ = logging.ApplicationLogger("solgun", "github.com/streamingfast/substream-pancakeswap/cmd/substream-exchange", &zlog,
+		logging.WithSwitcherServerAutoStart(),
+	)
 }

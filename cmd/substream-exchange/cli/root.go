@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/spf13/viper"
 	"github.com/streamingfast/bstream"
 	"github.com/streamingfast/bstream/firehose"
 	"github.com/streamingfast/dstore"
@@ -32,27 +33,6 @@ var rootCmd = &cobra.Command{
 	RunE:  runRoot,
 }
 
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
-	err := rootCmd.Execute()
-	if err != nil {
-		os.Exit(1)
-	}
-}
-
-const genesisBlock = int64(6810700)
-
-var dataStoreURI string
-var localBlockPath string
-var irrBlockPath string
-
-func init() {
-	rootCmd.Flags().StringVar(&dataStoreURI, "state-store-url", "./localdata", "state snapshots store url")
-	rootCmd.Flags().StringVar(&localBlockPath, "blocks-store-url", "./localblocks", "blocks store url")
-	rootCmd.Flags().StringVar(&irrBlockPath, "irr-indexes-url", "./localirr", "blocks store url")
-}
-
 func runRoot(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
 
@@ -65,7 +45,7 @@ func runRoot(cmd *cobra.Command, args []string) error {
 		blockCount = uint64(val)
 	}
 
-	startBlockNum := genesisBlock
+	startBlockNum := viper.GetInt64("start-block")
 	forceLoadState := false
 	if len(args) > 1 {
 		val, err := strconv.ParseInt(args[1], 10, 64)
@@ -82,13 +62,14 @@ func runRoot(cmd *cobra.Command, args []string) error {
 		rpcEndpoint = "http://localhost:8546" //  kc port-forward sub-pancake4-exchange-lucid-koschei-59686b7cc6-k49jk 8546:10.0.1.19:8546
 	}
 
-	//blocksStore, err := dstore.NewDBinStore("gs://dfuseio-global-blocks-us/eth-bsc-mainnet/v1")
-	blocksStore, err := dstore.NewDBinStore(localBlockPath)
+	localBlocksPath := viper.GetString("blocks-store-url")
+	blocksStore, err := dstore.NewDBinStore(localBlocksPath)
 	if err != nil {
 		return fmt.Errorf("setting up blocks store: %w", err)
 	}
 
-	irrStore, err := dstore.NewStore(irrBlockPath, "", "", false)
+	irrIndexesPath := viper.GetString("irr-indexes-url")
+	irrStore, err := dstore.NewStore(irrIndexesPath, "", "", false)
 	if err != nil {
 		return fmt.Errorf("setting up irr blocks store: %w", err)
 	}
@@ -110,12 +91,13 @@ func runRoot(cmd *cobra.Command, args []string) error {
 	rpcCache.Load(ctx)
 	intr := exchange.NewSubstreamIntrinsics(rpcClient, rpcCache, true)
 
-	dataStore, err := dstore.NewStore(dataStoreURI, "", "", false)
+	stateStorePath := viper.GetString("state-store-url")
+	stateStore, err := dstore.NewStore(stateStorePath, "", "", false)
 	if err != nil {
 		return fmt.Errorf("setting up store for data: %w", err)
 	}
 
-	ioFactory := state.NewStoreStateIOFactory(dataStore)
+	ioFactory := state.NewStoreStateIOFactory(stateStore)
 	stores := map[string]*state.Builder{}
 	for _, storeName := range []string{"pairs", "total_pairs", "prices", "volume24h"} {
 		s := state.New(storeName, ioFactory)

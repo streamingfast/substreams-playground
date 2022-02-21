@@ -5,9 +5,9 @@ go 1.15
 require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/spf13/cobra v1.1.3
+	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.7.0 // indirect
 	github.com/streamingfast/bstream v0.0.2-0.20220211203037-c8c9a009bd74
-	github.com/streamingfast/dlauncher v0.0.0-20210811194929-f06e488e63da
 	github.com/streamingfast/dstore v0.1.1-0.20220203133825-30eb2f9c5cd3
 	github.com/streamingfast/eth-go v0.0.0-20210831180555-8d52c827993b
 	github.com/streamingfast/logging v0.0.0-20210908162127-bdc5856d5341
