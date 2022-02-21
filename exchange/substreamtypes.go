@@ -125,3 +125,45 @@ type VolumeAggregate struct {
 
 	VolumeUSD float64
 }
+
+type PCSBurn struct {
+	TransactionID string
+	Timestamp     uint64
+
+	PairAddress string
+	Token0      string
+	Token1      string
+	Liquidity   string
+	Sender      string
+	Amount0     string
+	Amount1     string
+	To          string
+
+	LogOrdinal uint64
+
+	AmountUSD string
+
+	FeeTo        string
+	FeeLiquidity string
+}
+
+type PCSMint struct {
+	TransactionID string
+	Timestamp     uint64
+
+	PairAddress string
+	Token0      string
+	Token1      string
+	To          string
+	Liquidity   string
+	Sender      string
+	Amount0     string
+	Amount1     string
+
+	LogOrdinal uint64
+
+	AmountUSD string
+
+	FeeTo        string
+	FeeLiquidity string
+}

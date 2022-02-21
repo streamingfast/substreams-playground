@@ -6,7 +6,6 @@ import (
 	"math/big"
 
 	"github.com/streamingfast/sparkle-pancakeswap/state"
-	"github.com/streamingfast/sparkle/entity"
 	"go.uber.org/zap"
 )
 
@@ -97,7 +96,7 @@ func (p *PricesStateBuilder) findBnbPricePerToken(logOrdinal uint64, tokenAddr s
 		if !found {
 			continue
 		}
-		if bytesToFloat(val).Ptr().Float().Cmp(MINIMUM_LIQUIDITY_THRESHOLD_BNB) <= 0 {
+		if bytesToFloat(val).Cmp(MINIMUM_LIQUIDITY_THRESHOLD_BNB) <= 0 {
 			continue
 		}
 
@@ -110,13 +109,13 @@ func (p *PricesStateBuilder) findBnbPricePerToken(logOrdinal uint64, tokenAddr s
 			continue
 		}
 
-		return entity.FloatMul(bytesToFloat(val1), bytesToFloat(val2)).Ptr().Float()
+		return bf().Mul(bytesToFloat(val1), bytesToFloat(val2))
 	}
 
 	return nil
 }
 
-func (p *PricesStateBuilder) setReserveInBNB(ord uint64, reserveName string, pairAddr string, tokenAddr string, reserveAmount entity.Float, prices *state.Builder) (out *big.Float) {
+func (p *PricesStateBuilder) setReserveInBNB(ord uint64, reserveName string, pairAddr string, tokenAddr string, reserveAmount *big.Float, prices *state.Builder) *big.Float {
 	zero := bf()
 	val, found := prices.GetLast(fmt.Sprintf("price:%s:bnb", tokenAddr))
 	if !found {
@@ -124,15 +123,13 @@ func (p *PricesStateBuilder) setReserveInBNB(ord uint64, reserveName string, pai
 	}
 
 	bnbPrice := strToFloat(string(val))
-	bnbAmount := entity.FloatMul(bnbPrice, reserveAmount)
+	bnbAmount := bf().Mul(bnbPrice, reserveAmount)
 
-	out = bnbAmount.Ptr().Float()
-
-	if out.Cmp(zero) != 0 {
-		prices.Set(ord, fmt.Sprintf("%sbnb:%s", reserveName, pairAddr), floatToStr(out))
+	if bnbAmount.Cmp(zero) != 0 {
+		prices.Set(ord, fmt.Sprintf("%sbnb:%s", reserveName, pairAddr), floatToStr(bnbAmount))
 	}
 
-	return out
+	return bnbAmount
 }
 
 const (

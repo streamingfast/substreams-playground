@@ -1,8 +1,11 @@
 package exchange
 
 import (
+	"fmt"
 	"math/big"
 	"strconv"
+
+	"github.com/streamingfast/sparkle/entity"
 )
 
 func getTrackedVolumeUSD(bundle *Bundle, tokenAmount0 *big.Float, token0 *Token, tokenAmount1 *big.Float, token1 *Token) *big.Float {
@@ -151,4 +154,20 @@ func floatToStr(f *big.Float) string {
 
 func floatToBytes(f *big.Float) []byte {
 	return []byte(floatToStr(f))
+}
+
+func intToFloat(in *big.Int, decimals uint32) entity.Float {
+	bf := entity.ConvertTokenToDecimal(in, int64(decimals))
+	return entity.NewFloat(bf)
+}
+func strToFloat(in string) *big.Float {
+	newFloat, _, err := big.ParseFloat(in, 10, 100, big.ToNearestEven)
+	if err != nil {
+		panic(fmt.Sprintf("cannot load float %q: %s", in, err))
+	}
+	return newFloat
+}
+
+func bytesToFloat(in []byte) *big.Float {
+	return strToFloat(string(in))
 }

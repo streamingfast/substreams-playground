@@ -3,11 +3,9 @@ package exchange
 import (
 	"encoding/json"
 	"fmt"
-	"math/big"
 
 	eth "github.com/streamingfast/eth-go"
 	"github.com/streamingfast/sparkle-pancakeswap/state"
-	"github.com/streamingfast/sparkle/entity"
 	pbcodec "github.com/streamingfast/sparkle/pb/sf/ethereum/codec/v1"
 )
 
@@ -76,21 +74,4 @@ func (p *ReservesExtractor) Map(block *pbcodec.Block, pairsState state.Reader) (
 		}
 	}
 	return
-}
-
-func intToFloat(in *big.Int, decimals uint32) entity.Float {
-	bf := entity.ConvertTokenToDecimal(in, int64(decimals))
-	return entity.NewFloat(bf)
-}
-func strToFloat(in string) entity.Float {
-	newFloat, _, err := big.ParseFloat(in, 10, 100, big.ToNearestEven)
-	if err != nil {
-		panic(fmt.Sprintf("cannot load float %q: %s", in, err))
-	}
-
-	return entity.NewFloat(newFloat)
-}
-
-func bytesToFloat(in []byte) entity.Float {
-	return strToFloat(string(in))
 }

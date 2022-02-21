@@ -50,6 +50,7 @@ func (s *Subgraph) HandlePairTransferEvent(ev *PairTransferEvent) error {
 
 	// mints
 	if ev.From.Pretty() == ZeroAddress {
+		// TODO: manage that in a state builder, based on data from those Burn and Mints.
 		pair.TotalSupply = F(bf().Add(pair.TotalSupply.Float(), value))
 		if err := s.Save(pair); err != nil {
 			return fmt.Errorf("saving pair %s: %w", pair.ID, err)
