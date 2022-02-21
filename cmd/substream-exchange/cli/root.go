@@ -47,13 +47,7 @@ func runRoot(cmd *cobra.Command, args []string) error {
 
 	startBlockNum := viper.GetInt64("start-block")
 	forceLoadState := false
-	if len(args) > 1 {
-		val, err := strconv.ParseInt(args[1], 10, 64)
-		if err != nil {
-			return fmt.Errorf("invalid start block %s", args[0])
-		}
-
-		startBlockNum = val
+	if startBlockNum > genesisBlock {
 		forceLoadState = true
 	}
 
@@ -101,7 +95,6 @@ func runRoot(cmd *cobra.Command, args []string) error {
 	stores := map[string]*state.Builder{}
 	for _, storeName := range []string{"pairs", "total_pairs", "prices", "volume24h"} {
 		s := state.New(storeName, ioFactory)
-		//s.Init(uint64(startBlockNum))
 		stores[storeName] = s
 	}
 

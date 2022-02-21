@@ -28,6 +28,7 @@ const (
 	defaultBlocksStore   = "./localblocks"
 	defaultIrrIndexStore = "./localirr"
 	defaultStartBlock    = 6810700
+	genesisBlock         = 6810700
 )
 
 func init() {
