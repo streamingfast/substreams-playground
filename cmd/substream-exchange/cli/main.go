@@ -23,7 +23,7 @@ var (
 )
 
 const (
-	defaultRPCURL        = "http://localhost:8899"
+	defaultRPCURL        = "http://localhost:8546"
 	defaultStateStore    = "./localdata"
 	defaultBlocksStore   = "./localblocks"
 	defaultIrrIndexStore = "./localirr"

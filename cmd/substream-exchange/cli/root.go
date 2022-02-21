@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -51,11 +50,6 @@ func runRoot(cmd *cobra.Command, args []string) error {
 		forceLoadState = true
 	}
 
-	rpcEndpoint := os.Getenv("BSC_ENDPOINT")
-	if rpcEndpoint == "" {
-		rpcEndpoint = "http://localhost:8546" //  kc port-forward sub-pancake4-exchange-lucid-koschei-59686b7cc6-k49jk 8546:10.0.1.19:8546
-	}
-
 	localBlocksPath := viper.GetString("blocks-store-url")
 	blocksStore, err := dstore.NewDBinStore(localBlocksPath)
 	if err != nil {
@@ -80,6 +74,7 @@ func runRoot(cmd *cobra.Command, args []string) error {
 		Timeout: 3 * time.Second,
 	}
 
+	rpcEndpoint := viper.GetString("rpc-endpoint")
 	rpcClient := rpc.NewClient(rpcEndpoint, rpc.WithHttpClient(httpClient))
 	rpcCache := indexer.NewCache(rpcCacheStore, rpcCacheStore, 0, 999)
 	rpcCache.Load(ctx)
