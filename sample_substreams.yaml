@@ -65,4 +65,4 @@ streams:
   storeMergeStrategy: SUM_FLOATS
 
 
-# $ req manifest.yaml pairsExtractor
+# $ callprogram manifest.yaml pairsExtractor
