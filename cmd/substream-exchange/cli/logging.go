@@ -2,14 +2,16 @@ package cli
 
 import (
 	"github.com/streamingfast/logging"
+	zapbox "github.com/streamingfast/sparkle-pancakeswap/zap-box"
 	"go.uber.org/zap"
 )
 
 var zlog *zap.Logger
 
 func init() {
-	zlog = zap.NewNop()
-	_ = logging.ApplicationLogger("substreams", "github.com/streamingfast/substream-pancakeswap/cmd/substream-exchange", &zlog,
+	encoder := zapbox.NewEncoder(1)
+	zlog, _ = logging.ApplicationLogger("substreams", "github.com/streamingfast/substream-pancakeswap/cmd/substream-exchange",
 		logging.WithSwitcherServerAutoStart(),
+		logging.WithEncoder(encoder),
 	)
 }
