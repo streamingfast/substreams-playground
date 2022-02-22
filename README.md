@@ -38,7 +38,7 @@ graph TD;
   RE[ReservesExtractor]
   B[Raw Chain Block]
   PRICES[PCSPricesStateBuilder]
-  SWAP[SwapsExtractor]
+  EVENTS[MintBurnSwapsExtractor]
   VOL24[Volume24hStateBuilder]
   HUB[Subscription hub]
 
@@ -50,13 +50,20 @@ graph TD;
   B -- ETH Block --> RE
   RE -- Reserves Updates --> PRICES
   PRICES -- Prices Store --> HUB
-  PRICES -- Prices Store --> SWAP
-  PAIRS -- Pairs Store --> SWAP
-  B -- ETH Block --> SWAP
-  SWAP -- "[]PCSSwap" --> VOL24
-  SWAP -- "[]PCSSwap" --> TOTAL
+  PRICES -- Prices Store --> EVENTS
+  PAIRS -- Pairs Store --> EVENTS
+  B -- ETH Block --> EVENTS
+  EVENTS -- "[]Swap,[]Mint,[]Burn" --> VOL24
+  EVENTS -- "[]Swap,[]Mint,[]Burn" --> TOTAL
   VOL24 -- "Volume Store" --> HUB
 ```
+
+## References
+
+Debezium format example: https://nightlies.apache.org/flink/flink-docs-master/docs/connectors/table/formats/debezium/#how-to-use-debezium-format
+Fluvio Smart Modules overview: https://www.fluvio.io/docs/smartmodules/overview/
+
+
 
 ## Contributing
 
