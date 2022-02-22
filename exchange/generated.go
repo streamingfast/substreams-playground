@@ -34,7 +34,7 @@ var (
 	FL = entity.NewFloatFromLiteral
 	I  = entity.NewInt
 	IL = entity.NewIntFromLiteral
-	bf = func() *big.Float { return new(big.Float) }
+	bf = func() *big.Float { return new(big.Float).SetPrec(100) }
 	bi = func() *big.Int { return new(big.Int) }
 )
 

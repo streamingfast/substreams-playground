@@ -35,7 +35,7 @@ type ERC20Token struct {
 	Address  string
 	Name     string
 	Symbol   string
-	Decimals uint32
+	Decimals int64
 }
 
 type PCSReserveUpdates []PCSReserveUpdate
@@ -76,17 +76,9 @@ type PCSReserveUpdate struct {
 // 	}
 // }
 
-// type PairPrice struct {}
-// type TokenPrice struct {}
+type PCSEvents []PCSEvent
 
-// type Volume24hStateBuidler struct {}
-
-// type VolumeStateBuilderPerPair struct {}
-// type VolumeStateBuilderPerToken struct {}
-
-type Swaps []PCSSwap
-
-func (p Swaps) Print() {
+func (p PCSEvents) Print() {
 	if len(p) == 0 {
 		return
 	}
@@ -95,30 +87,6 @@ func (p Swaps) Print() {
 	fmt.Println(string(cnt))
 }
 
-type PCSSwap struct {
-	PairAddress string
-	Token0      string
-	Token1      string
-
-	Transaction string
-
-	Amount0In  string
-	Amount1In  string
-	Amount0Out string
-	Amount1Out string
-
-	AmountBNB string
-	AmountUSD string
-
-	Sender string
-	To     string
-	From   string
-
-	LogOrdinal uint64
-}
-
-func (s PCSSwap) GetOrdinal() uint64 { return s.LogOrdinal }
-
 type VolumeAggregate struct {
 	Pair string
 	Date int64
@@ -126,44 +94,75 @@ type VolumeAggregate struct {
 	VolumeUSD float64
 }
 
-type PCSBurn struct {
+type PCSEvent interface {
+	GetOrdinal() uint64
+	SetBasics(pairAddr, token0, token1, trxID string, timestamp uint64)
+}
+
+type PCSBaseEvent struct {
+	PairAddress   string
+	Token0        string
+	Token1        string
 	TransactionID string
 	Timestamp     uint64
+}
 
-	PairAddress string
-	Token0      string
-	Token1      string
-	Liquidity   string
-	Sender      string
-	Amount0     string
-	Amount1     string
-	To          string
-
+type PCSSwap struct {
+	PCSBaseEvent
 	LogOrdinal uint64
 
+	Sender string
+	To     string
+	From   string
+
+	Amount0In  string
+	Amount1In  string
+	Amount0Out string
+	Amount1Out string
+	AmountBNB  string
+	AmountUSD  string
+}
+
+func (e *PCSSwap) GetOrdinal() uint64 { return e.LogOrdinal }
+func (e *PCSMint) GetOrdinal() uint64 { return e.LogOrdinal }
+func (e *PCSBurn) GetOrdinal() uint64 { return e.LogOrdinal }
+
+func (e *PCSBaseEvent) SetBasics(pairAddr, token0, token1, trxID string, timestamp uint64) {
+	e.PairAddress = pairAddr
+	e.Token0 = token0
+	e.Token1 = token1
+	e.TransactionID = trxID
+	e.Timestamp = timestamp
+}
+
+type PCSBurn struct {
+	PCSBaseEvent
+	LogOrdinal uint64
+
+	To     string
+	Sender string
+	FeeTo  string
+
+	Amount0   string
+	Amount1   string
 	AmountUSD string
 
-	FeeTo        string
+	Liquidity    string
 	FeeLiquidity string
 }
 
 type PCSMint struct {
-	TransactionID string
-	Timestamp     uint64
-
-	PairAddress string
-	Token0      string
-	Token1      string
-	To          string
-	Liquidity   string
-	Sender      string
-	Amount0     string
-	Amount1     string
-
+	PCSBaseEvent
 	LogOrdinal uint64
 
+	To     string
+	Sender string
+	FeeTo  string
+
+	Amount0   string
+	Amount1   string
 	AmountUSD string
 
-	FeeTo        string
+	Liquidity    string
 	FeeLiquidity string
 }

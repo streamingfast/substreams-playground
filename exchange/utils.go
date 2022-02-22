@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
-
-	"github.com/streamingfast/sparkle/entity"
 )
 
 func getTrackedVolumeUSD(bundle *Bundle, tokenAmount0 *big.Float, token0 *Token, tokenAmount1 *big.Float, token1 *Token) *big.Float {
@@ -128,7 +126,7 @@ func foundOrZeroFloat(in []byte, found bool) *big.Float {
 	if !found {
 		return bf()
 	}
-	return bytesToFloat(in).Ptr().Float().SetPrec(100)
+	return bytesToFloat(in)
 }
 
 func foundOrZeroUint64(in []byte, found bool) uint64 {
@@ -156,16 +154,30 @@ func floatToBytes(f *big.Float) []byte {
 	return []byte(floatToStr(f))
 }
 
-func intToFloat(in *big.Int, decimals uint32) entity.Float {
-	bf := entity.ConvertTokenToDecimal(in, int64(decimals))
-	return entity.NewFloat(bf)
+func ConvertTokenToDecimal(amount *big.Int, decimals int64) *big.Float {
+	a := new(big.Float).SetInt(amount).SetPrec(100)
+	if decimals == 0 {
+		return a
+	}
+
+	return a.Quo(a, ExponentToBigFloat(decimals).SetPrec(100)).SetPrec(100)
 }
+
+func ExponentToBigFloat(decimals int64) *big.Float {
+	bd := new(big.Float).SetInt64(1)
+	ten := new(big.Float).SetInt64(10)
+	for i := int64(0); i < decimals; i++ {
+		bd = bd.Mul(bd, ten)
+	}
+	return bd
+}
+
 func strToFloat(in string) *big.Float {
 	newFloat, _, err := big.ParseFloat(in, 10, 100, big.ToNearestEven)
 	if err != nil {
 		panic(fmt.Sprintf("cannot load float %q: %s", in, err))
 	}
-	return newFloat
+	return newFloat.SetPrec(100)
 }
 
 func bytesToFloat(in []byte) *big.Float {

@@ -94,6 +94,7 @@ func runRoot(cmd *cobra.Command, args []string) error {
 	}
 
 	if forceLoadState {
+		// Use AN ABSOLUTE store, or SQUASH ALL PARTIAL!
 		err := loadStateFromDisk(stores, uint64(startBlockNum))
 		if err != nil {
 			return err
@@ -217,13 +218,14 @@ func (p *Pipeline) handlerFactory(blockCount uint64) bstream.Handler {
 		if err := pairsStateBuilder.BuildState(pairs, p.stores["pairs"]); err != nil {
 			return fmt.Errorf("processing pair cache: %w", err)
 		}
+		p.stores["pairs"].PrintDeltas()
 
+		// subscription hub thing
 		err = p.subscriptionHub.BroadcastDeltas("pairs", p.stores["pairs"].Deltas)
 		if err != nil {
 			return fmt.Errorf("broadcasting deltas for topic [pairs]")
 		}
-
-		p.stores["pairs"].PrintDeltas()
+		// END subscription hub
 
 		reserveUpdates, err := reservesExtractor.Map(blk, p.stores["pairs"])
 		if err != nil {
@@ -253,16 +255,6 @@ func (p *Pipeline) handlerFactory(blockCount uint64) bstream.Handler {
 		}
 
 		p.stores["volume24h"].PrintDeltas()
-
-		// Build a new "ReserveFilter{Pairs: []}"
-		// followed by a AvgPriceStateBuilder
-		// The idea is to replace: https://github.com/streamingfast/substream-pancakeswap/blob/master/exchange/handle_pair_sync_event.go#L249 into a stream.
-
-		//Flush state periodically, and deltas at all blocks, on disk.
-		//pairsStore.StoreBlock(context.Background(), block)
-		//totalPairsStore.StoreBlock(context.Background(), block)
-		//pricesStore.StoreBlock(context.Background(), block)
-		//volume24hStore.StoreBlock(context.Background(), block)
 
 		for _, s := range p.stores {
 			err := s.StoreBlock(context.Background(), block)

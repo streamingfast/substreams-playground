@@ -11,8 +11,8 @@ type TotalPairsStateBuilder struct {
 	*SubstreamIntrinsics
 }
 
-func (p *TotalPairsStateBuilder) BuildState(pairs PCSPairs, swapEvents Swaps /* burnEvents, mintEvents */, totalPairsStore *state.Builder) error {
-	if len(pairs) == 0 && len(swapEvents) == 0 {
+func (p *TotalPairsStateBuilder) BuildState(pairs PCSPairs, events PCSEvents /* burnEvents, mintEvents */, totalPairsStore *state.Builder) error {
+	if len(pairs) == 0 && len(events) == 0 {
 		return nil
 	}
 
@@ -22,25 +22,30 @@ func (p *TotalPairsStateBuilder) BuildState(pairs PCSPairs, swapEvents Swaps /* 
 	for _, pair := range pairs {
 		all = append(all, pair)
 	}
-	for _, swap := range swapEvents {
-		all = append(all, swap)
+	for _, ev := range events {
+		all = append(all, ev)
 	}
 	sort.Slice(all, func(i, j int) bool {
 		return all[i].GetOrdinal() < all[j].GetOrdinal()
 	})
 
+	increment := func(key string, ord uint64) {
+		count := foundOrZeroUint64(totalPairsStore.GetLast(key))
+		count++
+		totalPairsStore.Set(ord, key, fmt.Sprintf("%d", count))
+	}
+
 	for _, el := range all {
 		switch ev := el.(type) {
-		case PCSSwap:
-			key := fmt.Sprintf("pair:%s:swaps", ev.PairAddress)
-			count := foundOrZeroUint64(totalPairsStore.GetLast(key))
-			count++
-			totalPairsStore.Set(ev.LogOrdinal, key, fmt.Sprintf("%d", count))
+		case *PCSSwap:
+			increment(fmt.Sprintf("pair:%s:swaps", ev.PairAddress), ev.LogOrdinal)
+		case *PCSBurn:
+			increment(fmt.Sprintf("pair:%s:burns", ev.PairAddress), ev.LogOrdinal)
+		case *PCSMint:
+			increment(fmt.Sprintf("pair:%s:mints", ev.PairAddress), ev.LogOrdinal)
 		case PCSPair:
 			// This should move inside the `StateBuilder::` APIs, as `.AddUint64()` or something
-			count := foundOrZeroUint64(totalPairsStore.GetLast("pairs:count"))
-			count++
-			totalPairsStore.Set(ev.LogOrdinal, "pairs:count", fmt.Sprintf("%d", count))
+			increment("pairs:count", ev.LogOrdinal)
 		}
 	}
 

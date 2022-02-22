@@ -41,8 +41,8 @@ func (p *ReservesExtractor) Map(block *pbcodec.Block, pairsState state.Reader) (
 					return nil, err
 				}
 
-				reserve0 := intToFloat(ev.Reserve0, pair.Token0.Decimals)
-				reserve1 := intToFloat(ev.Reserve1, pair.Token1.Decimals)
+				reserve0 := ConvertTokenToDecimal(ev.Reserve0, pair.Token0.Decimals)
+				reserve1 := ConvertTokenToDecimal(ev.Reserve1, pair.Token1.Decimals)
 
 				update := PCSReserveUpdate{
 					PairAddress: eth.Address(log.Address).Pretty(),
@@ -59,13 +59,13 @@ func (p *ReservesExtractor) Map(block *pbcodec.Block, pairsState state.Reader) (
 				if len(ev.Reserve1.Bits()) == 0 {
 					update.Token0Price = "0"
 				} else {
-					update.Token0Price = bf().Quo(reserve0.Float(), reserve1.Float()).String()
+					update.Token0Price = bf().Quo(reserve0, reserve1).String()
 				}
 
 				if len(ev.Reserve0.Bits()) == 0 {
 					update.Token1Price = "0"
 				} else {
-					update.Token1Price = bf().Quo(reserve1.Float(), reserve0.Float()).String()
+					update.Token1Price = bf().Quo(reserve1, reserve0).String()
 				}
 				// END OPTIONAL?
 

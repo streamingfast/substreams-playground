@@ -105,7 +105,7 @@ func (p *PairExtractor) getToken(addr eth.Address) (*ERC20Token, error) {
 
 	decimalsResponse := resps[0]
 	if decimalsResponse.CallError == nil && decimalsResponse.DecodingError == nil {
-		token.Decimals = uint32(decimalsResponse.Decoded[0].(*big.Int).Uint64())
+		token.Decimals = int64(decimalsResponse.Decoded[0].(*big.Int).Uint64())
 	}
 
 	nameResponse := resps[1]

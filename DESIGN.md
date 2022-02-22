@@ -1,3 +1,44 @@
+
+Example `substreams.yaml` declaration:
+
+---
+---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---------
+
+
+
 How could PancakeSwap be mapped to a Transforms based, event-driven stream, with caching between layers
 
 ## Transforms

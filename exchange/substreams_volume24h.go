@@ -13,17 +13,21 @@ type PCSVolume24hStateBuilder struct {
 	*SubstreamIntrinsics
 }
 
-func (p *PCSVolume24hStateBuilder) BuildState(block *pbcodec.Block, swaps Swaps, volume24hStore *state.Builder) error {
+func (p *PCSVolume24hStateBuilder) BuildState(block *pbcodec.Block, evs PCSEvents, volume24hStore *state.Builder) error {
 	timestamp := block.MustTime().Unix()
 	dayId := timestamp / 86400
 	//prevDayId := dayId - 1
 	//dayStartTimestamp := dayId * 86400, downstream can compute it
 
-	for _, swap := range swaps {
+	for _, ev := range evs {
+		swap, ok := ev.(*PCSSwap)
+		if !ok {
+			continue
+		}
 		if swap.AmountUSD == "" {
 			continue
 		}
-		amountUSD := strToFloat(swap.AmountUSD).Ptr().Float().SetPrec(100)
+		amountUSD := strToFloat(swap.AmountUSD)
 		if amountUSD.Cmp(bf()) == 0 {
 			continue
 		}
@@ -48,6 +52,14 @@ func (p *PCSVolume24hStateBuilder) BuildState(block *pbcodec.Block, swaps Swaps,
 	// deleteme-at-[...] computed based on something
 	// for _, deleteKey := range volume24hStore.Prefix("delete-key") {
 	// }
+	//
+	// WARN: if we automatically merge the files, the Deletions risk
+	// not being deterministic (although we could still do proper clean-up
+	// and keep memory low, and things would continue working).
+	// * Maybe we want to think of a deterministic way to do clean-up
+	//   based on some conventions, or with fixed _:delete keys or something
+	//   or some concepts of TTL, that the mergeStrategy could honor
+	//
 	// volume24hStore.DelPrefix(prefix)
 	// volume24hStore.DelPrefixPointers(prefix, keySeparator) // reads the key, and deletes keys that are stored in the value, with a `keySeparator`
 	// volume24hStore.DelScan(lowKey, highKey)
