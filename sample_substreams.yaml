@@ -9,7 +9,7 @@ protoFiles:
 
 streams:
 - name: pairExtractor
-  kind: Map
+  kind: Mapper
   code: ./pairExtractor.wasm
   params:
     contract: 0x123123123
@@ -27,7 +27,7 @@ streams:
     storeMergeStrategy: LAST_KEY   # SUM_INTS, SUM_FLOATS
 
 - name: reservesExtractor
-  kind: Map
+  kind: Mapper
   code: ./reservesExtractor.wasm
   inputs:
   - proto:sf.ethereum.types.v1.Block
@@ -45,7 +45,7 @@ streams:
     storeMergeStrategy: LAST_KEY
 
 - name: mintBurnSwapsExtractor
-  kind: Map
+  kind: Mapper
   code: ./mintBurnSwapsExtractor.wasm
   inputs:
   - proto:sf.ethereum.types.v1.Block
