@@ -7,6 +7,7 @@ import (
 
 func Main() {
 	zlog.Debug("wtf")
+	zlog.Info("wtf2")
 	setup()
 	cobra.OnInitialize(func() {
 		autoBind(rootCmd, "SUBSTREAMS")
