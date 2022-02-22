@@ -13,56 +13,63 @@ streams:
   code: ./pairExtractor.wasm
   params:
     contract: 0x123123123
-  input:
+  inputs:
   - proto:sf.ethereum.types.v1.Block
-  output: proto:pcs.types.v1.Pairs
+  output:
+    type: proto:pcs.types.v1.Pairs
 
-- name: pairsState
+- name: pairs
   kind: StateBuilder
   code: ./pairsState.wasm
-  input:
+  inputs:
   - stream:pairExtractor
-  storeMergeStrategy: LAST_KEY   # SUM_INTS, SUM_FLOATS
+  output:
+    storeMergeStrategy: LAST_KEY   # SUM_INTS, SUM_FLOATS
 
 - name: reservesExtractor
   kind: Map
   code: ./reservesExtractor.wasm
-  input:
+  inputs:
   - proto:sf.ethereum.types.v1.Block
-  - stream:pairsState
-  output: proto:pcs.types.v1.ReserveUpdates
+  - store:pairs
+  output:
+    type: proto:pcs.types.v1.ReserveUpdates
 
-- name: pricesState
+- name: prices
   kind: StateBuilder
   code: ./pricesState.wasm
-  input:
+  inputs:
   - proto:sf.ethereum.types.v1.Block
-  - stream:pairsState
-  storeMergeStrategy: LAST_KEY
+  - store:pairs
+  output:
+    storeMergeStrategy: LAST_KEY
 
 - name: mintBurnSwapsExtractor
   kind: Map
   code: ./mintBurnSwapsExtractor.wasm
-  input:
+  inputs:
   - proto:sf.ethereum.types.v1.Block
-  - stream:pairsState
-  - stream:pricesState
-  output: proto:pcs.types.v1.MintBurnSwaps
+  - store:pairs
+  - store:prices
+  output:
+    type: proto:pcs.types.v1.MintBurnSwaps
 
-- name: totalsState
+- name: totals
   kind: StateBuilder
   code: ./totalsState.wasm
-  input:
-  - stream:pairsState
-  storeMergeStrategy: SUM_INTS
+  inputs:
+  - store:pairs
+  output:
+    storeMergeStrategy: SUM_INTS
 
-- name: volumesState
+- name: volumes
   kind: StateBuilder
   code: ./volumesState.wasm
-  input:
+  inputs:
   - proto:sf.ethereum.types.v1.Block  # Only needed for Number/Timestamp, so a smaller stream would be just as fine.
   - stream:mintBurnSwapsExtractor
-  storeMergeStrategy: SUM_FLOATS
+  output:
+    storeMergeStrategy: SUM_FLOATS
 
 
 # $ callprogram manifest.yaml pairsExtractor
