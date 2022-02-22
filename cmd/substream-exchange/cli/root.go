@@ -13,7 +13,6 @@ import (
 	"github.com/streamingfast/bstream"
 	"github.com/streamingfast/bstream/firehose"
 	"github.com/streamingfast/dstore"
-	"github.com/streamingfast/eth-go"
 	"github.com/streamingfast/eth-go/rpc"
 	"github.com/streamingfast/sparkle-pancakeswap/exchange"
 	"github.com/streamingfast/sparkle-pancakeswap/state"
@@ -173,11 +172,25 @@ func (p *Pipeline) setupPrintPairUpdates() {
 		}
 	}()
 	// End subscription hub
-
 }
 
+// type Mapper interface {
+// 	Map() error
+// }
+// type StateBuilder interface {
+// 	BuildState() error
+// }
+
 func (p *Pipeline) handlerFactory(blockCount uint64) bstream.Handler {
-	pairExtractor := &exchange.PairExtractor{SubstreamIntrinsics: p.intr, Contract: eth.Address(exchange.FactoryAddressBytes)}
+	// maps := map[string]Mapper{
+	// 	"pairExtractor": &exchange.PairExtractor{SubstreamIntrinsics: p.intr},
+	// }
+	// states := map[string]StateBuilder{
+	// 	"pairs": &exchange.PairsStateBuilder{SubstreamIntrinsics: p.intr},
+
+	// }
+
+	pairExtractor := &exchange.PairExtractor{SubstreamIntrinsics: p.intr}
 	pairsStateBuilder := &exchange.PairsStateBuilder{SubstreamIntrinsics: p.intr}
 	totalPairsStateBuilder := &exchange.TotalPairsStateBuilder{SubstreamIntrinsics: p.intr}
 	pricesStateBuilder := &exchange.PricesStateBuilder{SubstreamIntrinsics: p.intr}

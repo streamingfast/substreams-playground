@@ -12,14 +12,7 @@ import (
 
 type PairExtractor struct {
 	*SubstreamIntrinsics
-
-	UseIndexBuilder string // by name,
-	Contract        eth.Address
 }
-
-// func (p *IndexBuilder) Map(block *pbcodec.Block) (keys IndexableKeys, err error) {
-// 	return nil, nil
-// }
 
 // inputs: sf.ethereum.v1.codec.Block
 // outputs: pancakeswap.v1.PCSPairs  (index on Nil)
@@ -28,7 +21,7 @@ type PairExtractor struct {
 func (p *PairExtractor) Map(block *pbcodec.Block) (pairs PCSPairs, err error) {
 	for _, trx := range block.TransactionTraces {
 		// WARN: this wouldn't catch those contract calls that are nested in sub-Calls
-		if !bytes.Equal(trx.To, p.Contract) {
+		if !bytes.Equal(trx.To, FactoryAddressBytes) {
 			continue
 		}
 		for _, log := range trx.Receipt.Logs {

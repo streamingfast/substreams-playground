@@ -11,8 +11,6 @@ streams:
 - name: pairExtractor
   kind: Mapper
   code: ./pairExtractor.wasm
-  params:
-    contract: 0x123123123
   inputs:
   - proto:sf.ethereum.types.v1.Block
   output:
@@ -72,4 +70,4 @@ streams:
     storeMergeStrategy: SUM_FLOATS
 
 
-# $ callprogram manifest.yaml pairsExtractor
+# $ program manifest.yaml pairsExtractor

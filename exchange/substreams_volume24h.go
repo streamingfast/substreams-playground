@@ -39,7 +39,7 @@ func (p *PCSVolume24hStateBuilder) BuildState(block *pbcodec.Block, evs PCSEvent
 		//increment(volume24hStore, fmt.Sprintf("receiver:%s:%d", swap.To, dayId), swap.LogOrdinal, amountUSD)
 
 		// volume24hStore.SetExpireBlock(dayPairId, block.Number + 1000)
-		// "_db:REV_BLOCK_NUM:key" -> ""
+		// "_db:000fffffff:REV_BLOCK_NUM:recevier:%s%:d" -> ""
 		// "_dt:REV_TIMESTAMP:key" -> ""
 		// volume24hStore.SetExpireSeconds(dayPairId, 86400)
 
@@ -63,6 +63,13 @@ func (p *PCSVolume24hStateBuilder) BuildState(block *pbcodec.Block, evs PCSEvent
 	// volume24hStore.DelPrefix(prefix)
 	// volume24hStore.DelPrefixPointers(prefix, keySeparator) // reads the key, and deletes keys that are stored in the value, with a `keySeparator`
 	// volume24hStore.DelScan(lowKey, highKey)
+	//
+	// TO EASE in stores merging, we could STORE the DelPrefix, or range
+	// deletions that happen in a PARTIAL store, as special keys like:
+	// _:del_range:value1:value2 => ""
+	// this way we could apply it to the previously squashed store, and clean
+	// up keys that would have been cleaned-up had we been linear.
+	// Once they are applied, we can delete them from the "absolute" store.
 	return nil
 }
 

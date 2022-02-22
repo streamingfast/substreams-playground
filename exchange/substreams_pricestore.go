@@ -92,7 +92,7 @@ func (p *PricesStateBuilder) findBnbPricePerToken(logOrdinal uint64, tokenAddr s
 
 		_ = otherToken
 
-		val, found := prices.GetLast(fmt.Sprintf("reserves_bnb:%s", pairAddr))
+		val, found := prices.GetAt(logOrdinal, fmt.Sprintf("reserves_bnb:%s", pairAddr))
 		if !found {
 			continue
 		}
