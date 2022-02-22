@@ -9,7 +9,7 @@ var zlog *zap.Logger
 
 func init() {
 	zlog = zap.NewNop()
-	_ = logging.ApplicationLogger("solgun", "github.com/streamingfast/substream-pancakeswap/cmd/substream-exchange", &zlog,
+	_ = logging.ApplicationLogger("substreams", "github.com/streamingfast/substream-pancakeswap/cmd/substream-exchange", &zlog,
 		logging.WithSwitcherServerAutoStart(),
 	)
 }

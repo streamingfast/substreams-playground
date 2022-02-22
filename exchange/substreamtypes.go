@@ -82,7 +82,7 @@ func (p PCSEvents) Print() {
 	if len(p) == 0 {
 		return
 	}
-	fmt.Println("Swaps updates:")
+	fmt.Println("PCS Events updates:")
 	cnt, _ := json.MarshalIndent(p, "", "  ")
 	fmt.Println(string(cnt))
 }
@@ -96,7 +96,7 @@ type VolumeAggregate struct {
 
 type PCSEvent interface {
 	GetOrdinal() uint64
-	SetBasics(pairAddr, token0, token1, trxID string, timestamp uint64)
+	SetBase(e PCSBaseEvent)
 }
 
 type PCSBaseEvent struct {
@@ -109,6 +109,7 @@ type PCSBaseEvent struct {
 
 type PCSSwap struct {
 	PCSBaseEvent
+	Type       string
 	LogOrdinal uint64
 
 	Sender string
@@ -127,16 +128,13 @@ func (e *PCSSwap) GetOrdinal() uint64 { return e.LogOrdinal }
 func (e *PCSMint) GetOrdinal() uint64 { return e.LogOrdinal }
 func (e *PCSBurn) GetOrdinal() uint64 { return e.LogOrdinal }
 
-func (e *PCSBaseEvent) SetBasics(pairAddr, token0, token1, trxID string, timestamp uint64) {
-	e.PairAddress = pairAddr
-	e.Token0 = token0
-	e.Token1 = token1
-	e.TransactionID = trxID
-	e.Timestamp = timestamp
-}
+func (e *PCSSwap) SetBase(base PCSBaseEvent) { e.PCSBaseEvent = base }
+func (e *PCSMint) SetBase(base PCSBaseEvent) { e.PCSBaseEvent = base }
+func (e *PCSBurn) SetBase(base PCSBaseEvent) { e.PCSBaseEvent = base }
 
 type PCSBurn struct {
 	PCSBaseEvent
+	Type       string
 	LogOrdinal uint64
 
 	To     string
@@ -153,6 +151,7 @@ type PCSBurn struct {
 
 type PCSMint struct {
 	PCSBaseEvent
+	Type       string
 	LogOrdinal uint64
 
 	To     string

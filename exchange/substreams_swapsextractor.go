@@ -54,8 +54,10 @@ func (p *SwapsExtractor) Map(block *pbcodec.Block, pairs state.Reader, prices st
 			}
 
 			var events []interface{}
+			var lastOrdinal uint64
 			for _, log := range call.Logs {
 				ethLog := ssCodecLogToEthLog(log)
+				lastOrdinal = uint64(ethLog.BlockIndex)
 				event, err := DecodeEvent(ethLog, block, trx)
 				if err != nil {
 					return nil, fmt.Errorf("parsing event: %w", err)
@@ -69,7 +71,7 @@ func (p *SwapsExtractor) Map(block *pbcodec.Block, pairs state.Reader, prices st
 			for _, ev := range events {
 				fmt.Printf("%s ", strings.Replace(strings.Replace(strings.Split(fmt.Sprintf("%T", ev), ".")[1], "Pair", "", -1), "Event", "", -1))
 			}
-			fmt.Printf("\n")
+			fmt.Printf(" (last ord: %d)\n", lastOrdinal)
 
 			_ = pairCnt
 
@@ -122,7 +124,8 @@ func (p *SwapsExtractor) Map(block *pbcodec.Block, pairs state.Reader, prices st
 				return nil, fmt.Errorf("process pair call: %w", err)
 			}
 			if newOutput != nil {
-				newOutput.SetBasics(pairAddr, pair.Token0.Address, pair.Token1.Address, trxID, uint64(block.MustTime().Unix()))
+				baseEvent := PCSBaseEvent{pairAddr, pair.Token0.Address, pair.Token1.Address, trxID, uint64(block.MustTime().Unix())}
+				newOutput.SetBase(baseEvent)
 				out = append(out, newOutput)
 			}
 		}
@@ -133,20 +136,64 @@ func (p *SwapsExtractor) Map(block *pbcodec.Block, pairs state.Reader, prices st
 func (p *SwapsExtractor) processMint(prices state.Reader, pair *PCSPair, tr1 *PairTransferEvent, tr2 *PairTransferEvent, sync *PairSyncEvent, mint *PairMintEvent) (out *PCSMint, err error) {
 	logOrdinal := uint64(mint.LogIndex)
 
+	amount0, amount1, amountUSD := convertPrices(prices, logOrdinal, mint.Amount0, mint.Amount1, pair)
+
 	out = &PCSMint{
+		Type:       "Mint",
+		To:         tr2.To.Pretty(),
+		Sender:     mint.Sender.Pretty(),
 		LogOrdinal: logOrdinal,
-		Liquidity:  tr2.Value.String(),
+		Liquidity:  floatToStr(ConvertTokenToDecimal(tr2.Value, 18)),
+		Amount0:    floatToStr(amount0),
+		Amount1:    floatToStr(amount1),
+		AmountUSD:  floatToStr(amountUSD),
 	}
-	return nil, nil
+	if tr1 != nil {
+		if tr1.Value.Cmp(big.NewInt(10000)) != 0 {
+			out.FeeTo = tr1.To.Pretty()
+			out.FeeLiquidity = floatToStr(ConvertTokenToDecimal(tr1.Value, 18))
+		}
+	}
+	return
 }
 
 func (p *SwapsExtractor) processBurn(prices state.Reader, pair *PCSPair, tr1 *PairTransferEvent, tr2 *PairTransferEvent, sync *PairSyncEvent, burn *PairBurnEvent) (out *PCSBurn, err error) {
 	logOrdinal := uint64(burn.LogIndex)
+	amount0, amount1, amountUSD := convertPrices(prices, logOrdinal, burn.Amount0, burn.Amount1, pair)
 	out = &PCSBurn{
+		Type:       "Burn",
 		LogOrdinal: logOrdinal,
-		Liquidity: tr2.Value.String(),
+		Liquidity:  floatToStr(ConvertTokenToDecimal(tr2.Value, 18)),
+		Amount0:    floatToStr(amount0),
+		Amount1:    floatToStr(amount1),
+		AmountUSD:  floatToStr(amountUSD),
+		To:         tr2.To.Pretty(),   // WARN: this might be off, didn't check completely, the code is crazy convoluated in their previous implementation.
+		Sender:     tr2.From.Pretty(), // WARN: ok those sender things aren't necessarily right, but not really useful for computations anyway
 	}
-	return nil, nil
+	if tr1 != nil {
+		out.FeeTo = tr1.To.Pretty()
+		out.FeeLiquidity = floatToStr(ConvertTokenToDecimal(tr1.Value, 18))
+	}
+	return
+}
+
+func convertPrices(prices state.Reader, logOrdinal uint64, amount0, amount1 *big.Int, pair *PCSPair) (*big.Float, *big.Float, *big.Float) {
+	token0Amount := ConvertTokenToDecimal(amount0, pair.Token0.Decimals)
+	token1Amount := ConvertTokenToDecimal(amount1, pair.Token1.Decimals)
+
+	derivedBNB0 := foundOrZeroFloat(prices.GetAt(logOrdinal, fmt.Sprintf("prices:%s:bnb", pair.Token0.Address)))
+	derivedBNB1 := foundOrZeroFloat(prices.GetAt(logOrdinal, fmt.Sprintf("prices:%s:bnb", pair.Token1.Address)))
+	usdPrice := foundOrZeroFloat(prices.GetAt(logOrdinal, fmt.Sprintf("prices:usd:bnb")))
+
+	amountTotalUSD := bf().Mul(
+		bf().Add(
+			bf().Mul(derivedBNB0, token0Amount),
+			bf().Mul(derivedBNB1, token1Amount),
+		),
+		usdPrice,
+	)
+
+	return token0Amount, token1Amount, amountTotalUSD
 }
 
 func (p *SwapsExtractor) processSwap(prices state.Reader, pair *PCSPair, sync *PairSyncEvent, swap *PairSwapEvent, fromAddr string) (out *PCSSwap, err error) {
@@ -171,12 +218,13 @@ func (p *SwapsExtractor) processSwap(prices state.Reader, pair *PCSPair, sync *P
 	)
 
 	out = &PCSSwap{
+		Type:       "Swap",
 		LogOrdinal: logOrdinal,
 
-		Amount0In:  amount0In.String(),
-		Amount1In:  amount1In.String(),
-		Amount0Out: amount0Out.String(),
-		Amount1Out: amount1Out.String(),
+		Amount0In:  floatToStr(amount0In),
+		Amount1In:  floatToStr(amount1In),
+		Amount0Out: floatToStr(amount0Out),
+		Amount1Out: floatToStr(amount1Out),
 
 		AmountBNB: floatToStr(derivedAmountBNB),
 		AmountUSD: floatToStr(trackedAmountUSD),

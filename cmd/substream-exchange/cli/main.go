@@ -9,7 +9,7 @@ func Main() {
 	setup()
 
 	cobra.OnInitialize(func() {
-		autoBind(rootCmd, "SUBSTREAM")
+		autoBind(rootCmd, "SUBSTREAMS")
 	})
 
 	err := rootCmd.Execute()

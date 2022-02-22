@@ -256,12 +256,12 @@ func (p *Pipeline) handlerFactory(blockCount uint64) bstream.Handler {
 
 		p.stores["volume24h"].PrintDeltas()
 
-		for _, s := range p.stores {
-			err := s.StoreBlock(context.Background(), block)
-			if err != nil {
-				return err
-			}
-		}
+		// for _, s := range p.stores {
+		// 	err := s.StoreBlock(context.Background(), block)
+		// 	if err != nil {
+		// 		return err
+		// 	}
+		// }
 
 		// Prep for next block, clean-up all deltas. This ought to be
 		// done by the runtime, when doing clean-up between blocks.

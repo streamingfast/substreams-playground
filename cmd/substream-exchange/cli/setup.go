@@ -1,8 +1,9 @@
 package cli
 
 import (
-	"go.uber.org/zap"
 	"net/http"
+
+	"go.uber.org/zap"
 )
 
 func setup() {
