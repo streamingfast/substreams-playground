@@ -16,7 +16,5 @@ func main() {
 		panic(err)
 	}
 
-	manifest.ReadLinks()
-
 	fmt.Println(manifest)
 }

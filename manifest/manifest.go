@@ -11,12 +11,11 @@ type Manifest struct {
 }
 
 type Stream struct {
-	Name               string   `yaml:"name"`
-	Kind               string   `yaml:"kind"`
-	Code               string   `yaml:"code"`
-	Input              []string `yaml:"input"`
-	Output             string   `yaml:"output"`
-	StoreMergeStrategy string   `yaml:"storeMergeStrategy"`
+	Name   string            `yaml:"name"`
+	Kind   string            `yaml:"kind"`
+	Code   string            `yaml:"code"`
+	Input  []string          `yaml:"input"`
+	Output map[string]string `yaml:"output"`
 }
 
 func NewManifest(path string) (*Manifest, error) {
