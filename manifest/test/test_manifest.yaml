@@ -1,0 +1,64 @@
+specVersion: 0.1.0
+description: PancakeSwap substreams
+codeType: wasm/assemblyscript-1.0
+
+genesisBlock: 6809737
+
+protoFiles:
+  - ./pancakeswap.proto
+
+streams:
+  - name: pairExtractor
+    kind: Map
+    code: ./pairExtractor.wasm
+    input:
+      - proto:sf.ethereum.types.v1.Block
+    output: proto:pcs.types.v1.Pairs
+
+  - name: pairsState
+    kind: StateBuilder
+    code: ./pairsState.wasm
+    input:
+      - stream:pairExtractor
+    storeMergeStrategy: LAST_KEY
+
+  - name: reservesExtractor
+    kind: Map
+    code: ./reservesExtractor.wasm
+    input:
+      - proto:sf.ethereum.types.v1.Block
+      - stream:pairsState
+    output: proto:pcs.types.v1.ReserveUpdates
+
+  - name: pricesState
+    kind: StateBuilder
+    code: ./pricesState.wasm
+    input:
+      - proto:sf.ethereum.types.v1.Block
+      - stream:pairsState
+    storeMergeStrategy: LAST_KEY
+
+  - name: mintBurnSwapsExtractor
+    kind: Map
+    code: ./mintBurnSwapsExtractor.wasm
+    input:
+      - proto:sf.ethereum.types.v1.Block
+      - stream:pairsState
+      - stream:pricesState
+    output: proto:pcs.types.v1.MintBurnSwaps
+
+  - name: totalsState
+    kind: StateBuilder
+    code: ./totalsState.wasm
+    input:
+      - stream:pairsState
+    storeMergeStrategy: SUM_INTS
+
+  - name: volumesState
+    kind: StateBuilder
+    code: ./volumesState.wasm
+    input:
+      - proto:sf.ethereum.types.v1.Block
+      - stream:mintBurnSwapsExtractor
+    storeMergeStrategy: SUM_FLOATS
+
