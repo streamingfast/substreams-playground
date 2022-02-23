@@ -141,10 +141,18 @@ func (p *Pipeline) HandlerFactory(blockCount uint64) bstream.Handler {
 		fmt.Println("-------------------------------------------------------------------")
 		fmt.Printf("BLOCK +%d %d %s\n", blk.Num()-p.startBlockNum, blk.Num(), blk.ID())
 
+		//todo? @abourget: pairs mapper and builder should be run in a standalone substream
+		// and be shared to other stream ...
 		mapper(vals, streamFuncs, "pairExtractor", []string{"Block"}, true)
 		stateBuilder(vals, streamFuncs, "pairs", []string{"pairExtractor"}, true)
+
+		//todo? @abourget: reserve extractor should consume pairs state through a stream that sync/wait/retrieve state a current block.
+		// this is were we need a clock to sync all those streams
+		//should also be run it there own standalone substream
 		mapper(vals, streamFuncs, "reservesExtractor", []string{"Block", "pairs"}, true)
 		stateBuilder(vals, streamFuncs, "prices", []string{"reservesExtractor", "pairs"}, true)
+
+		//todo? @abourget: same thing here pair and price state should be consume through a stream that sync/wait/retrieve state a current block.
 		mapper(vals, streamFuncs, "mintBurnSwapsExtractor", []string{"Block", "pairs", "prices"}, true)
 		stateBuilder(vals, streamFuncs, "totals", []string{"pairExtractor", "mintBurnSwapsExtractor"}, true)
 		stateBuilder(vals, streamFuncs, "volume24h", []string{"Block", "mintBurnSwapsExtractor"}, true)
