@@ -90,33 +90,31 @@ type StreamLinks struct {
 	links   map[string][]Stream
 }
 
-type linkedStreamItem struct {
+type streamWithTreeDepth struct {
 	stream Stream
 	depth  int
 }
 
 func (m *StreamLinks) Parents(rootName string) []Stream {
-	parents := m.parents(rootName, 0)
+	parentsWithDepth := m.parents(rootName, 0)
 
 	//sort by depth
-	sort.Slice(parents, func(i, j int) bool {
-		return parents[i].depth < parents[j].depth
+	sort.Slice(parentsWithDepth, func(i, j int) bool {
+		return parentsWithDepth[i].depth < parentsWithDepth[j].depth
 	})
 
-	result := []Stream{}
-
-	for _, parent := range parents {
+	var result []Stream
+	for _, parent := range parentsWithDepth {
 		result = append(result, parent.stream)
 	}
 
 	return result
 }
 
-func (m *StreamLinks) parents(rootName string, depth int) []linkedStreamItem {
-	result := []linkedStreamItem{}
-
+func (m *StreamLinks) parents(rootName string, depth int) []streamWithTreeDepth {
+	var result []streamWithTreeDepth
 	for _, link := range m.links[rootName] {
-		result = append(result, linkedStreamItem{
+		result = append(result, streamWithTreeDepth{
 			stream: link,
 			depth:  depth,
 		})
