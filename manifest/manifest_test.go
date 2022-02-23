@@ -3,7 +3,6 @@ package manifest
 import (
 	"bytes"
 	"encoding/base64"
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 	"strings"
@@ -84,19 +83,19 @@ func TestStream_Signature(t *testing.T) {
 	assert.Equal(t, "ejl836KNBOKIo0QLsV44i0Qh7hg=", sigString)
 }
 
-func TestManifest_ParseLinks(t *testing.T) {
-	manifest, err := NewManifest("./test/test_manifest.yaml")
-	assert.NoError(t, err)
-
-	links, err := manifest.ParseLinks()
-	assert.NoError(t, err)
-
-	p := links.Parents("pairs")
-	fmt.Println(p)
-}
-
 func TestStreamLinks_Parents(t *testing.T) {
-	streamLinks := &StreamLinks{
+	streamGraph := &StreamsGraph{
+		streams: map[string]Stream{
+			"A": {},
+			"B": {},
+			"C": {},
+			"D": {},
+			"E": {},
+			"F": {},
+			"G": {},
+			"H": {},
+			"I": {},
+		},
 		links: map[string][]Stream{
 			"A": {Stream{Name: "B"}, Stream{Name: "C"}},
 			"B": {Stream{Name: "D"}, Stream{Name: "E"}, Stream{Name: "F"}},
@@ -110,11 +109,12 @@ func TestStreamLinks_Parents(t *testing.T) {
 		},
 	}
 
-	res := streamLinks.Parents("A")
+	res, err := streamGraph.ParentsOf("A")
+	assert.NoError(t, err)
+
 	order := bytes.NewBuffer(nil)
 	for _, l := range res {
 		order.WriteString(l.Name)
 	}
 	assert.Equal(t, "BCDEFGH", order.String())
-
 }

@@ -55,23 +55,28 @@ func NewManifest(path string) (*Manifest, error) {
 	return manifest, nil
 }
 
-func (m *Manifest) ParseLinks() (*StreamLinks, error) {
-	streamLinks := &StreamLinks{
+type StreamsGraph struct {
+	streams map[string]Stream
+	links   map[string][]Stream
+}
+
+func NewStreamsGraph(streams []Stream) (*StreamsGraph, error) {
+	sg := &StreamsGraph{
 		streams: map[string]Stream{},
 		links:   map[string][]Stream{},
 	}
 
-	for _, stream := range m.Streams {
-		streamLinks.streams[stream.Name] = stream
+	for _, stream := range streams {
+		sg.streams[stream.Name] = stream
 	}
 
-	for _, stream := range m.Streams {
-		links := []Stream{}
+	for _, stream := range streams {
+		var links []Stream
 		for _, input := range stream.Inputs {
 			for _, streamPrefix := range []string{"stream:", "store:"} {
 				if strings.HasPrefix(input, streamPrefix) {
 					linkName := strings.TrimPrefix(input, streamPrefix)
-					linkedStream, ok := streamLinks.streams[linkName]
+					linkedStream, ok := sg.streams[linkName]
 					if !ok {
 						return nil, fmt.Errorf("stream %s does not exist", linkName)
 					}
@@ -80,24 +85,47 @@ func (m *Manifest) ParseLinks() (*StreamLinks, error) {
 			}
 
 		}
-		streamLinks.links[stream.Name] = links
+		sg.links[stream.Name] = links
 	}
 
-	return streamLinks, nil
+	return sg, nil
 }
 
-type StreamLinks struct {
-	streams map[string]Stream
-	links   map[string][]Stream
+func (g *StreamsGraph) ParentsOf(streamName string) ([]Stream, error) {
+	if _, ok := g.streams[streamName]; !ok {
+		return nil, fmt.Errorf("stream not found")
+	}
+
+	return g.parentsOf(streamName), nil
 }
 
-type streamWithTreeDepth struct {
-	stream Stream
-	depth  int
-}
+func (m *StreamsGraph) parentsOf(streamName string) []Stream {
+	type streamWithTreeDepth struct {
+		stream Stream
+		depth  int
+	}
 
-func (m *StreamLinks) Parents(rootName string) []Stream {
-	parentsWithDepth := m.parents(rootName, 0, map[string]struct{}{})
+	var dfs func(rootName string, depth int, alreadyVisited map[string]struct{}) []streamWithTreeDepth
+	dfs = func(rootName string, depth int, alreadyVisited map[string]struct{}) []streamWithTreeDepth {
+		var result []streamWithTreeDepth
+		for _, link := range m.links[rootName] {
+			if _, ok := alreadyVisited[link.Name]; ok {
+				continue
+			}
+
+			result = append(result, streamWithTreeDepth{
+				stream: link,
+				depth:  depth,
+			})
+			alreadyVisited[link.Name] = struct{}{}
+
+			result = append(result, dfs(link.Name, depth+1, alreadyVisited)...)
+		}
+
+		return result
+	}
+
+	parentsWithDepth := dfs(streamName, 0, map[string]struct{}{})
 
 	//sort by depth
 	sort.Slice(parentsWithDepth, func(i, j int) bool {
@@ -107,25 +135,6 @@ func (m *StreamLinks) Parents(rootName string) []Stream {
 	var result []Stream
 	for _, parent := range parentsWithDepth {
 		result = append(result, parent.stream)
-	}
-
-	return result
-}
-
-func (m *StreamLinks) parents(rootName string, depth int, alreadyVisited map[string]struct{}) []streamWithTreeDepth {
-	var result []streamWithTreeDepth
-	for _, link := range m.links[rootName] {
-		if _, ok := alreadyVisited[link.Name]; ok {
-			continue
-		}
-
-		result = append(result, streamWithTreeDepth{
-			stream: link,
-			depth:  depth,
-		})
-		alreadyVisited[link.Name] = struct{}{}
-
-		result = append(result, m.parents(link.Name, depth+1, alreadyVisited)...)
 	}
 
 	return result
