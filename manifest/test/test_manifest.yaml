@@ -10,7 +10,7 @@ protoFiles:
 streams:
   - name: pairExtractor
     kind: Mapper
-    code: ./test/code/pairExtractor.wasm
+    code: ./pairExtractor.wasm
     inputs:
       - proto:sf.ethereum.types.v1.Block
     output:

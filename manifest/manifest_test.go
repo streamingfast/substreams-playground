@@ -7,8 +7,9 @@ import (
 )
 
 func TestManifest_YamlUnmarshal(t *testing.T) {
-	_, _, err := DecodeYamlManifestFromFile("./test/test_manifest.yaml")
+	_, manifest, err := DecodeYamlManifestFromFile("./test/test_manifest.yaml")
 	assert.NoError(t, err)
+	assert.GreaterOrEqual(t, len(manifest.Streams), 1)
 }
 
 func TestStream_Signature(t *testing.T) {
