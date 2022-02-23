@@ -2,6 +2,7 @@ package manifest
 
 import (
 	"encoding/base64"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 	"strings"
@@ -80,4 +81,25 @@ func TestStream_Signature(t *testing.T) {
 
 	sigString := base64.StdEncoding.EncodeToString(sig)
 	assert.Equal(t, "ejl836KNBOKIo0QLsV44i0Qh7hg=", sigString)
+}
+
+func TestStreamLinks_Parents(t *testing.T) {
+	streamLinks := &StreamLinks{
+		streams: nil,
+		links: map[string][]Stream{
+			"A": {Stream{Name: "B"}, Stream{Name: "C"}},
+			"B": {Stream{Name: "D"}, Stream{Name: "E"}, Stream{Name: "F"}},
+			"C": {},
+			"D": {},
+			"E": {},
+			"F": {Stream{Name: "G"}, Stream{Name: "H"}},
+			"G": {},
+			"H": {},
+			"I": {Stream{Name: "H"}},
+		},
+	}
+
+	res := streamLinks.Parents("A")
+	fmt.Println(res)
+
 }

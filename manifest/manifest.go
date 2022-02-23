@@ -56,17 +56,18 @@ func NewManifest(path string) (*Manifest, error) {
 }
 
 //wip
-func ParseManifestLinks(manifest *Manifest) (*StreamLinks, error) {
+
+func (m *Manifest) ParseLinks() (*StreamLinks, error) {
 	streamLinks := &StreamLinks{
 		streams: map[string]Stream{},
 		links:   map[string][]Stream{},
 	}
 
-	for _, stream := range manifest.Streams {
+	for _, stream := range m.Streams {
 		streamLinks.streams[stream.Name] = stream
 	}
 
-	for _, stream := range manifest.Streams {
+	for _, stream := range m.Streams {
 		links := []Stream{}
 		for _, input := range stream.Inputs {
 			if strings.HasPrefix(input, "stream:") {
@@ -87,4 +88,40 @@ func ParseManifestLinks(manifest *Manifest) (*StreamLinks, error) {
 type StreamLinks struct {
 	streams map[string]Stream
 	links   map[string][]Stream
+}
+
+type LinkedStreamTreeItem struct {
+	stream Stream
+	depth  int
+}
+
+func (m *StreamLinks) Parents(rootName string) []Stream {
+	parents := m.parents(rootName, 0)
+
+	sort.Slice(parents, func(i, j int) bool {
+		return parents[i].depth < parents[j].depth
+	})
+
+	result := []Stream{}
+
+	for _, parent := range parents {
+		result = append(result, parent.stream)
+	}
+
+	return result
+}
+
+func (m *StreamLinks) parents(rootName string, depth int) []LinkedStreamTreeItem {
+	result := []LinkedStreamTreeItem{}
+
+	for _, link := range m.links[rootName] {
+		//F, I
+		result = append(result, LinkedStreamTreeItem{
+			stream: link,
+			depth:  depth,
+		})
+		result = append(result, m.parents(link.Name, depth+1)...)
+	}
+
+	return result
 }
