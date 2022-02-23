@@ -1,10 +1,10 @@
 package manifest
 
 import (
-	"bytes"
 	"fmt"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
+	"strings"
 )
 
 func DecodeYamlManifestFromFile(yamlFilePath string) (string, *Manifest, error) {
@@ -23,7 +23,7 @@ func DecodeYamlManifestFromFile(yamlFilePath string) (string, *Manifest, error) 
 
 func DecodeYamlManifest(manifestContent string) (*Manifest, error) {
 	var subgraphManifest *Manifest
-	if err := yaml.NewDecoder(bytes.NewReader([]byte(manifestContent))).Decode(&subgraphManifest); err != nil {
+	if err := yaml.NewDecoder(strings.NewReader(manifestContent)).Decode(&subgraphManifest); err != nil {
 		return nil, fmt.Errorf("decoding manifest content %q: %w", manifestContent, err)
 	}
 
