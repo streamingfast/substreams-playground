@@ -1,6 +1,7 @@
 package manifest
 
 import (
+	"bytes"
 	"encoding/base64"
 	"fmt"
 	"github.com/stretchr/testify/assert"
@@ -83,12 +84,23 @@ func TestStream_Signature(t *testing.T) {
 	assert.Equal(t, "ejl836KNBOKIo0QLsV44i0Qh7hg=", sigString)
 }
 
+func TestManifest_ParseLinks(t *testing.T) {
+	manifest, err := NewManifest("./test/test_manifest.yaml")
+	assert.NoError(t, err)
+
+	links, err := manifest.ParseLinks()
+	assert.NoError(t, err)
+
+	p := links.Parents("pairs")
+	fmt.Println(p)
+}
+
 func TestStreamLinks_Parents(t *testing.T) {
 	streamLinks := &StreamLinks{
 		links: map[string][]Stream{
 			"A": {Stream{Name: "B"}, Stream{Name: "C"}},
 			"B": {Stream{Name: "D"}, Stream{Name: "E"}, Stream{Name: "F"}},
-			"C": {},
+			"C": {Stream{Name: "F"}},
 			"D": {},
 			"E": {},
 			"F": {Stream{Name: "G"}, Stream{Name: "H"}},
@@ -99,6 +111,10 @@ func TestStreamLinks_Parents(t *testing.T) {
 	}
 
 	res := streamLinks.Parents("A")
-	fmt.Println(res)
+	order := bytes.NewBuffer(nil)
+	for _, l := range res {
+		order.WriteString(l.Name)
+	}
+	assert.Equal(t, "BCDEFGH", order.String())
 
 }

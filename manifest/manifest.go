@@ -55,8 +55,6 @@ func NewManifest(path string) (*Manifest, error) {
 	return manifest, nil
 }
 
-//wip
-
 func (m *Manifest) ParseLinks() (*StreamLinks, error) {
 	streamLinks := &StreamLinks{
 		streams: map[string]Stream{},
@@ -70,14 +68,17 @@ func (m *Manifest) ParseLinks() (*StreamLinks, error) {
 	for _, stream := range m.Streams {
 		links := []Stream{}
 		for _, input := range stream.Inputs {
-			if strings.HasPrefix(input, "stream:") {
-				linkName := strings.TrimPrefix(input, "stream:")
-				linkedStream, ok := streamLinks.streams[linkName]
-				if !ok {
-					return nil, fmt.Errorf("stream %s does not exist", linkName)
+			for _, streamPrefix := range []string{"stream:", "store:"} {
+				if strings.HasPrefix(input, streamPrefix) {
+					linkName := strings.TrimPrefix(input, streamPrefix)
+					linkedStream, ok := streamLinks.streams[linkName]
+					if !ok {
+						return nil, fmt.Errorf("stream %s does not exist", linkName)
+					}
+					links = append(links, linkedStream)
 				}
-				links = append(links, linkedStream)
 			}
+
 		}
 		streamLinks.links[stream.Name] = links
 	}
@@ -96,7 +97,7 @@ type streamWithTreeDepth struct {
 }
 
 func (m *StreamLinks) Parents(rootName string) []Stream {
-	parentsWithDepth := m.parents(rootName, 0)
+	parentsWithDepth := m.parents(rootName, 0, map[string]struct{}{})
 
 	//sort by depth
 	sort.Slice(parentsWithDepth, func(i, j int) bool {
@@ -111,14 +112,20 @@ func (m *StreamLinks) Parents(rootName string) []Stream {
 	return result
 }
 
-func (m *StreamLinks) parents(rootName string, depth int) []streamWithTreeDepth {
+func (m *StreamLinks) parents(rootName string, depth int, alreadyVisited map[string]struct{}) []streamWithTreeDepth {
 	var result []streamWithTreeDepth
 	for _, link := range m.links[rootName] {
+		if _, ok := alreadyVisited[link.Name]; ok {
+			continue
+		}
+
 		result = append(result, streamWithTreeDepth{
 			stream: link,
 			depth:  depth,
 		})
-		result = append(result, m.parents(link.Name, depth+1)...)
+		alreadyVisited[link.Name] = struct{}{}
+
+		result = append(result, m.parents(link.Name, depth+1, alreadyVisited)...)
 	}
 
 	return result
