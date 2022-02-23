@@ -12,6 +12,7 @@ func TestManifest_YamlUnmarshal(t *testing.T) {
 	_, manifest, err := DecodeYamlManifestFromFile("./test/test_manifest.yaml")
 	assert.NoError(t, err)
 	assert.GreaterOrEqual(t, len(manifest.Streams), 1)
+	assert.Equal(t, manifest.GenesisBlock, 6809737)
 }
 
 func TestStreamYamlDecode(t *testing.T) {

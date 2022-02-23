@@ -10,8 +10,9 @@ import (
 )
 
 type Manifest struct {
-	Description string   `yaml:"description"`
-	Streams     []Stream `yaml:"streams"`
+	Description  string   `yaml:"description"`
+	GenesisBlock int      `yaml:"genesisBlock"`
+	Streams      []Stream `yaml:"streams"`
 }
 
 type Stream struct {
