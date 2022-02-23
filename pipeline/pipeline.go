@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"reflect"
 	"strings"
 
 	"github.com/streamingfast/bstream"
@@ -94,15 +95,27 @@ func (p *Pipeline) HandlerFactory(blockCount uint64) bstream.Handler {
 
 	// }
 
-	pairExtractor := &exchange.PairExtractor{SubstreamIntrinsics: p.intr}
-	pairsStateBuilder := &exchange.PairsStateBuilder{SubstreamIntrinsics: p.intr}
-	totalPairsStateBuilder := &exchange.TotalPairsStateBuilder{SubstreamIntrinsics: p.intr}
-	pricesStateBuilder := &exchange.PricesStateBuilder{SubstreamIntrinsics: p.intr}
-	reservesExtractor := &exchange.ReservesExtractor{SubstreamIntrinsics: p.intr}
-	swapsExtractor := &exchange.SwapsExtractor{SubstreamIntrinsics: p.intr}
-	volume24hStateBuilder := &exchange.PCSVolume24hStateBuilder{SubstreamIntrinsics: p.intr}
+	streamFuncs := map[string]reflect.Value{
+		"pairExtractor":          reflect.ValueOf(&exchange.PairExtractor{SubstreamIntrinsics: p.intr}),
+		"pairs":                  reflect.ValueOf(&exchange.PairsStateBuilder{SubstreamIntrinsics: p.intr}),
+		"totals":                 reflect.ValueOf(&exchange.TotalPairsStateBuilder{SubstreamIntrinsics: p.intr}),
+		"prices":                 reflect.ValueOf(&exchange.PricesStateBuilder{SubstreamIntrinsics: p.intr}),
+		"reservesExtractor":      reflect.ValueOf(&exchange.ReservesExtractor{SubstreamIntrinsics: p.intr}),
+		"mintBurnSwapsExtractor": reflect.ValueOf(&exchange.SwapsExtractor{SubstreamIntrinsics: p.intr}),
+		"volume24h":              reflect.ValueOf(&exchange.PCSVolume24hStateBuilder{SubstreamIntrinsics: p.intr}),
+	}
 
-	return bstream.HandlerFunc(func(block *bstream.Block, obj interface{}) error {
+	vals := map[string]reflect.Value{}
+	for storeName, store := range p.stores {
+		vals[storeName] = reflect.ValueOf(store)
+	}
+
+	return bstream.HandlerFunc(func(block *bstream.Block, obj interface{}) (err error) {
+		// defer func() {
+		// 	if r := recover(); r != nil {
+		// 		err = fmt.Errorf("panic: %w", r)
+		// 	}
+		// }()
 
 		// TODO: eventually, handle the `undo` signals.
 		//  NOTE: The RUNTIME will handle the undo signals. It'll have all it needs.
@@ -120,58 +133,21 @@ func (p *Pipeline) HandlerFactory(blockCount uint64) bstream.Handler {
 			return io.EOF
 		}
 
+		p.intr.SetCurrentBlock(block)
+
 		blk := block.ToProtocol().(*pbcodec.Block)
-		p.intr.SetCurrentBlock(blk)
+		vals["Block"] = reflect.ValueOf(blk)
 
 		fmt.Println("-------------------------------------------------------------------")
 		fmt.Printf("BLOCK +%d %d %s\n", blk.Num()-p.startBlockNum, blk.Num(), blk.ID())
 
-		pairs, err := pairExtractor.Map(blk)
-		if err != nil {
-			return fmt.Errorf("extracting pairs: %w", err)
-		}
-		pairs.Print()
-
-		if err := pairsStateBuilder.BuildState(pairs, p.stores["pairs"]); err != nil {
-			return fmt.Errorf("processing pair cache: %w", err)
-		}
-		p.stores["pairs"].PrintDeltas()
-
-		// subscription hub thing
-		err = p.subscriptionHub.BroadcastDeltas("pairs", p.stores["pairs"].Deltas)
-		if err != nil {
-			return fmt.Errorf("broadcasting deltas for topic [pairs]")
-		}
-		// END subscription hub
-
-		reserveUpdates, err := reservesExtractor.Map(blk, p.stores["pairs"])
-		if err != nil {
-			return fmt.Errorf("processing reserves extractor: %w", err)
-		}
-		reserveUpdates.Print()
-
-		if err := pricesStateBuilder.BuildState(reserveUpdates, p.stores["pairs"], p.stores["prices"]); err != nil {
-			return fmt.Errorf("pairs price building: %w", err)
-		}
-		p.stores["prices"].PrintDeltas()
-
-		swaps, err := swapsExtractor.Map(blk, p.stores["pairs"], p.stores["prices"])
-		if err != nil {
-			return fmt.Errorf("swaps extractor: %w", err)
-		}
-
-		swaps.Print()
-
-		if err := totalPairsStateBuilder.BuildState(pairs, swaps, p.stores["total_pairs"]); err != nil {
-			return fmt.Errorf("processing total pairs: %w", err)
-		}
-		p.stores["total_pairs"].PrintDeltas()
-
-		if err := volume24hStateBuilder.BuildState(blk, swaps, p.stores["volume24h"]); err != nil {
-			return fmt.Errorf("volume24 builder: %w", err)
-		}
-
-		p.stores["volume24h"].PrintDeltas()
+		mapper(vals, streamFuncs, "pairExtractor", []string{"Block"}, true)
+		stateBuilder(vals, streamFuncs, "pairs", []string{"pairExtractor"}, true)
+		mapper(vals, streamFuncs, "reservesExtractor", []string{"Block", "pairs"}, true)
+		stateBuilder(vals, streamFuncs, "prices", []string{"reservesExtractor", "pairs"}, true)
+		mapper(vals, streamFuncs, "mintBurnSwapsExtractor", []string{"Block", "pairs", "prices"}, true)
+		stateBuilder(vals, streamFuncs, "totals", []string{"pairExtractor", "mintBurnSwapsExtractor"}, true)
+		stateBuilder(vals, streamFuncs, "volume24h", []string{"Block", "mintBurnSwapsExtractor"}, true)
 
 		// for _, s := range p.stores {
 		// 	err := s.StoreBlock(context.Background(), block)
@@ -193,4 +169,47 @@ func (p *Pipeline) HandlerFactory(blockCount uint64) bstream.Handler {
 
 		return nil
 	})
+}
+
+type Printer interface {
+	Print()
+}
+
+func printer(in interface{}) {
+	if p, ok := in.(Printer); ok {
+		p.Print()
+	}
+}
+
+func mapper(vals map[string]reflect.Value, streams map[string]reflect.Value, name string, inputs []string, printOutputs bool) {
+	var inputVals []reflect.Value
+	for _, in := range inputs {
+		inputVals = append(inputVals, vals[in])
+	}
+	out := streams[name].MethodByName("Map").Call(inputVals)
+	if len(out) != 2 {
+		panic("invalid number of outputs for call on Map ethod")
+	}
+	vals[name] = out[0]
+
+	if err, ok := out[1].Interface().(error); ok && err != nil {
+		panic(fmt.Errorf("stream %s: %w", name, err))
+	}
+}
+
+func stateBuilder(vals map[string]reflect.Value, streams map[string]reflect.Value, name string, inputs []string, printOutputs bool) {
+	var inputVals []reflect.Value
+	for _, in := range inputs {
+		inputVals = append(inputVals, vals[in])
+	}
+	inputVals = append(inputVals, vals[name])
+
+	// TODO: we can cache the `Method` retrieved on the stream.
+	out := streams[name].MethodByName("BuildState").Call(inputVals)
+	if len(out) != 1 {
+		panic("invalid number of outputs for call on BuildState method")
+	}
+	if err, ok := out[0].Interface().(error); ok && err != nil {
+		panic(fmt.Errorf("stream %s: %w", name, err))
+	}
 }

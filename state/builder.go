@@ -36,7 +36,7 @@ func New(name string, ioFactory IOFactory) *Builder {
 	return b
 }
 
-func (b *Builder) PrintDeltas() {
+func (b *Builder) Print() {
 	if len(b.Deltas) == 0 {
 		return
 	}

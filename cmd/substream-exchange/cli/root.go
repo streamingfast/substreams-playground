@@ -80,7 +80,7 @@ func runRoot(cmd *cobra.Command, args []string) error {
 
 	ioFactory := state.NewStoreStateIOFactory(stateStore)
 	stores := map[string]*state.Builder{}
-	for _, storeName := range []string{"pairs", "total_pairs", "prices", "volume24h"} {
+	for _, storeName := range []string{"pairs", "totals", "prices", "volume24h"} {
 		s := state.New(storeName, ioFactory)
 		stores[storeName] = s
 	}
