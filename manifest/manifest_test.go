@@ -85,7 +85,6 @@ func TestStream_Signature(t *testing.T) {
 
 func TestStreamLinks_Parents(t *testing.T) {
 	streamLinks := &StreamLinks{
-		streams: nil,
 		links: map[string][]Stream{
 			"A": {Stream{Name: "B"}, Stream{Name: "C"}},
 			"B": {Stream{Name: "D"}, Stream{Name: "E"}, Stream{Name: "F"}},
