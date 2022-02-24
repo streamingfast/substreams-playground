@@ -18,7 +18,7 @@ streams:
 
   - name: pairs
     kind: StateBuilder
-    code: ./pairsState.wasm
+    code: ./test/code/pairsState.wasm
     inputs:
       - stream:pairExtractor
     output:

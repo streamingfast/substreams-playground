@@ -25,7 +25,7 @@ type Stream struct {
 	Output map[string]string `yaml:"output"`
 }
 
-func (s *Stream) Signature() ([]byte, error) {
+func (s *Stream) Signature(graph *StreamsGraph) ([]byte, error) {
 	codeData, err := ioutil.ReadFile(s.Code)
 	if err != nil {
 		return nil, fmt.Errorf("could not read code %s: %w", s.Code, err)
@@ -41,6 +41,18 @@ func (s *Stream) Signature() ([]byte, error) {
 	}
 
 	buf.Write(codeData)
+
+	ancestors, err := graph.AncestorsOf(s.Name)
+	if err != nil {
+		return nil, err
+	}
+	for _, ancestor := range ancestors {
+		sig, err := ancestor.Signature(graph)
+		if err != nil {
+			return nil, err
+		}
+		buf.Write(sig)
+	}
 
 	h := sha1.New()
 	h.Write(buf.Bytes())
@@ -106,11 +118,16 @@ func (g *StreamsGraph) StreamsFor(streamName string) ([]Stream, error) {
 		return nil, fmt.Errorf("stream %q not found", streamName)
 	}
 
-	parents := g.parentsOf(streamName)
+	parents := g.ancestorsOf(streamName)
 	return append(parents, thisStream), nil
 }
 
-func (g *StreamsGraph) parentsOf(streamName string) []Stream {
+func (g *StreamsGraph) AncestorsOf(streamName string) ([]Stream, error) {
+	parents := g.ancestorsOf(streamName)
+	return parents, nil
+}
+
+func (g *StreamsGraph) ancestorsOf(streamName string) []Stream {
 	type streamWithTreeDepth struct {
 		stream Stream
 		depth  int

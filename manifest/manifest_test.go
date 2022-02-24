@@ -72,16 +72,28 @@ output:
 	}
 }
 
-func TestStream_Signature(t *testing.T) {
+func TestStream_Signature_Basic(t *testing.T) {
 	manifest, err := New("./test/test_manifest.yaml")
 	assert.NoError(t, err)
 
-	pairExtractorStream := manifest.Streams[0]
-	sig, err := pairExtractorStream.Signature()
+	pairExtractorStream := manifest.Graph.streams["pairExtractor"]
+	sig, err := pairExtractorStream.Signature(manifest.Graph)
 	assert.NoError(t, err)
 
 	sigString := base64.StdEncoding.EncodeToString(sig)
-	assert.Equal(t, "ejl836KNBOKIo0QLsV44i0Qh7hg=", sigString)
+	assert.Equal(t, "4E8LY/jRrRfuzPneS53QBItGhwU=", sigString)
+}
+
+func TestStream_Signature_Composed(t *testing.T) {
+	manifest, err := New("./test/test_manifest.yaml")
+	assert.NoError(t, err)
+
+	pairsStream := manifest.Graph.streams["pairs"]
+	sig, err := pairsStream.Signature(manifest.Graph)
+	assert.NoError(t, err)
+
+	sigString := base64.StdEncoding.EncodeToString(sig)
+	assert.Equal(t, "OAvI+VUy9FU2dWDUNRcZ3KHEoh8=", sigString)
 }
 
 func TestStreamLinks_StreamsFor(t *testing.T) {
