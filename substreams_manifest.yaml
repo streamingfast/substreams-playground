@@ -37,7 +37,7 @@ streams:
   kind: StateBuilder
   code: ./pricesState.wasm
   inputs:
-  - proto:sf.ethereum.types.v1.Block
+  - stream:reservesExtractor
   - store:pairs
   output:
     storeMergeStrategy: LAST_KEY
@@ -56,7 +56,8 @@ streams:
   kind: StateBuilder
   code: ./totalsState.wasm
   inputs:
-  - store:pairs
+  - stream:pairExtractor
+  - stream:mintBurnSwapsExtractor
   output:
     storeMergeStrategy: SUM_INTS
 

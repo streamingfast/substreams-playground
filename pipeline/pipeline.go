@@ -92,7 +92,7 @@ func (p *Pipeline) Build(ioFactory state.IOFactory, forceLoadState bool) error {
 		switch stream.Kind {
 		case "Mapper":
 			method := f.MethodByName("Map")
-			if !method.IsValid() {
+			if method.IsZero() {
 				return fmt.Errorf("Map() method not found on %T", f.Interface())
 			}
 			fmt.Printf("Adding mapper for stream %q\n", stream.Name)
@@ -101,13 +101,10 @@ func (p *Pipeline) Build(ioFactory state.IOFactory, forceLoadState bool) error {
 			})
 		case "StateBuilder":
 			method := f.MethodByName("BuildState")
-			if !method.IsValid() {
+			if method.IsZero() {
 				return fmt.Errorf("BuildState() method not found on %T", f.Interface())
 			}
 			store := state.New(stream.Name, ioFactory)
-			p.stores[stream.Name] = store
-			p.streamOutputs[stream.Name] = reflect.ValueOf(store)
-
 			if forceLoadState {
 				// Use AN ABSOLUTE store, or SQUASH ALL PARTIAL!
 
@@ -115,6 +112,8 @@ func (p *Pipeline) Build(ioFactory state.IOFactory, forceLoadState bool) error {
 					return fmt.Errorf("could not load state for store %s at block num %d: %w", stream.Name, p.startBlockNum, err)
 				}
 			}
+			p.stores[stream.Name] = store
+			p.streamOutputs[stream.Name] = reflect.ValueOf(store)
 
 			fmt.Printf("Adding state builder for stream %q\n", stream.Name)
 			p.streamFuncs = append(p.streamFuncs, func() error {
