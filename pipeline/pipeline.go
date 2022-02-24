@@ -144,6 +144,13 @@ func (p *Pipeline) HandlerFactory(blockCount uint64) bstream.Handler {
 		//todo? @abourget: pairs mapper and builder should be run in a standalone substream
 		// and be shared to other stream ...
 		mapper(vals, streamFuncs, "pairExtractor", []string{"Block"}, true)
+
+		// `stateBuidler` aura 4 modes d'opération:
+		//   * fetch an absolute snapshot from disk at EXACTLY the point we're starting
+		//   * fetch a partial snapshot, and fuse with previous snapshots, in which I need local "pairExtractor" building.
+		//   * connect to a remote firehose (I can cut the upstream dependencies
+		//   * if resources are available, SCHEDULE on BACKING NODES a parallel processing for that segment
+		//   * completely roll out LOCALLY the full historic reprocessing BEFORE continuing
 		stateBuilder(vals, streamFuncs, "pairs", []string{"pairExtractor"}, true)
 
 		//todo? @abourget: reserve extractor should consume pairs state through a stream that sync/wait/retrieve state a current block.
@@ -200,6 +207,11 @@ func mapper(vals map[string]reflect.Value, streams map[string]reflect.Value, nam
 	}
 	vals[name] = out[0]
 
+	p, ok := out[0].Interface().(Printer)
+	if ok && printOutputs {
+		p.Print()
+	}
+
 	if err, ok := out[1].Interface().(error); ok && err != nil {
 		panic(fmt.Errorf("stream %s: %w", name, err))
 	}
@@ -216,6 +228,10 @@ func stateBuilder(vals map[string]reflect.Value, streams map[string]reflect.Valu
 	out := streams[name].MethodByName("BuildState").Call(inputVals)
 	if len(out) != 1 {
 		panic("invalid number of outputs for call on BuildState method")
+	}
+	p, ok := vals[name].Interface().(Printer)
+	if ok && printOutputs {
+		p.Print()
 	}
 	if err, ok := out[0].Interface().(error); ok && err != nil {
 		panic(fmt.Errorf("stream %s: %w", name, err))

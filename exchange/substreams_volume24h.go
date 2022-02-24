@@ -32,14 +32,17 @@ func (p *PCSVolume24hStateBuilder) BuildState(block *pbcodec.Block, evs PCSEvent
 			continue
 		}
 
-		increment(volume24hStore, fmt.Sprintf("pair:%s:%d", swap.PairAddress, dayId), swap.LogOrdinal, amountUSD)
+		// Get("day") // "12312" == currentDayId
+		// CLEAN UP EVERYTHING!
+
+		increment(volume24hStore, fmt.Sprintf("day:%d:%s:pair", swap.PairAddress, dayId), swap.LogOrdinal, amountUSD)
 		increment(volume24hStore, fmt.Sprintf("token:%s:%d", swap.Token0, dayId), swap.LogOrdinal, amountUSD)
 		increment(volume24hStore, fmt.Sprintf("token:%s:%d", swap.Token1, dayId), swap.LogOrdinal, amountUSD)
 		//increment(volume24hStore, fmt.Sprintf("sender:%s:%d", swap.Sender, dayId), swap.LogOrdinal, amountUSD)
 		//increment(volume24hStore, fmt.Sprintf("receiver:%s:%d", swap.To, dayId), swap.LogOrdinal, amountUSD)
 
 		// volume24hStore.SetExpireBlock(dayPairId, block.Number + 1000)
-		// "_db:000fffffff:REV_BLOCK_NUM:recevier:%s%:d" -> ""
+		// "_db:fffffffee:REV_BLOCK_NUM:recevier:%s%:%d" -> ""
 		// "_dt:REV_TIMESTAMP:key" -> ""
 		// volume24hStore.SetExpireSeconds(dayPairId, 86400)
 
@@ -77,4 +80,7 @@ func increment(store *state.Builder, key string, ord uint64, amount *big.Float) 
 	volume := foundOrZeroFloat(store.GetAt(ord, key))
 	newVolume := bf().Add(volume, amount).SetPrec(100)
 	store.Set(ord, key, floatToStr(newVolume))
+
+	// store.IncrementInt(key, value)
+	// store.IncrementFloat(key, value)
 }

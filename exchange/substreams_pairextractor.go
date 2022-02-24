@@ -17,6 +17,15 @@ type PairExtractor struct {
 // inputs: sf.ethereum.v1.codec.Block
 // outputs: pancakeswap.v1.PCSPairs  (index on Nil)
 
+// AS: U32(pointer to block begin), U32(block length), U32(readable_store_index), U32(writable_store_index), U32(), U32(poitner to start where I'll read 4 bytes for length), U32(pointer to start where I'll return value), bytes du pointer de block
+
+// func map(block []byte, pairs_store_index uint32) (pairs []byte) {
+// 	proto.Unmarshal(block, &myblock)
+// 	env.store_get_last(pairs_store_index, "key")
+
+// 	return proto.Marshal(pairs)
+// }
+
 // Map function can take one or more input objects, sync'd by the `Block` clock.
 func (p *PairExtractor) Map(block *pbcodec.Block) (pairs PCSPairs, err error) {
 	for _, trx := range block.TransactionTraces {

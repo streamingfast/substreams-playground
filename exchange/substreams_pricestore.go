@@ -92,6 +92,9 @@ func (p *PricesStateBuilder) findBnbPricePerToken(logOrdinal uint64, tokenAddr s
 
 		_ = otherToken
 
+		// IF WE'RE AT A PARALLEL BOUNDARY HERE, we might NOT have the value that was set in the previous
+		// stage, and it would break some calculations down here.
+		// Perhaps CAN'T READ from the store?
 		val, found := prices.GetAt(logOrdinal, fmt.Sprintf("reserves_bnb:%s", pairAddr))
 		if !found {
 			continue
@@ -138,6 +141,7 @@ const (
 )
 
 func (p *PricesStateBuilder) computeUSDPrice(update PCSReserveUpdate, prices *state.Builder) *big.Float {
+	// SAME PROBLEM of READING from the state store you're building.
 	busdBNBReserve := foundOrZeroFloat(prices.GetAt(update.LogOrdinal, fmt.Sprintf("reserve0:%s", BUSD_WBNB_PAIR)))
 	usdtBNBReserve := foundOrZeroFloat(prices.GetAt(update.LogOrdinal, fmt.Sprintf("reserve1:%s", USDT_WBNB_PAIR)))
 	totalLiquidityBNB := bf().Add(busdBNBReserve, usdtBNBReserve).SetPrec(100)

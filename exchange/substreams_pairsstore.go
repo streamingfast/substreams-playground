@@ -21,12 +21,12 @@ type PairsStateBuilder struct {
 // output: STATE (path-to-storage, unique ID for storage)
 func (p *PairsStateBuilder) BuildState(pairs PCSPairs, pairsStore *state.Builder) error {
 	for _, pair := range pairs {
-		cnt, err := json.Marshal(pair)
+		jsonContent, err := json.Marshal(pair)
 		if err != nil {
 			return err
 		}
 
-		pairsStore.SetBytes(pair.LogOrdinal, "pair:"+pair.Address, cnt)
+		pairsStore.SetBytes(pair.LogOrdinal, "pair:"+pair.Address, jsonContent)
 		pairsStore.Set(pair.LogOrdinal, "tokens:"+generateTokensKey(pair.Token0.Address, pair.Token1.Address), pair.Address)
 	}
 	return nil
