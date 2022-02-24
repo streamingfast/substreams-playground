@@ -84,18 +84,18 @@ func TestStream_Signature(t *testing.T) {
 	assert.Equal(t, "ejl836KNBOKIo0QLsV44i0Qh7hg=", sigString)
 }
 
-func TestStreamLinks_Parents(t *testing.T) {
+func TestStreamLinks_StreamsFor(t *testing.T) {
 	streamGraph := &StreamsGraph{
 		streams: map[string]Stream{
-			"A": {},
-			"B": {},
-			"C": {},
-			"D": {},
-			"E": {},
-			"F": {},
-			"G": {},
-			"H": {},
-			"I": {},
+			"A": {Name: "A"},
+			"B": {Name: "B"},
+			"C": {Name: "C"},
+			"D": {Name: "D"},
+			"E": {Name: "E"},
+			"F": {Name: "F"},
+			"G": {Name: "G"},
+			"H": {Name: "H"},
+			"I": {Name: "I"},
 		},
 		links: map[string][]Stream{
 			"A": {Stream{Name: "B"}, Stream{Name: "C"}},
@@ -117,5 +117,6 @@ func TestStreamLinks_Parents(t *testing.T) {
 	for _, l := range res {
 		order.WriteString(l.Name)
 	}
-	assert.Equal(t, "BCDEFGH", order.String())
+
+	assert.Equal(t, "GHDEFBCA", order.String())
 }
