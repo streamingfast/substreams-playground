@@ -122,7 +122,23 @@ func (g *StreamsGraph) StreamsFor(streamName string) ([]Stream, error) {
 	return append(parents, thisStream), nil
 }
 
+//TODO: use this in pipeline and deduplicate everything
+func (g *StreamsGraph) GroupedStreamsFor(streamName string) ([][]Stream, error) {
+	thisStream, found := g.streams[streamName]
+	if !found {
+		return nil, fmt.Errorf("stream %q not found", streamName)
+	}
+
+	parents := g.groupedAncestorsOf(streamName)
+	return append(parents, []Stream{thisStream}), nil
+}
+
 func (g *StreamsGraph) AncestorsOf(streamName string) ([]Stream, error) {
+	parents := g.ancestorsOf(streamName)
+	return parents, nil
+}
+
+func (g *StreamsGraph) GroupedAncestorsOf(streamName string) ([]Stream, error) {
 	parents := g.ancestorsOf(streamName)
 	return parents, nil
 }
@@ -133,36 +149,82 @@ func (g *StreamsGraph) ancestorsOf(streamName string) []Stream {
 		depth  int
 	}
 
-	var dfs func(rootName string, depth int, alreadyVisited map[string]struct{}) []streamWithTreeDepth
-	dfs = func(rootName string, depth int, alreadyVisited map[string]struct{}) []streamWithTreeDepth {
+	var dfs func(rootName string, depth int) []streamWithTreeDepth
+	dfs = func(rootName string, depth int) []streamWithTreeDepth {
 		var result []streamWithTreeDepth
 		for _, link := range g.links[rootName] {
-			if _, ok := alreadyVisited[link.Name]; ok {
-				continue
-			}
-
 			result = append(result, streamWithTreeDepth{
 				stream: link,
 				depth:  depth,
 			})
-			alreadyVisited[link.Name] = struct{}{}
 
-			result = append(result, dfs(link.Name, depth+1, alreadyVisited)...)
+			result = append(result, dfs(link.Name, depth+1)...)
 		}
 
 		return result
 	}
 
-	parentsWithDepth := dfs(streamName, 0, map[string]struct{}{})
+	parentsWithDepth := dfs(streamName, 0)
 
-	//sort by depth in reverse order
+	//sort by depth in descending order
 	sort.Slice(parentsWithDepth, func(i, j int) bool {
 		return parentsWithDepth[i].depth > parentsWithDepth[j].depth
 	})
 
+	seen := map[string]struct{}{}
 	var result []Stream
 	for _, parent := range parentsWithDepth {
+		if _, ok := seen[parent.stream.Name]; ok {
+			continue
+		}
 		result = append(result, parent.stream)
+		seen[parent.stream.Name] = struct{}{}
+	}
+
+	return result
+}
+
+func (g *StreamsGraph) groupedAncestorsOf(streamName string) [][]Stream {
+	type streamWithTreeDepth struct {
+		stream Stream
+		depth  int
+	}
+
+	var dfs func(rootName string, depth int) []streamWithTreeDepth
+	dfs = func(rootName string, depth int) []streamWithTreeDepth {
+		var result []streamWithTreeDepth
+		for _, link := range g.links[rootName] {
+			result = append(result, streamWithTreeDepth{
+				stream: link,
+				depth:  depth,
+			})
+
+			result = append(result, dfs(link.Name, depth+1)...)
+		}
+
+		return result
+	}
+
+	parentsWithDepth := dfs(streamName, 0)
+
+	//sort by depth in descending order
+	sort.Slice(parentsWithDepth, func(i, j int) bool {
+		return parentsWithDepth[i].depth > parentsWithDepth[j].depth
+	})
+
+	grouped := map[int][]Stream{}
+	seen := map[string]struct{}{}
+	for _, parent := range parentsWithDepth {
+		if _, ok := seen[parent.stream.Name]; ok {
+			continue
+		}
+		grouped[parent.depth] = append(grouped[parent.depth], parent.stream)
+		seen[parent.stream.Name] = struct{}{}
+	}
+
+	result := make([][]Stream, len(grouped), len(grouped))
+	for i, streams := range grouped {
+		result[len(grouped)-1-i] = streams
 	}
 
 	return result

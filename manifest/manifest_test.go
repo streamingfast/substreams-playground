@@ -96,6 +96,13 @@ func TestStream_Signature_Composed(t *testing.T) {
 	assert.Equal(t, "OAvI+VUy9FU2dWDUNRcZ3KHEoh8=", sigString)
 }
 
+func TestStreamLinks_Streams(t *testing.T) {
+	manifest, err := New("./test/test_manifest.yaml")
+	assert.NoError(t, err)
+
+	manifest.Graph.StreamsFor("prices")
+}
+
 func TestStreamLinks_StreamsFor(t *testing.T) {
 	streamGraph := &StreamsGraph{
 		streams: map[string]Stream{
@@ -131,4 +138,49 @@ func TestStreamLinks_StreamsFor(t *testing.T) {
 	}
 
 	assert.Equal(t, "GHDEFBCA", order.String())
+}
+
+func TestStreamLinks_GroupedStreamsFor(t *testing.T) {
+	streamGraph := &StreamsGraph{
+		streams: map[string]Stream{
+			"A": {Name: "A"},
+			"B": {Name: "B"},
+			"C": {Name: "C"},
+			"D": {Name: "D"},
+			"E": {Name: "E"},
+			"F": {Name: "F"},
+			"G": {Name: "G"},
+			"H": {Name: "H"},
+			"I": {Name: "I"},
+		},
+		links: map[string][]Stream{
+			"A": {Stream{Name: "B"}, Stream{Name: "C"}},
+			"B": {Stream{Name: "D"}, Stream{Name: "E"}, Stream{Name: "F"}},
+			"C": {Stream{Name: "F"}},
+			"D": {},
+			"E": {},
+			"F": {Stream{Name: "G"}, Stream{Name: "H"}},
+			"G": {},
+			"H": {},
+			"I": {Stream{Name: "H"}},
+		},
+	}
+
+	res, err := streamGraph.GroupedStreamsFor("A")
+	assert.NoError(t, err)
+
+	_ = res
+
+	groups := []string{}
+	for _, g := range res {
+		order := bytes.NewBuffer(nil)
+		for _, l := range g {
+			order.WriteString(l.Name)
+		}
+		groups = append(groups, order.String())
+	}
+
+	groupedOrder := strings.Join(groups, "-")
+
+	assert.Equal(t, "GH-DFE-BC-A", groupedOrder)
 }
