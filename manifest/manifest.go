@@ -150,9 +150,9 @@ func (m *StreamsGraph) parentsOf(streamName string) []Stream {
 
 	parentsWithDepth := dfs(streamName, 0, map[string]struct{}{})
 
-	//sort by depth
+	//sort by depth in reverse order
 	sort.Slice(parentsWithDepth, func(i, j int) bool {
-		return parentsWithDepth[i].depth < parentsWithDepth[j].depth
+		return parentsWithDepth[i].depth > parentsWithDepth[j].depth
 	})
 
 	var result []Stream

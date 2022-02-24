@@ -73,11 +73,11 @@ output:
 }
 
 func TestStream_Signature(t *testing.T) {
-	manifest, err := NewManifest("./test/test_manifest.yaml")
+	manifest, err := New("./test/test_manifest.yaml")
 	assert.NoError(t, err)
 
 	pairExtractorStream := manifest.Streams[0]
-	sig, err := pairExtractorStream.computeSignature()
+	sig, err := pairExtractorStream.Signature()
 	assert.NoError(t, err)
 
 	sigString := base64.StdEncoding.EncodeToString(sig)
