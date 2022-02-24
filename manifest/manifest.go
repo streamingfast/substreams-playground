@@ -100,29 +100,17 @@ func NewStreamsGraph(streams []Stream) (*StreamsGraph, error) {
 	return sg, nil
 }
 
-func (g *StreamsGraph) ParentsOf(streamName string) ([]Stream, error) {
+func (g *StreamsGraph) StreamsFor(streamName string) ([]Stream, error) {
 	thisStream, found := g.streams[streamName]
 	if !found {
 		return nil, fmt.Errorf("stream %q not found", streamName)
 	}
 
-	return append([]Stream{thisStream}, g.parentsOf(streamName)...), nil
+	parents := g.parentsOf(streamName)
+	return append(parents, thisStream), nil
 }
 
-func (g *StreamsGraph) ReversedParents(streamName string) ([]Stream, error) {
-	l, err := g.ParentsOf(streamName)
-	if err != nil {
-		return nil, err
-	}
-	// from: https://github.com/golang/go/wiki/SliceTricks#reversing
-	for i := len(l)/2 - 1; i >= 0; i-- {
-		opp := len(l) - 1 - i
-		l[i], l[opp] = l[opp], l[i]
-	}
-	return l, nil
-}
-
-func (m *StreamsGraph) parentsOf(streamName string) []Stream {
+func (g *StreamsGraph) parentsOf(streamName string) []Stream {
 	type streamWithTreeDepth struct {
 		stream Stream
 		depth  int
@@ -131,7 +119,7 @@ func (m *StreamsGraph) parentsOf(streamName string) []Stream {
 	var dfs func(rootName string, depth int, alreadyVisited map[string]struct{}) []streamWithTreeDepth
 	dfs = func(rootName string, depth int, alreadyVisited map[string]struct{}) []streamWithTreeDepth {
 		var result []streamWithTreeDepth
-		for _, link := range m.links[rootName] {
+		for _, link := range g.links[rootName] {
 			if _, ok := alreadyVisited[link.Name]; ok {
 				continue
 			}

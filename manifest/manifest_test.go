@@ -110,7 +110,7 @@ func TestStreamLinks_Parents(t *testing.T) {
 		},
 	}
 
-	res, err := streamGraph.ParentsOf("A")
+	res, err := streamGraph.StreamsFor("A")
 	assert.NoError(t, err)
 
 	order := bytes.NewBuffer(nil)

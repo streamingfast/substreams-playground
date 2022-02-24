@@ -57,7 +57,7 @@ func New(startBlockNum uint64, rpcClient *rpc.Client, rpcCache *indexer.RPCCache
 // }
 
 func (p *Pipeline) Build(ioFactory state.IOFactory, forceLoadState bool) error {
-	streams, err := p.manifest.Graph.ParentsOf(p.outputStreamName)
+	streams, err := p.manifest.Graph.StreamsFor(p.outputStreamName)
 	if err != nil {
 		return fmt.Errorf("whoops: %w", err)
 	}
