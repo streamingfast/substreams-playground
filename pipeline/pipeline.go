@@ -9,12 +9,12 @@ import (
 
 	"github.com/streamingfast/bstream"
 	"github.com/streamingfast/eth-go/rpc"
-	"github.com/streamingfast/sparkle-pancakeswap/exchange"
-	"github.com/streamingfast/sparkle-pancakeswap/state"
-	"github.com/streamingfast/sparkle-pancakeswap/subscription"
 	"github.com/streamingfast/sparkle/indexer"
 	pbcodec "github.com/streamingfast/sparkle/pb/sf/ethereum/codec/v1"
-	"go.uber.org/zap"
+	"github.com/streamingfast/substream-pancakeswap/exchange"
+	"github.com/streamingfast/substream-pancakeswap/manifest"
+	"github.com/streamingfast/substream-pancakeswap/state"
+	"github.com/streamingfast/substream-pancakeswap/subscription"
 )
 
 type Pipeline struct {
@@ -26,57 +26,27 @@ type Pipeline struct {
 
 	intr   *exchange.SubstreamIntrinsics
 	stores map[string]*state.Builder
+
+	manifest         *manifest.Manifest
+	outputStreamName string
+
+	streamFuncs   []StreamFunc
+	streamOutputs map[string]reflect.Value
 }
 
-func New(startBlockNum uint64, rpcClient *rpc.Client, rpcCache *indexer.RPCCache, stores map[string]*state.Builder) *Pipeline {
+func New(startBlockNum uint64, rpcClient *rpc.Client, rpcCache *indexer.RPCCache, manif *manifest.Manifest, outputStreamName string) *Pipeline {
 	pipe := &Pipeline{
-		startBlockNum: startBlockNum,
-		rpcClient:     rpcClient,
-		rpcCache:      rpcCache,
-		intr:          exchange.NewSubstreamIntrinsics(rpcClient, rpcCache, true),
-		stores:        stores,
+		startBlockNum:    startBlockNum,
+		rpcClient:        rpcClient,
+		rpcCache:         rpcCache,
+		intr:             exchange.NewSubstreamIntrinsics(rpcClient, rpcCache, true),
+		stores:           map[string]*state.Builder{},
+		manifest:         manif,
+		outputStreamName: outputStreamName,
 	}
-	pipe.setupSubscriptionHub()
-	pipe.setupPrintPairUpdates()
+	// pipe.setupSubscriptionHub()
+	// pipe.setupPrintPairUpdates()
 	return pipe
-}
-
-func (p *Pipeline) setupSubscriptionHub() {
-	// TODO: wwwooah, SubscriptionHub has a meaning in the context of bstream,
-	// this would be *another* flavor SubscriptionHub? We're talking of a generic Pub/Sub here?
-	//
-	// Let's discuss the purpose of this thing.
-	p.subscriptionHub = subscription.NewHub()
-
-	for storeName := range p.stores {
-		if err := p.subscriptionHub.RegisterTopic(storeName); err != nil {
-			zlog.Fatal("pair subscriber register topic", zap.Error(err))
-		}
-	}
-
-}
-
-func (p *Pipeline) setupPrintPairUpdates() {
-	pairSubscriber := subscription.NewSubscriber()
-	if err := p.subscriptionHub.Subscribe(pairSubscriber, "pairs"); err != nil {
-		zlog.Fatal("subscription hub subscribe", zap.Error(err))
-	}
-
-	go func() {
-		for {
-			delta, err := pairSubscriber.Next()
-			if err != nil {
-				zlog.Fatal("pair subscriber next", zap.Error(err))
-			}
-			if !strings.HasPrefix(delta.Key, "pair") {
-				continue
-			}
-
-			p.stores["pairs"].PrintDelta(delta)
-
-		}
-	}()
-	// End subscription hub
 }
 
 // type Mapper interface {
@@ -86,30 +56,90 @@ func (p *Pipeline) setupPrintPairUpdates() {
 // 	BuildState() error
 // }
 
+func (p *Pipeline) Build(ioFactory state.IOFactory, forceLoadState bool) error {
+	streams, err := p.manifest.Graph.ReversedParents(p.outputStreamName)
+	if err != nil {
+		return fmt.Errorf("whoops: %w", err)
+	}
+
+	nativeStreams := map[string]reflect.Value{
+		"./pairExtractor.wasm":          reflect.ValueOf(&exchange.PairExtractor{SubstreamIntrinsics: p.intr}),
+		"./pairsState.wasm":             reflect.ValueOf(&exchange.PairsStateBuilder{SubstreamIntrinsics: p.intr}),
+		"./reservesExtractor.wasm":      reflect.ValueOf(&exchange.ReservesExtractor{SubstreamIntrinsics: p.intr}),
+		"./pricesState.wasm":            reflect.ValueOf(&exchange.PricesStateBuilder{SubstreamIntrinsics: p.intr}),
+		"./mintBurnSwapsExtractor.wasm": reflect.ValueOf(&exchange.SwapsExtractor{SubstreamIntrinsics: p.intr}),
+		"./totalsState.wasm":            reflect.ValueOf(&exchange.TotalPairsStateBuilder{SubstreamIntrinsics: p.intr}),
+		"./volumesState.wasm":           reflect.ValueOf(&exchange.PCSVolume24hStateBuilder{SubstreamIntrinsics: p.intr}),
+	}
+
+	p.stores = map[string]*state.Builder{}
+	p.streamOutputs = map[string]reflect.Value{}
+
+	for _, stream := range streams {
+		f, found := nativeStreams[stream.Code]
+		if !found {
+			// TODO: eventually, LOAD the CODE Into WASM boom!
+			return fmt.Errorf("native code not found for %q", stream.Code)
+		}
+
+		debugOutput := stream.Name == p.outputStreamName
+		inputs := []string{}
+		for _, in := range stream.Inputs {
+			inputs = append(inputs, strings.Split(in, ":")[1])
+		}
+		streamName := stream.Name // to ensure it's enclosed
+
+		switch stream.Kind {
+		case "Mapper":
+			method := f.MethodByName("Map")
+			if !method.IsValid() {
+				return fmt.Errorf("Map() method not found on %T", f.Interface())
+			}
+			fmt.Printf("Adding mapper for stream %q\n", stream.Name)
+			p.streamFuncs = append(p.streamFuncs, func() error {
+				return mapper(p.streamOutputs, method, streamName, inputs, debugOutput)
+			})
+		case "StateBuilder":
+			method := f.MethodByName("BuildState")
+			if !method.IsValid() {
+				return fmt.Errorf("BuildState() method not found on %T", f.Interface())
+			}
+			store := state.New(stream.Name, ioFactory)
+			p.stores[stream.Name] = store
+			p.streamOutputs[stream.Name] = reflect.ValueOf(store)
+
+			if forceLoadState {
+				// Use AN ABSOLUTE store, or SQUASH ALL PARTIAL!
+
+				if err := store.Init(p.startBlockNum); err != nil {
+					return fmt.Errorf("could not load state for store %s at block num %d: %w", stream.Name, p.startBlockNum, err)
+				}
+			}
+
+			fmt.Printf("Adding state builder for stream %q\n", stream.Name)
+			p.streamFuncs = append(p.streamFuncs, func() error {
+				return stateBuilder(p.streamOutputs, method, streamName, inputs, debugOutput)
+			})
+
+		default:
+			return fmt.Errorf("unknown value %q for 'kind' in stream %q", stream.Kind, stream.Name)
+		}
+
+	}
+
+	return nil
+}
+
+// `stateBuidler` aura 4 modes d'opération:
+//   * fetch an absolute snapshot from disk at EXACTLY the point we're starting
+//   * fetch a partial snapshot, and fuse with previous snapshots, in which I need local "pairExtractor" building.
+//   * connect to a remote firehose (I can cut the upstream dependencies
+//   * if resources are available, SCHEDULE on BACKING NODES a parallel processing for that segment
+//   * completely roll out LOCALLY the full historic reprocessing BEFORE continuing
+
+type StreamFunc func() error
+
 func (p *Pipeline) HandlerFactory(blockCount uint64) bstream.Handler {
-	// maps := map[string]Mapper{
-	// 	"pairExtractor": &exchange.PairExtractor{SubstreamIntrinsics: p.intr},
-	// }
-	// states := map[string]StateBuilder{
-	// 	"pairs": &exchange.PairsStateBuilder{SubstreamIntrinsics: p.intr},
-
-	// }
-
-	streamFuncs := map[string]reflect.Value{
-		"pairExtractor":          reflect.ValueOf(&exchange.PairExtractor{SubstreamIntrinsics: p.intr}),
-		"pairs":                  reflect.ValueOf(&exchange.PairsStateBuilder{SubstreamIntrinsics: p.intr}),
-		"totals":                 reflect.ValueOf(&exchange.TotalPairsStateBuilder{SubstreamIntrinsics: p.intr}),
-		"prices":                 reflect.ValueOf(&exchange.PricesStateBuilder{SubstreamIntrinsics: p.intr}),
-		"reservesExtractor":      reflect.ValueOf(&exchange.ReservesExtractor{SubstreamIntrinsics: p.intr}),
-		"mintBurnSwapsExtractor": reflect.ValueOf(&exchange.SwapsExtractor{SubstreamIntrinsics: p.intr}),
-		"volume24h":              reflect.ValueOf(&exchange.PCSVolume24hStateBuilder{SubstreamIntrinsics: p.intr}),
-	}
-
-	vals := map[string]reflect.Value{}
-	for storeName, store := range p.stores {
-		vals[storeName] = reflect.ValueOf(store)
-	}
-
 	return bstream.HandlerFunc(func(block *bstream.Block, obj interface{}) (err error) {
 		// defer func() {
 		// 	if r := recover(); r != nil {
@@ -120,10 +150,6 @@ func (p *Pipeline) HandlerFactory(blockCount uint64) bstream.Handler {
 		// TODO: eventually, handle the `undo` signals.
 		//  NOTE: The RUNTIME will handle the undo signals. It'll have all it needs.
 		if block.Number >= p.startBlockNum+blockCount {
-			//
-			// FLUSH ALL THE STORES TO DISK
-			// PRINT THE BLOCK NUMBER WHERE WE STOP, NEXT TIME START FROM THERE
-			//
 			for _, s := range p.stores {
 				s.WriteState(context.Background(), block)
 			}
@@ -136,51 +162,22 @@ func (p *Pipeline) HandlerFactory(blockCount uint64) bstream.Handler {
 		p.intr.SetCurrentBlock(block)
 
 		blk := block.ToProtocol().(*pbcodec.Block)
-		vals["Block"] = reflect.ValueOf(blk)
+		p.streamOutputs["sf.ethereum.types.v1.Block"] = reflect.ValueOf(blk)
 
 		fmt.Println("-------------------------------------------------------------------")
 		fmt.Printf("BLOCK +%d %d %s\n", blk.Num()-p.startBlockNum, blk.Num(), blk.ID())
 
-		//todo? @abourget: pairs mapper and builder should be run in a standalone substream
-		// and be shared to other stream ...
-		mapper(vals, streamFuncs, "pairExtractor", []string{"Block"}, true)
-
-		// `stateBuidler` aura 4 modes d'opération:
-		//   * fetch an absolute snapshot from disk at EXACTLY the point we're starting
-		//   * fetch a partial snapshot, and fuse with previous snapshots, in which I need local "pairExtractor" building.
-		//   * connect to a remote firehose (I can cut the upstream dependencies
-		//   * if resources are available, SCHEDULE on BACKING NODES a parallel processing for that segment
-		//   * completely roll out LOCALLY the full historic reprocessing BEFORE continuing
-		stateBuilder(vals, streamFuncs, "pairs", []string{"pairExtractor"}, true)
-
-		//todo? @abourget: reserve extractor should consume pairs state through a stream that sync/wait/retrieve state a current block.
-		// this is were we need a clock to sync all those streams
-		//should also be run it there own standalone substream
-		mapper(vals, streamFuncs, "reservesExtractor", []string{"Block", "pairs"}, true)
-		stateBuilder(vals, streamFuncs, "prices", []string{"reservesExtractor", "pairs"}, true)
-
-		//todo? @abourget: same thing here pair and price state should be consume through a stream that sync/wait/retrieve state a current block.
-		mapper(vals, streamFuncs, "mintBurnSwapsExtractor", []string{"Block", "pairs", "prices"}, true)
-		stateBuilder(vals, streamFuncs, "totals", []string{"pairExtractor", "mintBurnSwapsExtractor"}, true)
-		stateBuilder(vals, streamFuncs, "volume24h", []string{"Block", "mintBurnSwapsExtractor"}, true)
-
-		// for _, s := range p.stores {
-		// 	err := s.StoreBlock(context.Background(), block)
-		// 	if err != nil {
-		// 		return err
-		// 	}
-		// }
+		for _, streamFunc := range p.streamFuncs {
+			if err := streamFunc(); err != nil {
+				return err
+			}
+		}
 
 		// Prep for next block, clean-up all deltas. This ought to be
 		// done by the runtime, when doing clean-up between blocks.
 		for _, s := range p.stores {
 			s.Flush()
 		}
-
-		// MARK INDEX:
-		// if len(pairs) != 0 || len(reserveUpdates) != 0 {
-		// 	indexer.MarkBlock(block) // each 100 blocks y'écrit whatever
-		// }
 
 		return nil
 	})
@@ -196,14 +193,14 @@ func printer(in interface{}) {
 	}
 }
 
-func mapper(vals map[string]reflect.Value, streams map[string]reflect.Value, name string, inputs []string, printOutputs bool) {
+func mapper(vals map[string]reflect.Value, method reflect.Value, name string, inputs []string, printOutputs bool) error {
 	var inputVals []reflect.Value
 	for _, in := range inputs {
 		inputVals = append(inputVals, vals[in])
 	}
-	out := streams[name].MethodByName("Map").Call(inputVals)
+	out := method.Call(inputVals)
 	if len(out) != 2 {
-		panic("invalid number of outputs for call on Map ethod")
+		return fmt.Errorf("invalid number of outputs for Map call in code for stream %q, should be 2 (data, error)", name)
 	}
 	vals[name] = out[0]
 
@@ -213,11 +210,12 @@ func mapper(vals map[string]reflect.Value, streams map[string]reflect.Value, nam
 	}
 
 	if err, ok := out[1].Interface().(error); ok && err != nil {
-		panic(fmt.Errorf("stream %s: %w", name, err))
+		return fmt.Errorf("mapper stream %q: %w", name, err)
 	}
+	return nil
 }
 
-func stateBuilder(vals map[string]reflect.Value, streams map[string]reflect.Value, name string, inputs []string, printOutputs bool) {
+func stateBuilder(vals map[string]reflect.Value, method reflect.Value, name string, inputs []string, printOutputs bool) error {
 	var inputVals []reflect.Value
 	for _, in := range inputs {
 		inputVals = append(inputVals, vals[in])
@@ -225,15 +223,16 @@ func stateBuilder(vals map[string]reflect.Value, streams map[string]reflect.Valu
 	inputVals = append(inputVals, vals[name])
 
 	// TODO: we can cache the `Method` retrieved on the stream.
-	out := streams[name].MethodByName("BuildState").Call(inputVals)
+	out := method.Call(inputVals)
 	if len(out) != 1 {
-		panic("invalid number of outputs for call on BuildState method")
+		return fmt.Errorf("invalid number of outputs for BuildState call in code for stream %q, should be 1 (error)", name)
 	}
 	p, ok := vals[name].Interface().(Printer)
 	if ok && printOutputs {
 		p.Print()
 	}
 	if err, ok := out[0].Interface().(error); ok && err != nil {
-		panic(fmt.Errorf("stream %s: %w", name, err))
+		return fmt.Errorf("state builder stream %q: %w", name, err)
 	}
+	return nil
 }

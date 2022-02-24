@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/streamingfast/sparkle-pancakeswap/cmd/substream-exchange/cli"
+	"github.com/streamingfast/substream-pancakeswap/cmd/substream-exchange/cli"
 )
 
 func main() {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/streamingfast/sparkle-pancakeswap/state"
+	"github.com/streamingfast/substream-pancakeswap/state"
 )
 
 type TotalPairsStateBuilder struct {

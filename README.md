@@ -20,10 +20,10 @@ Run with:
 
 ```bash
 
-go run -v ./cmd/substream-exchange | tee /tmp/sub
-go run -v ./cmd/substream-exchange 6811700 10000 | tee /tmp/sub
-go run -v ./cmd/substream-exchange 6821700 8600 | tee /tmp/sub
-go run -v ./cmd/substream-exchange 6830300 2000 | tee /tmp/sub
+go run -v ./cmd/substream-exchange substreams_manifest.yaml pairs 300 | tee /tmp/sub
+go run -v ./cmd/substream-exchange substreams_manifest.yaml pairs 10000 -s 6811000 | tee /tmp/sub
+go run -v ./cmd/substream-exchange substreams_manifest.yaml pairs 10000 -s 6821000 | tee /tmp/sub
+go run -v ./cmd/substream-exchange substreams_manifest.yaml pairs 2000 -s 6831000 | tee /tmp/sub
 ```
 
 

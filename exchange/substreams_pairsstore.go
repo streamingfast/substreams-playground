@@ -3,7 +3,7 @@ package exchange
 import (
 	"encoding/json"
 
-	"github.com/streamingfast/sparkle-pancakeswap/state"
+	"github.com/streamingfast/substream-pancakeswap/state"
 )
 
 type PairsStateBuilder struct {

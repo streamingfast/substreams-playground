@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/streamingfast/sparkle-pancakeswap/state"
+	"github.com/streamingfast/substream-pancakeswap/state"
 )
 
 type topicSubscriptions map[string][]*Subscriber

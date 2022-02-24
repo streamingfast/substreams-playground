@@ -2,7 +2,7 @@ package cli
 
 import (
 	"github.com/streamingfast/logging"
-	zapbox "github.com/streamingfast/sparkle-pancakeswap/zap-box"
+	zapbox "github.com/streamingfast/substream-pancakeswap/zap-box"
 	"go.uber.org/zap"
 )
 

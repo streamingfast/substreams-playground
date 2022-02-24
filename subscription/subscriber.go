@@ -1,7 +1,7 @@
 package subscription
 
 import (
-	"github.com/streamingfast/sparkle-pancakeswap/state"
+	"github.com/streamingfast/substream-pancakeswap/state"
 )
 
 type Subscriber struct {

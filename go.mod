@@ -1,4 +1,4 @@
-module github.com/streamingfast/sparkle-pancakeswap
+module github.com/streamingfast/substream-pancakeswap
 
 go 1.15
 

@@ -3,10 +3,11 @@ package manifest
 import (
 	"bytes"
 	"encoding/base64"
-	"github.com/stretchr/testify/assert"
-	"gopkg.in/yaml.v3"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"gopkg.in/yaml.v3"
 )
 
 func TestManifest_YamlUnmarshal(t *testing.T) {
@@ -76,7 +77,7 @@ func TestStream_Signature(t *testing.T) {
 	assert.NoError(t, err)
 
 	pairExtractorStream := manifest.Streams[0]
-	sig, err := pairExtractorStream.Signature()
+	sig, err := pairExtractorStream.computeSignature()
 	assert.NoError(t, err)
 
 	sigString := base64.StdEncoding.EncodeToString(sig)

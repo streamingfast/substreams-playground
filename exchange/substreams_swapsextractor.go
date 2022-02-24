@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	eth "github.com/streamingfast/eth-go"
-	"github.com/streamingfast/sparkle-pancakeswap/state"
+	"github.com/streamingfast/substream-pancakeswap/state"
 	pbcodec "github.com/streamingfast/sparkle/pb/sf/ethereum/codec/v1"
 )
 

@@ -13,26 +13,36 @@ import (
 	"github.com/streamingfast/bstream/firehose"
 	"github.com/streamingfast/dstore"
 	"github.com/streamingfast/eth-go/rpc"
-	"github.com/streamingfast/sparkle-pancakeswap/pipeline"
-	"github.com/streamingfast/sparkle-pancakeswap/state"
 	"github.com/streamingfast/sparkle/indexer"
+	"github.com/streamingfast/substream-pancakeswap/manifest"
+	"github.com/streamingfast/substream-pancakeswap/pipeline"
+	"github.com/streamingfast/substream-pancakeswap/state"
 )
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "substream-pancakeswap",
+	Use:   "substream-pancakeswap [manifest] [stream_name] [block_count]",
 	Short: "A PancakeSwap substream",
 	RunE:  runRoot,
+	Args:  cobra.ExactArgs(3),
 }
 
 func runRoot(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
 
+	manifestPath := args[0]
+	outputStreamName := args[1]
+
+	manif, err := manifest.New(manifestPath)
+	if err != nil {
+		return fmt.Errorf("unable to read manifest %q: %w", manifestPath, err)
+	}
+
 	var blockCount uint64 = 1000
 	if len(args) > 0 {
-		val, err := strconv.ParseInt(args[0], 10, 64)
+		val, err := strconv.ParseInt(args[2], 10, 64)
 		if err != nil {
-			return fmt.Errorf("invalid block count %s", args[1])
+			return fmt.Errorf("invalid block count %s", args[2])
 		}
 		blockCount = uint64(val)
 	}
@@ -79,21 +89,11 @@ func runRoot(cmd *cobra.Command, args []string) error {
 	}
 
 	ioFactory := state.NewStoreStateIOFactory(stateStore)
-	stores := map[string]*state.Builder{}
-	for _, storeName := range []string{"pairs", "totals", "prices", "volume24h"} {
-		s := state.New(storeName, ioFactory)
-		stores[storeName] = s
-	}
 
-	if forceLoadState {
-		// Use AN ABSOLUTE store, or SQUASH ALL PARTIAL!
-		err := loadStateFromDisk(stores, uint64(startBlockNum))
-		if err != nil {
-			return err
-		}
+	pipe := pipeline.New(uint64(startBlockNum), rpcClient, rpcCache, manif, outputStreamName)
+	if err := pipe.Build(ioFactory, forceLoadState); err != nil {
+		return fmt.Errorf("building pipeline: %w", err)
 	}
-
-	pipe := pipeline.New(uint64(startBlockNum), rpcClient, rpcCache, stores)
 
 	handler := pipe.HandlerFactory(blockCount)
 
@@ -107,14 +107,5 @@ func runRoot(cmd *cobra.Command, args []string) error {
 	}
 	time.Sleep(5 * time.Second)
 
-	return nil
-}
-
-func loadStateFromDisk(stores map[string]*state.Builder, startBlockNum uint64) error {
-	for storeName, store := range stores {
-		if err := store.Init(startBlockNum); err != nil {
-			return fmt.Errorf("could not load state for store %s at block num %d: %w", storeName, startBlockNum, err)
-		}
-	}
 	return nil
 }

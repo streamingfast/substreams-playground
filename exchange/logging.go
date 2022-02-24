@@ -8,5 +8,5 @@ import (
 var zlog *zap.Logger
 
 func init() {
-	zlog, _ = logging.PackageLogger("exchange", "github.com/streamingfast/sparkle-pancakeswap/exchange")
+	zlog, _ = logging.PackageLogger("exchange", "github.com/streamingfast/substream-pancakeswap/exchange")
 }

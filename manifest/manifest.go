@@ -13,6 +13,8 @@ type Manifest struct {
 	Description  string   `yaml:"description"`
 	GenesisBlock int      `yaml:"genesisBlock"`
 	Streams      []Stream `yaml:"streams"`
+
+	Graph *StreamsGraph `yaml:"-"`
 }
 
 type Stream struct {
@@ -46,13 +48,20 @@ func (s *Stream) Signature() ([]byte, error) {
 	return h.Sum(nil), nil
 }
 
-func NewManifest(path string) (*Manifest, error) {
-	_, manifest, err := DecodeYamlManifestFromFile(path)
+func New(path string) (*Manifest, error) {
+	_, manif, err := DecodeYamlManifestFromFile(path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("decoding yaml: %w", err)
 	}
 
-	return manifest, nil
+	graph, err := NewStreamsGraph(manif.Streams)
+	if err != nil {
+		return nil, fmt.Errorf("computing streams graph: %w", err)
+	}
+
+	manif.Graph = graph
+
+	return manif, nil
 }
 
 type StreamsGraph struct {
@@ -92,11 +101,25 @@ func NewStreamsGraph(streams []Stream) (*StreamsGraph, error) {
 }
 
 func (g *StreamsGraph) ParentsOf(streamName string) ([]Stream, error) {
-	if _, ok := g.streams[streamName]; !ok {
-		return nil, fmt.Errorf("stream not found")
+	thisStream, found := g.streams[streamName]
+	if !found {
+		return nil, fmt.Errorf("stream %q not found", streamName)
 	}
 
-	return g.parentsOf(streamName), nil
+	return append([]Stream{thisStream}, g.parentsOf(streamName)...), nil
+}
+
+func (g *StreamsGraph) ReversedParents(streamName string) ([]Stream, error) {
+	l, err := g.ParentsOf(streamName)
+	if err != nil {
+		return nil, err
+	}
+	// from: https://github.com/golang/go/wiki/SliceTricks#reversing
+	for i := len(l)/2 - 1; i >= 0; i-- {
+		opp := len(l) - 1 - i
+		l[i], l[opp] = l[opp], l[i]
+	}
+	return l, nil
 }
 
 func (m *StreamsGraph) parentsOf(streamName string) []Stream {

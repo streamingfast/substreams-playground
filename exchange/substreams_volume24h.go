@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/streamingfast/sparkle-pancakeswap/state"
+	"github.com/streamingfast/substream-pancakeswap/state"
 
 	pbcodec "github.com/streamingfast/sparkle/pb/sf/ethereum/codec/v1"
 )
@@ -79,7 +79,4 @@ func increment(store *state.Builder, key string, ord uint64, amount *big.Float) 
 	volume := foundOrZeroFloat(store.GetAt(ord, key))
 	newVolume := bf().Add(volume, amount).SetPrec(100)
 	store.Set(ord, key, floatToStr(newVolume))
-
-	// store.IncrementInt(key, value)
-	// store.IncrementFloat(key, value)
 }
