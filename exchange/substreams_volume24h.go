@@ -33,9 +33,8 @@ func (p *PCSVolume24hStateBuilder) BuildState(block *pbcodec.Block, evs PCSEvent
 		}
 
 		// Get("day") // "12312" == currentDayId
-		// CLEAN UP EVERYTHING!
 
-		increment(volume24hStore, fmt.Sprintf("day:%d:%s:pair", swap.PairAddress, dayId), swap.LogOrdinal, amountUSD)
+		increment(volume24hStore, fmt.Sprintf("pair:%s:%d", swap.PairAddress, dayId), swap.LogOrdinal, amountUSD)
 		increment(volume24hStore, fmt.Sprintf("token:%s:%d", swap.Token0, dayId), swap.LogOrdinal, amountUSD)
 		increment(volume24hStore, fmt.Sprintf("token:%s:%d", swap.Token1, dayId), swap.LogOrdinal, amountUSD)
 		//increment(volume24hStore, fmt.Sprintf("sender:%s:%d", swap.Sender, dayId), swap.LogOrdinal, amountUSD)
