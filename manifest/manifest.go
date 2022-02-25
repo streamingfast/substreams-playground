@@ -17,12 +17,42 @@ type Manifest struct {
 	Graph *StreamsGraph `yaml:"-"`
 }
 
+func (m *Manifest) IsValid() bool {
+	for _, s := range m.Streams {
+		if !s.IsValid() {
+			return false
+		}
+	}
+
+	return true
+}
+
 type Stream struct {
-	Name   string            `yaml:"name"`
-	Kind   string            `yaml:"kind"`
-	Code   string            `yaml:"code"`
-	Inputs []string          `yaml:"inputs"`
-	Output map[string]string `yaml:"output"`
+	Name   string       `yaml:"name"`
+	Kind   string       `yaml:"kind"`
+	Code   string       `yaml:"code"`
+	Inputs []string     `yaml:"inputs"`
+	Output StreamOutput `yaml:"output"`
+}
+
+type StreamOutput struct {
+	Type               string `yaml:"type"`
+	StoreMergeStrategy string `yaml:"storeMergeStrategy"`
+}
+
+func (s *Stream) IsValid() bool {
+	switch s.Kind {
+	case "Mapper":
+		if s.Output.Type == "" {
+			return false
+		}
+	case "StateBuilder":
+		if s.Output.StoreMergeStrategy == "" {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (s *Stream) Signature(graph *StreamsGraph) ([]byte, error) {

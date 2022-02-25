@@ -38,6 +38,10 @@ func runRoot(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("unable to read manifest %q: %w", manifestPath, err)
 	}
 
+	if !manif.IsValid() {
+		return fmt.Errorf("invalid manifest definitions")
+	}
+
 	var blockCount uint64 = 1000
 	if len(args) > 0 {
 		val, err := strconv.ParseInt(args[2], 10, 64)
