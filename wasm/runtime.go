@@ -60,25 +60,25 @@ func NewRustInstance(wasmFile string, functionName string) (*Instance, error) {
 func (i *Instance) newImports() *wasmer.ImportObject {
 	imports := wasmer.NewImportObject()
 	imports.Register("env", map[string]wasmer.IntoExtern{
-		"abort": wasmer.NewFunction(
+		"register_panic": wasmer.NewFunction(
 			i.store,
 			wasmer.NewFunctionType(
-				params(wasmer.I32, wasmer.I32, wasmer.I32, wasmer.I32),
+				params(wasmer.I32, wasmer.I32, wasmer.I32, wasmer.I32, wasmer.I32, wasmer.I32),
 				returns(),
 			),
 			func(args []wasmer.Value) ([]wasmer.Value, error) {
-				message, err := i.heap.ReadString(args[0].I32(), 0) // FIXME
+				message, err := i.heap.ReadString(args[0].I32(), args[1].I32())
 				if err != nil {
 					return nil, fmt.Errorf("read message argument: %w", err)
 				}
 
-				filename, err := i.heap.ReadString(args[1].I32(), 0) // FIXME
+				filename, err := i.heap.ReadString(args[2].I32(), args[3].I32())
 				if err != nil {
 					return nil, fmt.Errorf("read filename argument: %w", err)
 				}
 
-				lineNumber := int(args[2].I32())
-				columnNumber := int(args[3].I32())
+				lineNumber := int(args[4].I32())
+				columnNumber := int(args[5].I32())
 
 				fmt.Println("ABORTING", message, filename)
 

@@ -7,10 +7,20 @@ pub mod eth {
 
 extern "C" {
     fn println(ptr: *const u8, len: usize);
+    fn register_panic(
+        msg_ptr: *const u8,
+        msg_len: u32,
+        file_ptr: *const u8,
+        file_len: u32,
+        line: u32,
+        column: u32,
+    );
 }
 
 #[no_mangle]
 pub extern "C" fn map(ptr: *mut u8, len: usize) -> i32 {
+    register_panic_hook();
+    
     unsafe {
         let input_data = Vec::from_raw_parts(ptr, len, len);
 
@@ -21,9 +31,10 @@ pub extern "C" fn map(ptr: *mut u8, len: usize) -> i32 {
 
 	let buf = Cursor::new(input_data);
 
+	panic!("mama");
 	let msg = format!("msg0-1"); println(msg.as_ptr(), msg.len());
 
-	let blk: eth::Block = ::prost::Message::decode(buf).unwrap();
+	let blk: eth::Block = ::prost::Message::decode_length_delimited(buf).unwrap();
 
 	let msg = format!("msg1"); println(msg.as_ptr(), msg.len());
 	
@@ -65,3 +76,50 @@ pub extern "C" fn map(ptr: *mut u8, len: usize) -> i32 {
 }
 
 // Ref: https://github.com/infinyon/fluvio/blob/master/crates/fluvio-smartmodule-derive/src/generator/map.rs#L73
+
+
+// See: https://github.com/Jake-Shadle/wasmer-rust-example/blob/master/wasm-sample-app/src/lib.rs
+fn hook(info: &std::panic::PanicInfo<'_>) {
+    let error_msg = info
+        .payload()
+        .downcast_ref::<String>()
+        .map(String::as_str)
+        .or_else(|| info.payload().downcast_ref::<&'static str>().copied())
+        .unwrap_or("");
+    let location = info.location();
+
+    unsafe {
+        let _ = match location {
+            Some(loc) => {
+                let file = loc.file();
+                let line = loc.line();
+                let column = loc.column();
+
+                register_panic(
+                    error_msg.as_ptr(),
+                    error_msg.len() as u32,
+                    file.as_ptr(),
+                    file.len() as u32,
+                    line,
+                    column,
+                )
+            }
+            None => register_panic(
+                error_msg.as_ptr(),
+                error_msg.len() as u32,
+                std::ptr::null(),
+                0,
+                0,
+                0,
+            ),
+        };
+    }
+}
+
+fn register_panic_hook() {
+    use std::sync::Once;
+    static SET_HOOK: Once = Once::new();
+    SET_HOOK.call_once(|| {
+        std::panic::set_hook(Box::new(hook));
+    });
+}

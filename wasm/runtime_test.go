@@ -20,6 +20,10 @@ func TestRustInstance(t *testing.T) {
 	require.NoError(t, err)
 
 	out, err := instance.Execute(blockBytes)
+	if err != nil {
+		fmt.Printf("error here: %T, %v\n", err, err)
+	}
+
 	require.NoError(t, err)
 	fmt.Println("MAMA", out)
 
