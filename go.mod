@@ -14,6 +14,7 @@ require (
 	github.com/streamingfast/merger v0.0.3-0.20220214174248-f12f24dce455
 	github.com/streamingfast/sparkle v0.0.0-20220221193934-af37f1c04ef1
 	github.com/stretchr/testify v1.7.1-0.20210427113832-6241f9ab9942
+	github.com/wasmerio/wasmer-go v1.0.4 // indirect
 	go.uber.org/zap v1.19.1
 	golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
