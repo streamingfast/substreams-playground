@@ -8,73 +8,31 @@ pub mod eth {
 extern "C" {
     fn println(ptr: *const u8, len: usize);
     fn output(ptr: *const u8, len: usize);
-    fn register_panic(
-        msg_ptr: *const u8,
-        msg_len: u32,
-        file_ptr: *const u8,
-        file_len: u32,
-        line: u32,
-        column: u32,
-    );
+    fn register_panic(msg_ptr: *const u8, msg_len: u32, file_ptr: *const u8, file_len: u32, line: u32, column: u32);
 }
 
 #[no_mangle]
-pub extern "C" fn map(ptr: *mut u8, len: usize) -> i32 {
+pub extern "C" fn map(ptr: *mut u8, len: usize) {
     register_panic_hook();
 
     unsafe {
         let input_data = Vec::from_raw_parts(ptr, len, len);
 
-        let ptr_info = format!("input ptr 0 {:?} {:?} {:?}", &input_data, ptr, len);
-        println(ptr_info.as_ptr(), ptr_info.len());
-
-        let msg = format!("msg0");
-        println(msg.as_ptr(), msg.len());
+	// Log comments with:
+        //let msg = format!("msg0"); println(msg.as_ptr(), msg.len());
 
         let mut buf = Cursor::new(&input_data);
-
-        //panic!("try to uncomment me");
-
         let blk: eth::Block = ::prost::Message::decode(&mut buf).unwrap();
-        std::mem::forget(input_data);
-
-        let msg = format!("msg1");
-        println(msg.as_ptr(), msg.len());
+        std::mem::forget(input_data); // otherwise tries to free that memory at the end and crashes
 
         let mut out = Vec::<u8>::new();
         ::prost::Message::encode(&blk.header.unwrap(), &mut out).unwrap();
 
-        let msg = format!("msg2");
-        println(msg.as_ptr(), msg.len());
-
         let out_len = out.len();
         let ptr = out.as_ptr();
-        std::mem::forget(out);
+        std::mem::forget(out); // to prevent a drop which would crash
         output(ptr as *const u8, (out_len as i32).try_into().unwrap());
-
-        0
     }
-
-    // println!("input {:?} {:?} {:?}", ptr, len, input_data);
-    // unsafe {
-    //     let ptr_info = format!("input ptr {:?}", buf);
-    //     println(ptr_info.as_ptr(), ptr_info.len());
-    // }
-
-    // let slice = unsafe { slice::from_raw_parts(ptr as _, len as _) };
-
-    // let formated = format!("Hello {}, ca marche pontiac", string_from_host);
-    // unsafe {
-    //     println(formated.as_ptr(), formated.len());
-    // }
-
-    // let from_within = format!("This {}, comes from within", string_from_host);
-
-    // ptr = from_within.as_mut_ptr();
-    // std::mem::forget(from_within);
-
-    // from_within.len()
-    // 0
 }
 
 // Ref: https://github.com/infinyon/fluvio/blob/master/crates/fluvio-smartmodule-derive/src/generator/map.rs#L73

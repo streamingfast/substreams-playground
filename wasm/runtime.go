@@ -2,7 +2,6 @@ package wasm
 
 import (
 	"fmt"
-	"io/ioutil"
 
 	"github.com/wasmerio/wasmer-go/wasmer"
 )
@@ -12,14 +11,12 @@ type Instance struct {
 	memory     *wasmer.Memory
 	heap       *Heap
 	entrypoint *wasmer.Function
+
+	returnValue []byte
+	panicError  *PanicError
 }
 
-func NewRustInstance(wasmFile string, functionName string) (*Instance, error) {
-	wasmBytes, err := ioutil.ReadFile(wasmFile)
-	if err != nil {
-		return nil, fmt.Errorf("unable to load wasm file %q: %w", wasmFile, err)
-	}
-
+func NewRustInstance(wasmCode []byte, functionName string) (*Instance, error) {
 	engine := wasmer.NewEngine()
 	store := wasmer.NewStore(engine)
 
@@ -27,15 +24,15 @@ func NewRustInstance(wasmFile string, functionName string) (*Instance, error) {
 		store: store,
 	}
 
-	module, err := wasmer.NewModule(instance.store, wasmBytes)
+	module, err := wasmer.NewModule(instance.store, wasmCode)
 	if err != nil {
-		return nil, fmt.Errorf("unable to compile wasm file %q: %w", wasmFile, err)
+		return nil, fmt.Errorf("building wasm module:%w", err)
 	}
 
 	imports := instance.newImports()
 	vmInstance, err := wasmer.NewInstance(module, imports)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get wasm module instance from %q: %w", wasmFile, err)
+		return nil, fmt.Errorf("creating instance: %w", err)
 	}
 
 	memory, err := vmInstance.Exports.GetMemory("memory")
@@ -46,8 +43,10 @@ func NewRustInstance(wasmFile string, functionName string) (*Instance, error) {
 	instance.heap = NewHeap(memory)
 	instance.entrypoint, err = vmInstance.Exports.GetRawFunction(functionName)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get wasm module function %q from %q: %w", functionName, wasmFile, err)
+		return nil, fmt.Errorf("getting wasm module function %q: %w", functionName, err)
 	}
+
+	// TODO: Ensure that the function has the right amount of parameteres in INPUT
 
 	// heap.allocator, err = instance.Exports.GetFunction("memory.allocate")
 	// if err != nil {
@@ -72,17 +71,22 @@ func (i *Instance) newImports() *wasmer.ImportObject {
 					return nil, fmt.Errorf("read message argument: %w", err)
 				}
 
-				filename, err := i.heap.ReadString(args[2].I32(), args[3].I32())
-				if err != nil {
-					return nil, fmt.Errorf("read filename argument: %w", err)
+				var filename string
+				filenamePtr := args[2].I32()
+				if filenamePtr != 0 {
+					filename, err = i.heap.ReadString(args[2].I32(), args[3].I32())
+					if err != nil {
+						return nil, fmt.Errorf("read filename argument: %w", err)
+					}
 				}
 
 				lineNumber := int(args[4].I32())
 				columnNumber := int(args[5].I32())
 
-				fmt.Printf("PANIC in the wasm module: %q at %s:%d:%d\n", message, filename, lineNumber, columnNumber)
+				i.panicError = &PanicError{message, filename, lineNumber, columnNumber}
+				//fmt.Println(i.panicError.Error())
 
-				return nil, &abortError{message, filename, lineNumber, columnNumber}
+				return nil, i.panicError
 			},
 		),
 		"println": wasmer.NewFunction(
@@ -114,7 +118,7 @@ func (i *Instance) newImports() *wasmer.ImportObject {
 					return nil, fmt.Errorf("reading bytes: %w", err)
 				}
 
-				fmt.Println("OUTPUT:", message)
+				i.returnValue = message
 
 				return nil, nil
 			},
@@ -123,19 +127,16 @@ func (i *Instance) newImports() *wasmer.ImportObject {
 	return imports
 }
 
-func (i *Instance) Execute(block []byte) (out interface{}, err error) {
-	params := []interface{}{}
+func (i *Instance) Execute(block []byte) (out []byte, err error) {
+	i.returnValue = nil
+	i.panicError = nil
 
 	blockPtr := i.heap.Write(block)
 	blockLen := int32(len(block))
 
-	params = append(params, blockPtr, blockLen)
-
-	fmt.Println("PARAMS", params)
 	//i.heap.PrintMem()
-	out, err = i.entrypoint.Call(params...)
+	_, err = i.entrypoint.Call(blockPtr, blockLen)
 	//i.heap.PrintMem()
 
-	return
-	//return toGoValue(out, returnType, i.env)
+	return i.returnValue, nil
 }

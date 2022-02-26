@@ -2,9 +2,11 @@ package wasm
 
 import (
 	"fmt"
+	"io/ioutil"
 	"testing"
 
 	pbcodec "github.com/streamingfast/sparkle/pb/sf/ethereum/codec/v1"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 )
@@ -12,8 +14,11 @@ import (
 //go:generate ./build-examples.sh
 
 func TestRustInstance(t *testing.T) {
-	instance, err := NewRustInstance("./example-block/pkg/example_block_bg.wasm", "map")
+	wasmCode, err := ioutil.ReadFile("./example-block/pkg/example_block_bg.wasm")
 	require.NoError(t, err)
+
+	instance, err := NewRustInstance(wasmCode, "map")
+	require.NoError(t, err, "filename: example_block_bg.wasm")
 
 	block := &pbcodec.Block{
 		Ver:    1,
@@ -26,18 +31,14 @@ func TestRustInstance(t *testing.T) {
 	blockBytes, err := proto.Marshal(block)
 	require.NoError(t, err)
 
-	out, err := instance.Execute(blockBytes)
+	retVal, err := instance.Execute(blockBytes)
 	if err != nil {
 		fmt.Printf("error here: %T, %v\n", err, err)
 	}
-
 	require.NoError(t, err)
-	fmt.Println("MAMA", out)
 
-	// data, err := ret.ReadD21ata(env)
-	// require.NoError(t, err)
-	// fmt.Println("received data as string:", string(data))
-	// data2, err := ret2.ReadData(env)
-	// require.NoError(t, err)
-	// fmt.Println("received data2 as string:", string(data2))
+	expect, err := proto.Marshal(block.Header)
+	require.NoError(t, err)
+
+	assert.Equal(t, retVal, expect)
 }

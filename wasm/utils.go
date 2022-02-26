@@ -14,13 +14,13 @@ func returns(kinds ...wasmer.ValueKind) []*wasmer.ValueType {
 	return wasmer.NewValueTypes(kinds...)
 }
 
-type abortError struct {
+type PanicError struct {
 	message      string
 	filename     string
 	lineNumber   int
 	columnNumber int
 }
 
-func (e *abortError) Error() string {
-	return fmt.Sprintf("wasm execution aborted at %s:%d env:%d env: %s", e.filename, e.lineNumber, e.columnNumber, e.message)
+func (e *PanicError) Error() string {
+	return fmt.Sprintf("panic in the wasm module: %q at %s:%d:%d", e.message, e.filename, e.lineNumber, e.columnNumber)
 }
