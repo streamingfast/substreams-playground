@@ -17,13 +17,19 @@ pub extern "C" fn map(ptr: *mut u8, len: usize) {
 
     unsafe {
         let input_data = Vec::from_raw_parts(ptr, len, len);
+        let mut buf = Cursor::new(&input_data);
+        let blk: eth::Block = ::prost::Message::decode(&mut buf).unwrap();
+        std::mem::forget(input_data); // otherwise tries to free that memory at the end and crashes
+
 
 	// Log comments with:
         //let msg = format!("msg0"); println(msg.as_ptr(), msg.len());
 
-        let mut buf = Cursor::new(&input_data);
-        let blk: eth::Block = ::prost::Message::decode(&mut buf).unwrap();
-        std::mem::forget(input_data); // otherwise tries to free that memory at the end and crashes
+
+	for trx in blk.transaction_traces {
+	    let msg = format!("trx: {:?}", trx.hash); println(msg.as_ptr(), msg.len());
+	}
+
 
         let mut out = Vec::<u8>::new();
         ::prost::Message::encode(&blk.header.unwrap(), &mut out).unwrap();

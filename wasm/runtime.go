@@ -140,3 +140,11 @@ func (i *Instance) Execute(block []byte) (out []byte, err error) {
 
 	return i.returnValue, nil
 }
+
+func (i *Instance) Err() error {
+	return i.panicError
+}
+
+func (i *Instance) Output() []byte {
+	return i.returnValue
+}

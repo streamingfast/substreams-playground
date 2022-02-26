@@ -27,6 +27,10 @@ func TestRustInstance(t *testing.T) {
 		Header: &pbcodec.BlockHeader{
 			ParentHash: []byte{0x00, 0x01, 0x02, 0x03},
 		},
+		TransactionTraces: []*pbcodec.TransactionTrace{
+			{Hash: []byte{0x03, 0x03, 0x03, 0x03}},
+			{Hash: []byte{0x04, 0x04, 0x04, 0x04}},
+		},
 	}
 	blockBytes, err := proto.Marshal(block)
 	require.NoError(t, err)
