@@ -94,10 +94,27 @@ func (i *Instance) newImports() *wasmer.ImportObject {
 			func(args []wasmer.Value) ([]wasmer.Value, error) {
 				message, err := i.heap.ReadString(args[0].I32(), args[1].I32())
 				if err != nil {
-					return nil, fmt.Errorf("read message argument: %w", err)
+					return nil, fmt.Errorf("reading string: %w", err)
 				}
 
 				fmt.Println(message)
+
+				return nil, nil
+			},
+		),
+		"output": wasmer.NewFunction(
+			i.store,
+			wasmer.NewFunctionType(
+				params(wasmer.I32, wasmer.I32),
+				returns(),
+			),
+			func(args []wasmer.Value) ([]wasmer.Value, error) {
+				message, err := i.heap.ReadBytes(args[0].I32(), args[1].I32())
+				if err != nil {
+					return nil, fmt.Errorf("reading bytes: %w", err)
+				}
+
+				fmt.Println("OUTPUT:", message)
 
 				return nil, nil
 			},

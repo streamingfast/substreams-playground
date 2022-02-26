@@ -7,6 +7,7 @@ pub mod eth {
 
 extern "C" {
     fn println(ptr: *const u8, len: usize);
+    fn output(ptr: *const u8, len: usize);
     fn register_panic(
         msg_ptr: *const u8,
         msg_len: u32,
@@ -20,38 +21,38 @@ extern "C" {
 #[no_mangle]
 pub extern "C" fn map(ptr: *mut u8, len: usize) -> i32 {
     register_panic_hook();
-    
+
     unsafe {
         let input_data = Vec::from_raw_parts(ptr, len, len);
 
-	let ptr_info = format!("input ptr 0 {:?} {:?} {:?}", &input_data, ptr, len);
-	println(ptr_info.as_ptr(), ptr_info.len());
+        let ptr_info = format!("input ptr 0 {:?} {:?} {:?}", &input_data, ptr, len);
+        println(ptr_info.as_ptr(), ptr_info.len());
 
-	let msg = format!("msg0"); println(msg.as_ptr(), msg.len());
+        let msg = format!("msg0");
+        println(msg.as_ptr(), msg.len());
 
-	let buf = Cursor::new(input_data);
+        let mut buf = Cursor::new(&input_data);
 
-	let msg = format!("msg0-1"); println(msg.as_ptr(), msg.len());
+        //panic!("try to uncomment me");
 
-	//panic!("try to uncomment me");
+        let blk: eth::Block = ::prost::Message::decode(&mut buf).unwrap();
+        std::mem::forget(input_data);
 
-	let blk: eth::Block = ::prost::Message::decode_length_delimited(buf).unwrap();
+        let msg = format!("msg1");
+        println(msg.as_ptr(), msg.len());
 
-	let msg = format!("msg1"); println(msg.as_ptr(), msg.len());
-	
-	let mut out = Vec::<u8>::new();
-	::prost::Message::encode(&blk.header.unwrap(), &mut out).unwrap();
+        let mut out = Vec::<u8>::new();
+        ::prost::Message::encode(&blk.header.unwrap(), &mut out).unwrap();
 
-	let msg = format!("msg2"); println(msg.as_ptr(), msg.len());
+        let msg = format!("msg2");
+        println(msg.as_ptr(), msg.len());
 
-	let out_len = out.len();
-	let ptr = out.as_ptr();
-	std::mem::forget(out);
-	println(ptr as *const u8, (out_len as i32).try_into().unwrap());
+        let out_len = out.len();
+        let ptr = out.as_ptr();
+        std::mem::forget(out);
+        output(ptr as *const u8, (out_len as i32).try_into().unwrap());
 
-	let msg = format!("msg3"); println(msg.as_ptr(), msg.len());
-	
-	0
+        0
     }
 
     // println!("input {:?} {:?} {:?}", ptr, len, input_data);
@@ -77,7 +78,6 @@ pub extern "C" fn map(ptr: *mut u8, len: usize) -> i32 {
 }
 
 // Ref: https://github.com/infinyon/fluvio/blob/master/crates/fluvio-smartmodule-derive/src/generator/map.rs#L73
-
 
 // See: https://github.com/Jake-Shadle/wasmer-rust-example/blob/master/wasm-sample-app/src/lib.rs
 fn hook(info: &std::panic::PanicInfo<'_>) {

@@ -15,7 +15,14 @@ func TestRustInstance(t *testing.T) {
 	instance, err := NewRustInstance("./example-block/pkg/example_block_bg.wasm", "map")
 	require.NoError(t, err)
 
-	block := &pbcodec.Block{Ver: 1, Number: 1234, Hash: []byte{0x01, 0x02, 0x03, 0x04}}
+	block := &pbcodec.Block{
+		Ver:    1,
+		Number: 1234,
+		Hash:   []byte{0x01, 0x02, 0x03, 0x04},
+		Header: &pbcodec.BlockHeader{
+			ParentHash: []byte{0x00, 0x01, 0x02, 0x03},
+		},
+	}
 	blockBytes, err := proto.Marshal(block)
 	require.NoError(t, err)
 
