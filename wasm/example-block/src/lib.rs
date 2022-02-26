@@ -31,8 +31,9 @@ pub extern "C" fn map(ptr: *mut u8, len: usize) -> i32 {
 
 	let buf = Cursor::new(input_data);
 
-	panic!("mama");
 	let msg = format!("msg0-1"); println(msg.as_ptr(), msg.len());
+
+	//panic!("try to uncomment me");
 
 	let blk: eth::Block = ::prost::Message::decode_length_delimited(buf).unwrap();
 

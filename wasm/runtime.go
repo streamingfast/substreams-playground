@@ -80,7 +80,7 @@ func (i *Instance) newImports() *wasmer.ImportObject {
 				lineNumber := int(args[4].I32())
 				columnNumber := int(args[5].I32())
 
-				fmt.Println("ABORTING", message, filename)
+				fmt.Printf("PANIC in the wasm module: %q at %s:%d:%d\n", message, filename, lineNumber, columnNumber)
 
 				return nil, &abortError{message, filename, lineNumber, columnNumber}
 			},
