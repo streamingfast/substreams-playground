@@ -27,13 +27,15 @@ func (h *Heap) Write(bytes []byte) int32 {
 	size := len(bytes)
 
 	if uint(size) > h.freeSpace {
-		fmt.Println("memory grown")
-		numberOfPages := (uint(size) / wasmer.WasmPageSize) + 1
+		numberOfPages := ((uint(size) - h.freeSpace) / wasmer.WasmPageSize) + 1
+		numberOfBytes := wasmer.WasmPageSize * numberOfPages
+
+		//fmt.Printf("growing memory: %d pages, %d bytes\n", numberOfPages, numberOfBytes)
 		grown := h.memory.Grow(wasmer.Pages(numberOfPages))
 		if !grown {
 			panic("couldn't grow memory")
 		}
-		h.freeSpace += (wasmer.WasmPageSize * numberOfPages)
+		h.freeSpace += numberOfBytes
 	}
 
 	ptr := h.nextPtrLocation

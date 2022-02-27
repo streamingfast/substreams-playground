@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package pcs.types.v1;
+
+message Pairs {
+  repeated Pair pairs = 1;
+}
+
+message Pair {
+  string address = 1;
+  string token0 = 2;
+  string token1 = 3;
+  // ERC20Token token0 = 2;
+  // ERC20Token token1 = 3;
+  string creation_transaction_id = 4;
+  uint64 block_num = 5;
+  uint64 log_ordinal = 6;
+}
+
+message ERC20Token {
+  string address = 1;
+  string name = 2;
+  string symbol = 3;
+  uint64 decimals = 4;
+}

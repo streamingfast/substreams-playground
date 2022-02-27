@@ -17,8 +17,10 @@ func TestRustInstance(t *testing.T) {
 	wasmCode, err := ioutil.ReadFile("./example-block/pkg/example_block_bg.wasm")
 	require.NoError(t, err)
 
-	instance, err := NewRustInstance(wasmCode, "map")
+	mod, err := NewModule(wasmCode)
 	require.NoError(t, err, "filename: example_block_bg.wasm")
+	instance, err := mod.NewInstance("map")
+	require.NoError(t, err, "new instance")
 
 	block := &pbcodec.Block{
 		Ver:    1,

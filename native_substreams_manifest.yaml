@@ -1,6 +1,6 @@
 specVersion: 0.1.0
 description: PancakeSwap substreams
-codeType: wasm/assemblyscript-1.0
+codeType: native
 
 genesisBlock: 6809737
 

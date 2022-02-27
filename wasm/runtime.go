@@ -7,6 +7,7 @@ import (
 )
 
 type Instance struct {
+	module     *Module
 	store      *wasmer.Store
 	memory     *wasmer.Memory
 	heap       *Heap
@@ -16,21 +17,37 @@ type Instance struct {
 	panicError  *PanicError
 }
 
-func NewRustInstance(wasmCode []byte, functionName string) (*Instance, error) {
-	engine := wasmer.NewEngine()
+type Module struct {
+	engine *wasmer.Engine
+	store  *wasmer.Store
+	module *wasmer.Module
+}
+
+func NewModule(wasmCode []byte) (*Module, error) {
+	engine := wasmer.NewUniversalEngine()
 	store := wasmer.NewStore(engine)
 
-	instance := &Instance{
-		store: store,
-	}
-
-	module, err := wasmer.NewModule(instance.store, wasmCode)
+	module, err := wasmer.NewModule(store, wasmCode)
 	if err != nil {
 		return nil, fmt.Errorf("building wasm module:%w", err)
 	}
 
+	return &Module{
+		engine: engine,
+		store:  store,
+		module: module,
+	}, nil
+}
+
+func (m *Module) NewInstance(functionName string) (*Instance, error) {
+	// WARN: An instance needs to be created on the same thread that it is consumed.
+
+	instance := &Instance{
+		store:  m.store,
+		module: m,
+	}
 	imports := instance.newImports()
-	vmInstance, err := wasmer.NewInstance(module, imports)
+	vmInstance, err := wasmer.NewInstance(m.module, imports)
 	if err != nil {
 		return nil, fmt.Errorf("creating instance: %w", err)
 	}
@@ -45,8 +62,6 @@ func NewRustInstance(wasmCode []byte, functionName string) (*Instance, error) {
 	if err != nil {
 		return nil, fmt.Errorf("getting wasm module function %q: %w", functionName, err)
 	}
-
-	// TODO: Ensure that the function has the right amount of parameteres in INPUT
 
 	// heap.allocator, err = instance.Exports.GetFunction("memory.allocate")
 	// if err != nil {

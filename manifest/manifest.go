@@ -10,21 +10,29 @@ import (
 )
 
 type Manifest struct {
+	SpecVersion  string   `yaml:"specVersion"`
 	Description  string   `yaml:"description"`
+	CodeType     string   `yaml:"codeType"`
 	GenesisBlock int      `yaml:"genesisBlock"`
 	Streams      []Stream `yaml:"streams"`
 
 	Graph *StreamsGraph `yaml:"-"`
 }
 
-func (m *Manifest) IsValid() bool {
+func (m *Manifest) IsValid() error {
 	for _, s := range m.Streams {
-		if !s.IsValid() {
-			return false
+		if err := s.IsValid(); err != nil {
+			return fmt.Errorf("stream %s: %w", s.Name, err)
 		}
 	}
 
-	return true
+	switch m.CodeType {
+	case "wasm/rust-v1", "native":
+	default:
+		return fmt.Errorf("invalid value %q for 'codeType'", m.CodeType)
+	}
+
+	return nil
 }
 
 type Stream struct {
@@ -40,19 +48,21 @@ type StreamOutput struct {
 	StoreMergeStrategy string `yaml:"storeMergeStrategy"`
 }
 
-func (s *Stream) IsValid() bool {
+func (s *Stream) IsValid() error {
 	switch s.Kind {
 	case "Mapper":
 		if s.Output.Type == "" {
-			return false
+			return fmt.Errorf("missing 'output.type' for kind Mapper")
 		}
 	case "StateBuilder":
 		if s.Output.StoreMergeStrategy == "" {
-			return false
+			return fmt.Errorf("missing 'output.storeMergeStrategy' for kind StateBuilder")
 		}
+	default:
+		return fmt.Errorf("invalid kind %q", s.Kind)
 	}
 
-	return true
+	return nil
 }
 
 func (s *Stream) Signature(graph *StreamsGraph) ([]byte, error) {

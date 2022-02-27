@@ -21,10 +21,11 @@ import (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "substream-pancakeswap [manifest] [stream_name] [block_count]",
-	Short: "A PancakeSwap substream",
-	RunE:  runRoot,
-	Args:  cobra.ExactArgs(3),
+	Use:          "substream-pancakeswap [manifest] [stream_name] [block_count]",
+	Short:        "A PancakeSwap substream",
+	RunE:         runRoot,
+	Args:         cobra.ExactArgs(3),
+	SilenceUsage: true,
 }
 
 func runRoot(cmd *cobra.Command, args []string) error {
@@ -38,8 +39,8 @@ func runRoot(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("unable to read manifest %q: %w", manifestPath, err)
 	}
 
-	if !manif.IsValid() {
-		return fmt.Errorf("invalid manifest definitions")
+	if err := manif.IsValid(); err != nil {
+		return fmt.Errorf("manifest %q invalid: %w", manifestPath, err)
 	}
 
 	var blockCount uint64 = 1000
@@ -95,8 +96,14 @@ func runRoot(cmd *cobra.Command, args []string) error {
 	ioFactory := state.NewStoreStateIOFactory(stateStore)
 
 	pipe := pipeline.New(uint64(startBlockNum), rpcClient, rpcCache, manif, outputStreamName)
-	if err := pipe.Build(ioFactory, forceLoadState); err != nil {
-		return fmt.Errorf("building pipeline: %w", err)
+	if manif.CodeType == "native" {
+		if err := pipe.BuildNative(ioFactory, forceLoadState); err != nil {
+			return fmt.Errorf("building pipeline: %w", err)
+		}
+	} else {
+		if err := pipe.BuildWASM(ioFactory, forceLoadState); err != nil {
+			return fmt.Errorf("building pipeline: %w", err)
+		}
 	}
 
 	handler := pipe.HandlerFactory(blockCount)
