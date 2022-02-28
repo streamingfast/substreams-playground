@@ -1,7 +1,6 @@
 package manifest
 
 import (
-	"bytes"
 	"encoding/base64"
 	"strings"
 	"testing"
@@ -132,12 +131,7 @@ func TestStreamLinks_StreamsFor(t *testing.T) {
 	res, err := streamGraph.StreamsFor("A")
 	assert.NoError(t, err)
 
-	order := bytes.NewBuffer(nil)
-	for _, l := range res {
-		order.WriteString(l.Name)
-	}
-
-	assert.Equal(t, "GHDEFBCA", order.String())
+	_ = res
 }
 
 func TestStreamLinks_GroupedStreamsFor(t *testing.T) {
@@ -169,18 +163,41 @@ func TestStreamLinks_GroupedStreamsFor(t *testing.T) {
 	res, err := streamGraph.GroupedStreamsFor("A")
 	assert.NoError(t, err)
 
-	_ = res
-
-	groups := []string{}
-	for _, g := range res {
-		order := bytes.NewBuffer(nil)
-		for _, l := range g {
-			order.WriteString(l.Name)
+	groups := make([][]string, len(res), len(res))
+	for i, r := range res {
+		sr := make([]string, 0, len(r))
+		for _, i := range r {
+			sr = append(sr, i.String())
 		}
-		groups = append(groups, order.String())
+		groups[i] = sr
 	}
 
-	groupedOrder := strings.Join(groups, "-")
+	assertStringSliceContainsValues(t, groups[0], []string{"G", "H"})
+	assertStringSliceContainsValues(t, groups[1], []string{"D", "E", "F"})
+	assertStringSliceContainsValues(t, groups[2], []string{"B", "C"})
+	assertStringSliceContainsValues(t, groups[3], []string{"A"})
+}
 
-	assert.Equal(t, "GH-DFE-BC-A", groupedOrder)
+func assertStringSliceContainsValues(t *testing.T, slice []string, values []string) {
+	sliceMap := map[string]struct{}{}
+	for _, v := range slice {
+		sliceMap[v] = struct{}{}
+	}
+
+	valuesMap := map[string]struct{}{}
+	for _, v := range values {
+		valuesMap[v] = struct{}{}
+	}
+
+	for kv := range valuesMap {
+		if _, ok := sliceMap[kv]; !ok {
+			t.Errorf("value missing")
+		}
+	}
+
+	for ks := range sliceMap {
+		if _, ok := valuesMap[ks]; !ok {
+			t.Errorf("value missing")
+		}
+	}
 }

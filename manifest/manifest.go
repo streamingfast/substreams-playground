@@ -100,6 +100,10 @@ func (s *Stream) Signature(graph *StreamsGraph) ([]byte, error) {
 	return h.Sum(nil), nil
 }
 
+func (s *Stream) String() string {
+	return s.Name
+}
+
 func New(path string) (*Manifest, error) {
 	_, manif, err := DecodeYamlManifestFromFile(path)
 	if err != nil {
