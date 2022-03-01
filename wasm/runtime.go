@@ -3,15 +3,19 @@ package wasm
 import (
 	"fmt"
 
+	"github.com/streamingfast/substream-pancakeswap/state"
 	"github.com/wasmerio/wasmer-go/wasmer"
 )
 
 type Instance struct {
 	module     *Module
-	store      *wasmer.Store
+	wasmStore  *wasmer.Store
 	memory     *wasmer.Memory
 	heap       *Heap
 	entrypoint *wasmer.Function
+
+	inputStores []state.Reader
+	outputStore *state.Builder
 
 	returnValue []byte
 	panicError  *PanicError
@@ -43,8 +47,8 @@ func (m *Module) NewInstance(functionName string) (*Instance, error) {
 	// WARN: An instance needs to be created on the same thread that it is consumed.
 
 	instance := &Instance{
-		store:  m.store,
-		module: m,
+		wasmStore: m.store,
+		module:    m,
 	}
 	imports := instance.newImports()
 	vmInstance, err := wasmer.NewInstance(m.module, imports)
@@ -76,7 +80,7 @@ func (i *Instance) newImports() *wasmer.ImportObject {
 	imports := wasmer.NewImportObject()
 	imports.Register("env", map[string]wasmer.IntoExtern{
 		"register_panic": wasmer.NewFunction(
-			i.store,
+			i.wasmStore,
 			wasmer.NewFunctionType(
 				params(wasmer.I32, wasmer.I32, wasmer.I32, wasmer.I32, wasmer.I32, wasmer.I32),
 				returns(),
@@ -106,7 +110,7 @@ func (i *Instance) newImports() *wasmer.ImportObject {
 			},
 		),
 		"println": wasmer.NewFunction(
-			i.store,
+			i.wasmStore,
 			wasmer.NewFunctionType(
 				params(wasmer.I32, wasmer.I32),
 				returns(),
@@ -123,7 +127,7 @@ func (i *Instance) newImports() *wasmer.ImportObject {
 			},
 		),
 		"output": wasmer.NewFunction(
-			i.store,
+			i.wasmStore,
 			wasmer.NewFunctionType(
 				params(wasmer.I32, wasmer.I32),
 				returns(),
@@ -139,22 +143,79 @@ func (i *Instance) newImports() *wasmer.ImportObject {
 				return nil, nil
 			},
 		),
+		"state_set": wasmer.NewFunction(
+			i.wasmStore,
+			wasmer.NewFunctionType(
+				params(wasmer.I64, wasmer.I32, wasmer.I32, wasmer.I32, wasmer.I32),
+				returns(),
+			),
+			func(args []wasmer.Value) ([]wasmer.Value, error) {
+				ord := args[0].I64()
+				key, err := i.heap.ReadString(args[1].I32(), args[2].I32())
+				if err != nil {
+					return nil, fmt.Errorf("reading string: %w", err)
+				}
+				value, err := i.heap.ReadBytes(args[3].I32(), args[4].I32())
+				if err != nil {
+					return nil, fmt.Errorf("reading bytes: %w", err)
+				}
+
+				i.outputStore.SetBytes(uint64(ord), key, value)
+
+				return nil, nil
+			},
+		),
+		"state_get_at": wasmer.NewFunction(
+			i.wasmStore,
+			wasmer.NewFunctionType(
+				params(wasmer.I32 /* store index */, wasmer.I64 /* ordinal */, wasmer.I32, wasmer.I32 /* key */),
+				returns(wasmer.I32, wasmer.I32, wasmer.I32),
+			),
+			func(args []wasmer.Value) ([]wasmer.Value, error) {
+				readStore := i.inputStores[int(args[0].I32())]
+				ord := args[1].I64()
+				key, err := i.heap.ReadString(args[2].I32(), args[3].I32())
+				if err != nil {
+					return nil, fmt.Errorf("reading string: %w", err)
+				}
+
+				val, found := readStore.GetAt(uint64(ord), key)
+				if !found {
+					zero := wasmer.NewI32(0)
+					return []wasmer.Value{zero, zero, zero}, nil
+				} else {
+					ptr := i.heap.Write(val)
+					return []wasmer.Value{wasmer.NewI32(ptr), wasmer.NewI32(len(val)), wasmer.NewI32(1)}, nil
+				}
+			},
+		),
 	})
 	return imports
 }
 
-func (i *Instance) Execute(block []byte) (out []byte, err error) {
+func (i *Instance) Execute(inputs []Input) (out []byte, err error) {
 	i.returnValue = nil
 	i.panicError = nil
 
-	blockPtr, err := i.heap.Write(block)
-	if err != nil {
-		return nil, fmt.Errorf("writing block to heap: %w", err)
+	var args []interface{}
+	for _, input := range inputs {
+		switch input.Type {
+		case InputStream:
+			ptr, err := i.heap.Write(input.StreamData)
+			if err != nil {
+				return nil, fmt.Errorf("writing %q to heap: %w", input.Name, err)
+			}
+			len := int32(len(input.StreamData))
+			args = append(args, ptr, len)
+		case InputStore:
+			i.inputStores = append(i.inputStores, input.Store)
+			args = append(args, len(i.inputStores)-1)
+		case OutputStore:
+			i.outputStore = input.Store
+		}
 	}
 
-	blockLen := int32(len(block))
-
-	_, err = i.entrypoint.Call(blockPtr, blockLen)
+	_, err = i.entrypoint.Call(args...)
 
 	return i.returnValue, nil
 }

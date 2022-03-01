@@ -142,9 +142,25 @@ func (p *Pipeline) BuildWASM(ioFactory state.IOFactory, forceLoadState bool) err
 
 	for _, stream := range streams {
 		debugOutput := stream.Name == p.outputStreamName
-		inputs := []string{}
+		var inputs []wasm.Input
 		for _, in := range stream.Inputs {
-			inputs = append(inputs, strings.Split(in, ":")[1])
+			t := strings.Split(in, ":") // TODO: check we do have 2 and only 2 parts.
+			switch t[0] {
+			case "stream":
+
+				inputs = append(inputs, wasm.Input{
+					Type: wasm.InputStream,
+					Name: t[1],
+				})
+			case "store":
+				inputs = append(inputs, wasm.Input{
+					Type:  wasm.InputStore,
+					Name:  t[1],
+					Store: p.stores[t[1]],
+				})
+			default:
+				return fmt.Errorf("invalid input type %q for stream %q in input %q", t[0], stream.Name, in)
+			}
 		}
 		streamName := stream.Name // to ensure it's enclosed
 
@@ -153,17 +169,29 @@ func (p *Pipeline) BuildWASM(ioFactory state.IOFactory, forceLoadState bool) err
 			return err
 		}
 
+		mod, err := wasm.NewModule(wasmCode)
+		if err != nil {
+			return fmt.Errorf("new wasm module: %w", err)
+		}
+
 		switch stream.Kind {
 		case "Mapper":
-			mod, err := wasm.NewModule(wasmCode)
-			if err != nil {
-				return fmt.Errorf("new wasm module: %w", err)
-			}
-
 			fmt.Printf("Adding mapper for stream %q\n", stream.Name)
 			p.streamFuncs = append(p.streamFuncs, func() error {
 				return wasmMapper(p.wasmOutputs, mod, streamName, inputs, debugOutput)
 			})
+		case "StateBuilder":
+			inputs = append(inputs, wasm.Input{
+				Type:          wasm.OutputStore,
+				Name:          streamName,
+				Store:         p.stores[streamName],
+				MergeStrategy: stream.Output.StoreMergeStrategy,
+			})
+			fmt.Printf("Adding mapper for stream %q\n", stream.Name)
+			p.streamFuncs = append(p.streamFuncs, func() error {
+				return wasmStateBuilder(p.wasmOutputs, mod, streamName, inputs, debugOutput)
+			})
+
 		// case "StateBuilder":
 		// 	method := f.MethodByName("BuildState")
 		// 	if method.IsZero() {
@@ -230,6 +258,8 @@ func (p *Pipeline) HandlerFactory(blockCount uint64) bstream.Handler {
 		case "native":
 			p.nativeOutputs["sf.ethereum.types.v1.Block"] = reflect.ValueOf(blk)
 		case "wasm/rust-v1":
+			// block.Payload.Get() could do the same, but does it go through the same
+			// CORRECTIONS of the block, that the BlockDecoder does?
 			blkBytes, err := proto.Marshal(blk)
 			if err != nil {
 				return fmt.Errorf("packing block: %w", err)
@@ -315,16 +345,21 @@ func nativeStateBuilder(vals map[string]reflect.Value, method reflect.Value, nam
 	return nil
 }
 
-func wasmMapper(vals map[string][]byte, mod *wasm.Module, name string, inputs []string, printOutputs bool) error {
+func wasmMapper(vals map[string][]byte, mod *wasm.Module, name string, inputs []wasm.Input, stores []string, printOutputs bool) error {
 	vmInst, err := mod.NewInstance("map")
 	if err != nil {
 		return fmt.Errorf("new wasm instance: %w", err)
 	}
 
 	// eventually map all inputs, even when multiple input streams, and multiple stores (read and write)
-	inputBytes := vals[inputs[0]]
+	var streams [][]byte
+	for _, input := range inputs {
+		if input.Type == wasm.InputStream {
+			input.StreamData = vals[input.Name]
+		}
+	}
 
-	out, err := vmInst.Execute(inputBytes)
+	out, err := vmInst.Execute(inputs)
 	if err != nil {
 		return fmt.Errorf("stream %s: wasm execution failed: %w", name, err)
 	}
