@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"runtime"
 	"strings"
 
 	"github.com/streamingfast/bstream"
@@ -274,8 +275,11 @@ func (p *Pipeline) HandlerFactory(blockCount uint64) bstream.Handler {
 		fmt.Println("-------------------------------------------------------------------")
 		fmt.Printf("BLOCK +%d %d %s\n", blk.Num()-p.startBlockNum, blk.Num(), blk.ID())
 
-		// runtime.LockOSThread()
-		// defer runtime.UnlockOSThread()
+		// LockOSThread is to avoid this goroutine to be MOVED by the Go runtime to another system thread,
+		// while wasmer is using some instances in a given thread. Wasmer will not be happy if the goroutine
+		// switched thread and tries to access a wasmer instance from a different one.
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
 		for _, streamFunc := range p.streamFuncs {
 			if err := streamFunc(); err != nil {
 				return err
