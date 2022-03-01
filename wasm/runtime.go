@@ -192,6 +192,60 @@ func (i *Instance) newImports() *wasmer.ImportObject {
 				}
 			},
 		),
+		"state_get_first": wasmer.NewFunction(
+			i.wasmStore,
+			wasmer.NewFunctionType(
+				params(wasmer.I32 /* store index */, wasmer.I32, wasmer.I32 /* key */),
+				returns(wasmer.I32, wasmer.I32, wasmer.I32),
+			),
+			func(args []wasmer.Value) ([]wasmer.Value, error) {
+				readStore := i.inputStores[int(args[0].I32())]
+				key, err := i.heap.ReadString(args[1].I32(), args[2].I32())
+				if err != nil {
+					return nil, fmt.Errorf("reading string: %w", err)
+				}
+
+				val, found := readStore.GetFirst(key)
+				if !found {
+					zero := wasmer.NewI32(0)
+					return []wasmer.Value{zero, zero, zero}, nil
+				} else {
+					ptr, err := i.heap.Write(val)
+					if err != nil {
+						return nil, err
+					}
+
+					return []wasmer.Value{wasmer.NewI32(ptr), wasmer.NewI32(len(val)), wasmer.NewI32(1)}, nil
+				}
+			},
+		),
+		"state_get_last": wasmer.NewFunction(
+			i.wasmStore,
+			wasmer.NewFunctionType(
+				params(wasmer.I32 /* store index */, wasmer.I32, wasmer.I32 /* key */),
+				returns(wasmer.I32, wasmer.I32, wasmer.I32),
+			),
+			func(args []wasmer.Value) ([]wasmer.Value, error) {
+				readStore := i.inputStores[int(args[0].I32())]
+				key, err := i.heap.ReadString(args[1].I32(), args[2].I32())
+				if err != nil {
+					return nil, fmt.Errorf("reading string: %w", err)
+				}
+
+				val, found := readStore.GetLast(key)
+				if !found {
+					zero := wasmer.NewI32(0)
+					return []wasmer.Value{zero, zero, zero}, nil
+				} else {
+					ptr, err := i.heap.Write(val)
+					if err != nil {
+						return nil, err
+					}
+
+					return []wasmer.Value{wasmer.NewI32(ptr), wasmer.NewI32(len(val)), wasmer.NewI32(1)}, nil
+				}
+			},
+		),
 	})
 	return imports
 }

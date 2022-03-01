@@ -1,5 +1,15 @@
 extern "C" {
     fn state_set(ord: i64, key_ptr: *const u8, key_len: u32, value_ptr: *const u8, value_len: u32);
+    fn state_get_first(
+        store_idx: u32,
+        key_ptr: *const u8,
+        key_len: u32,
+    ) -> (*mut u8, u32, bool);
+    fn state_get_last(
+        store_idx: u32,
+        key_ptr: *const u8,
+        key_len: u32,
+    ) -> (*mut u8, u32, bool);
     fn state_get_at(
         store_idx: u32,
         ord: i64,
