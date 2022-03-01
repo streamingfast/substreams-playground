@@ -6,7 +6,7 @@ import (
 )
 
 func TestBuilder_Merge(t *testing.T) {
-	type test struct {
+	tests := []struct {
 		name          string
 		this          *Builder
 		thisKV        map[string][]byte
@@ -14,9 +14,7 @@ func TestBuilder_Merge(t *testing.T) {
 		nextKV        map[string][]byte
 		expectedError bool
 		expectedKV    map[string][]byte
-	}
-
-	tests := []test{
+	}{
 		{
 			name:          "incompatible merge strategies",
 			this:          New("b1", MergeStrategyLastKey, nil),
@@ -120,36 +118,40 @@ func TestBuilder_Merge(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		tt.this.KV = tt.thisKV
-		tt.next.KV = tt.nextKV
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test.this.KV = test.thisKV
+			test.next.KV = test.nextKV
 
-		err := tt.this.Merge(tt.next)
-		if err != nil && !tt.expectedError {
-			if !tt.expectedError {
-				t.Errorf("got unexpected error in test %s: %w", tt.name, err)
+			err := test.this.Merge(test.next)
+			if err != nil && !test.expectedError {
+				if !test.expectedError {
+					t.Errorf("got unexpected error in test %s: %w", test.name, err)
+				}
+				return
 			}
-			continue
-		}
 
-		for k, v := range tt.this.KV {
-			if tt.this.mergeStrategy == MergeStrategySumFloats || tt.this.mergeStrategy == MergeStrategyMinFloat {
-				actual, _ := foundOrZeroFloat(v, true).Float64()
-				expected, _ := foundOrZeroFloat(tt.expectedKV[k], true).Float64()
-				assert.InDelta(t, actual, expected, 0.01)
-			} else {
-				assert.Equal(t, v, tt.expectedKV[k])
-			}
-		}
+			// check result both ways
 
-		for k, v := range tt.expectedKV {
-			if tt.this.mergeStrategy == MergeStrategySumFloats || tt.this.mergeStrategy == MergeStrategyMinFloat {
-				actual, _ := foundOrZeroFloat(v, true).Float64()
-				expected, _ := foundOrZeroFloat(tt.this.KV[k], true).Float64()
-				assert.InDelta(t, actual, expected, 0.01)
-			} else {
-				assert.Equal(t, v, tt.this.KV[k])
+			for k, v := range test.this.KV {
+				if test.this.mergeStrategy == MergeStrategySumFloats || test.this.mergeStrategy == MergeStrategyMinFloat {
+					actual, _ := foundOrZeroFloat(v, true).Float64()
+					expected, _ := foundOrZeroFloat(test.expectedKV[k], true).Float64()
+					assert.InDelta(t, actual, expected, 0.01)
+				} else {
+					assert.Equal(t, v, test.expectedKV[k])
+				}
 			}
-		}
+
+			for k, v := range test.expectedKV {
+				if test.this.mergeStrategy == MergeStrategySumFloats || test.this.mergeStrategy == MergeStrategyMinFloat {
+					actual, _ := foundOrZeroFloat(v, true).Float64()
+					expected, _ := foundOrZeroFloat(test.this.KV[k], true).Float64()
+					assert.InDelta(t, actual, expected, 0.01)
+				} else {
+					assert.Equal(t, v, test.this.KV[k])
+				}
+			}
+		})
 	}
 }
