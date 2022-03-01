@@ -19,18 +19,18 @@ func TestBuilder_Merge(t *testing.T) {
 	tests := []test{
 		{
 			name:          "incompatible merge strategies",
-			this:          New("b1", "LAST_KEY", nil),
-			next:          New("b2", "SUM_INTS", nil),
+			this:          New("b1", MergeStrategyLastKey, nil),
+			next:          New("b2", MergeStrategySumInts, nil),
 			expectedError: true,
 		},
 		{
 			name: "last_key",
-			this: New("b1", "LAST_KEY", nil),
+			this: New("b1", MergeStrategyLastKey, nil),
 			thisKV: map[string][]byte{
 				"one": []byte("foo"),
 				"two": []byte("bar"),
 			},
-			next: New("b2", "LAST_KEY", nil),
+			next: New("b2", MergeStrategyLastKey, nil),
 			nextKV: map[string][]byte{
 				"one":   []byte("baz"),
 				"three": []byte("lol"),
@@ -44,12 +44,12 @@ func TestBuilder_Merge(t *testing.T) {
 		},
 		{
 			name: "sum_ints",
-			this: New("b1", "SUM_INTS", nil),
+			this: New("b1", MergeStrategySumInts, nil),
 			thisKV: map[string][]byte{
 				"one": []byte("1"),
 				"two": []byte("2"),
 			},
-			next: New("b2", "SUM_INTS", nil),
+			next: New("b2", MergeStrategySumInts, nil),
 			nextKV: map[string][]byte{
 				"one":   []byte("1"),
 				"three": []byte("3"),
@@ -63,12 +63,12 @@ func TestBuilder_Merge(t *testing.T) {
 		},
 		{
 			name: "sum_floats",
-			this: New("b1", "SUM_FLOATS", nil),
+			this: New("b1", MergeStrategySumFloats, nil),
 			thisKV: map[string][]byte{
 				"one": []byte("1.0"),
 				"two": []byte("2.0"),
 			},
-			next: New("b2", "SUM_FLOATS", nil),
+			next: New("b2", MergeStrategySumFloats, nil),
 			nextKV: map[string][]byte{
 				"one":   []byte("1.0"),
 				"three": []byte("3.0"),
@@ -82,12 +82,12 @@ func TestBuilder_Merge(t *testing.T) {
 		},
 		{
 			name: "min_int",
-			this: New("b1", "MIN_INT", nil),
+			this: New("b1", MergeStrategyMinInt, nil),
 			thisKV: map[string][]byte{
 				"one": []byte("1"),
 				"two": []byte("2"),
 			},
-			next: New("b2", "MIN_INT", nil),
+			next: New("b2", MergeStrategyMinInt, nil),
 			nextKV: map[string][]byte{
 				"one":   []byte("2"),
 				"three": []byte("3"),
@@ -101,12 +101,12 @@ func TestBuilder_Merge(t *testing.T) {
 		},
 		{
 			name: "min_float",
-			this: New("b1", "MIN_FLOAT", nil),
+			this: New("b1", MergeStrategyMinFloat, nil),
 			thisKV: map[string][]byte{
 				"one": []byte("1.0"),
 				"two": []byte("2.0"),
 			},
-			next: New("b2", "MIN_FLOAT", nil),
+			next: New("b2", MergeStrategyMinFloat, nil),
 			nextKV: map[string][]byte{
 				"one":   []byte("2.0"),
 				"three": []byte("3.0"),
@@ -133,7 +133,7 @@ func TestBuilder_Merge(t *testing.T) {
 		}
 
 		for k, v := range tt.this.KV {
-			if tt.this.mergeStrategy == "SUM_FLOATS" {
+			if tt.this.mergeStrategy == MergeStrategySumFloats || tt.this.mergeStrategy == MergeStrategyMinFloat {
 				actual, _ := foundOrZeroFloat(v, true).Float64()
 				expected, _ := foundOrZeroFloat(tt.expectedKV[k], true).Float64()
 				assert.InDelta(t, actual, expected, 0.01)
@@ -143,7 +143,7 @@ func TestBuilder_Merge(t *testing.T) {
 		}
 
 		for k, v := range tt.expectedKV {
-			if tt.this.mergeStrategy == "SUM_FLOATS" || tt.this.mergeStrategy == "MIN_FLOAT" {
+			if tt.this.mergeStrategy == MergeStrategySumFloats || tt.this.mergeStrategy == MergeStrategyMinFloat {
 				actual, _ := foundOrZeroFloat(v, true).Float64()
 				expected, _ := foundOrZeroFloat(tt.this.KV[k], true).Float64()
 				assert.InDelta(t, actual, expected, 0.01)

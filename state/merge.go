@@ -6,13 +6,21 @@ import (
 	"strconv"
 )
 
+const (
+	MergeStrategyLastKey   = "LAST_KEY"
+	MergeStrategySumInts   = "SUM_INTS"
+	MergeStrategySumFloats = "SUM_FLOATS"
+	MergeStrategyMinInt    = "MIN_INT"
+	MergeStrategyMinFloat  = "MIN_FLOAT"
+)
+
 func (b *Builder) Merge(next *Builder) error {
 	if b.mergeStrategy != next.mergeStrategy {
 		return fmt.Errorf("incompatible merge strategies. strategy %s cannot be merged with strategy %s", b.mergeStrategy, next.mergeStrategy)
 	}
 
 	switch b.mergeStrategy {
-	case "LAST_KEY":
+	case MergeStrategyLastKey:
 		if next.lastOrdinal < b.lastOrdinal {
 			return nil
 		}
@@ -20,21 +28,21 @@ func (b *Builder) Merge(next *Builder) error {
 		for k, v := range next.KV {
 			b.SetBytes(next.lastOrdinal, k, v)
 		}
-	case "SUM_INTS":
+	case MergeStrategySumInts:
 		for k, v := range next.KV {
 			v0 := foundOrZeroUint64(b.GetLast(k))
 			v1 := foundOrZeroUint64(v, true)
 			v_sum := v0 + v1
 			b.Set(next.lastOrdinal, k, fmt.Sprintf("%d", v_sum))
 		}
-	case "SUM_FLOATS":
+	case MergeStrategySumFloats:
 		for k, v := range next.KV {
 			v0 := foundOrZeroFloat(b.GetLast(k))
 			v1 := foundOrZeroFloat(v, true)
 			v_sum := bf().Add(v0, v1).SetPrec(100)
 			b.Set(next.lastOrdinal, k, floatToStr(v_sum))
 		}
-	case "MIN_INT":
+	case MergeStrategyMinInt:
 		minInt := func(a, b uint64) uint64 {
 			if a < b {
 				return a
@@ -51,7 +59,7 @@ func (b *Builder) Merge(next *Builder) error {
 			v0 := foundOrZeroUint64(b.GetLast(k))
 			b.Set(next.lastOrdinal, k, fmt.Sprintf("%d", minInt(v0, v1)))
 		}
-	case "MIN_FLOAT":
+	case MergeStrategyMinFloat:
 		minFloat := func(a, b *big.Float) *big.Float {
 			if a.Cmp(b) < 1 {
 				return a
