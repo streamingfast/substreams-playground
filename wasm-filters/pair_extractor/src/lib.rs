@@ -1,10 +1,7 @@
 mod memory;
 mod proto;
 
-use crate::proto::proto::decode;
 use hex;
-use std::convert::TryInto;
-use std::io::Cursor;
 
 pub mod eth {
     include!(concat!(env!("OUT_DIR"), "/dfuse.ethereum.codec.v1.rs"));
@@ -41,7 +38,7 @@ extern "C" {
 pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
     register_panic_hook();
 
-    let blk: eth::Block = decode(block_ptr, block_len);
+    let blk: eth::Block = proto::decode(block_ptr, block_len);
 
     let mut pairs = pcs::Pairs { pairs: vec![] };
     for trx in blk.transaction_traces {
@@ -94,15 +91,13 @@ pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
 pub extern "C" fn build_pairs_state(pairs_ptr: *mut u8, pairs_len: usize) {
     register_panic_hook();
 
-    unsafe {
-        let input_data = Vec::from_raw_parts(pairs_ptr, pairs_len, pairs_len);
-        let pairs: pcs::Pairs = ::prost::Message::decode(&mut Cursor::new(&input_data)).unwrap();
-        std::mem::forget(input_data); // otherwise tries to free that memory at the end and crashes
+    let pairs: pcs::Pairs = proto::decode(pairs_ptr, pairs_len);
 
-        for pair in pairs.pairs {
-            let key = format!("pair:{}", pair.address);
-            let mut val = Vec::<u8>::new();
-            ::prost::Message::encode(&pair, &mut val).unwrap();
+    for pair in pairs.pairs {
+        let key = format!("pair:{}", pair.address);
+        let mut val = Vec::<u8>::new();
+        ::prost::Message::encode(&pair, &mut val).unwrap();
+        unsafe {
             state_set(
                 pair.log_ordinal as i64,
                 key.as_ptr(),
@@ -114,7 +109,11 @@ pub extern "C" fn build_pairs_state(pairs_ptr: *mut u8, pairs_len: usize) {
     }
 }
 
-pub extern "C" fn map_reserves(block_ptr: *mut u8, block_len: usize, pairs_store_idx: i32) {}
+pub extern "C" fn map_reserves(block_ptr: *mut u8, block_len: usize, pairs_store_idx: i32) {
+    register_panic_hook();
+
+    let _blk: eth::Block = proto::decode(block_ptr, block_len);
+}
 
 fn decode_address(input: &Vec<u8>) -> String {
     if input.len() > 40 {
