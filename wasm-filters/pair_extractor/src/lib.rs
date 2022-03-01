@@ -15,10 +15,14 @@ extern "C" {
     fn println(ptr: *const u8, len: usize);
     fn output(ptr: *const u8, len: usize);
     fn register_panic(msg_ptr: *const u8, msg_len: u32, file_ptr: *const u8, file_len: u32, line: u32, column: u32);
+    fn state_set(ord: i64, key_ptr: *const u8, key_len: u32, value_ptr: *const u8, value_len u32);
+    fn state_get_at(store_idx: u32, ord: i64, key_ptr: *const u8, key_len: u32, value_ptr: *const u8, value_len u32);
+
+    fn state_get_pairs_at()
 }
 
 #[no_mangle]
-pub extern "C" fn map(ptr: *mut u8, len: usize) {
+pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
     register_panic_hook();
 
     unsafe {
@@ -32,7 +36,7 @@ pub extern "C" fn map(ptr: *mut u8, len: usize) {
 
 	let mut pairs = pcs::Pairs{pairs: vec![]};
 	for trx in blk.transaction_traces {
-	    if hex::encode(&trx.to) != "ca143ce32fe78f1f7019d7d551a6402fc5350c73" {
+	    if hex::encode(&trx.to) != "ca143ce32fe78f1f7019d7d551a6402fc5350c73" /* PCS Factory address */ {
 		continue
 	    }
 
@@ -68,6 +72,28 @@ pub extern "C" fn map(ptr: *mut u8, len: usize) {
         std::mem::forget(out); // to prevent a drop which would crash
         output(ptr as *const u8, (out_len as i32).try_into().unwrap());
     }
+}
+
+#[no_mangle]
+pub extern "C" fn build_pairs_state(pairs_ptr: *mut u8, pairs_len: usize) {
+    register_panic_hook();
+
+    unsafe {
+	let input_data = Vec::from_raw_parts(pairs_ptr, pairs_len, pairs_len);
+        let pairs: eth::Pairs = ::prost::Message::decode(&mut Cursor::new(&input_data)).unwrap();
+        std::mem::forget(input_data); // otherwise tries to free that memory at the end and crashes
+
+	for pair in pairs {
+	    let key = format!("pair:{}", pair.address);
+	    let mut val = Vec::<u8>::new();
+	    ::prost::Message::encode(&pair, &mut val).unwrap();
+	    store_set(pair.log_ordinal, key.as_ptr(), key.len(), val.as_ptr(), val.len());
+	}
+    }
+}
+
+pub extern "C" fn map_reserves(block_ptr: *mut u8, block_len: usize, pairs_store_idx i32) {
+    
 }
 
 fn decode_address(input: &Vec::<u8>) -> String {
