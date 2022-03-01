@@ -42,8 +42,13 @@ func (b *Builder) Merge(next *Builder) error {
 			return b
 		}
 		for k, v := range next.KV {
-			v0 := foundOrZeroUint64(b.GetLast(k))
 			v1 := foundOrZeroUint64(v, true)
+
+			_, found := b.GetLast(k)
+			if !found {
+				b.Set(next.lastOrdinal, k, fmt.Sprintf("%d", v1))
+			}
+			v0 := foundOrZeroUint64(b.GetLast(k))
 			b.Set(next.lastOrdinal, k, fmt.Sprintf("%d", minInt(v0, v1)))
 		}
 	case "MIN_FLOAT":
@@ -54,8 +59,14 @@ func (b *Builder) Merge(next *Builder) error {
 			return b
 		}
 		for k, v := range next.KV {
-			v0 := foundOrZeroFloat(b.GetLast(k))
 			v1 := foundOrZeroFloat(v, true)
+
+			_, found := b.GetLast(k)
+			if !found {
+				b.Set(next.lastOrdinal, k, floatToStr(v1))
+			}
+
+			v0 := foundOrZeroFloat(b.GetLast(k))
 
 			m := minFloat(v0, v1).SetPrec(100)
 			b.Set(next.lastOrdinal, k, floatToStr(m))
