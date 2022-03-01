@@ -5,7 +5,7 @@
 This repo holds the `exchange` substream-based "pseudo-subgraph" from PancakeSwap.
 
 ## Build wasm
-```bash 
+```bash
 go generate ./...
 ```
 
@@ -20,14 +20,28 @@ gsutil -m cp gs://dfuseio-global-blocks-us/eth-bsc-mainnet/v1/000682* ./localblo
 gsutil -m cp gs://dfuseio-global-blocks-us/eth-bsc-mainnet/v1/000683* ./localblocks/
 ```
 
-Run with:
+Compile:
 
 ```bash
+go install -v ./cmd/substream-exchange
+```
 
-go run -v ./cmd/substream-exchange substreams_manifest.yaml pairs 300 | tee /tmp/sub
-go run -v ./cmd/substream-exchange substreams_manifest.yaml pairs 10000 -s 6811000 | tee /tmp/sub
-go run -v ./cmd/substream-exchange substreams_manifest.yaml pairs 10000 -s 6821000 | tee /tmp/sub
-go run -v ./cmd/substream-exchange substreams_manifest.yaml pairs 2000 -s 6831000 | tee /tmp/sub
+Run the native version:
+
+```bash
+substream-exchange native_substreams_manifest.yaml pairs 300
+substream-exchange native_substreams_manifest.yaml pairs 10000 -s 6811000
+substream-exchange native_substreams_manifest.yaml pairs 10000 -s 6821000
+substream-exchange native_substreams_manifest.yaml pairs 2000 -s 6831000
+```
+
+Run the WASM version:
+
+```bash
+substream-exchange wasm_substreams_manifest.yaml pairs 300
+substream-exchange wasm_substreams_manifest.yaml pairs 10000 -s 6811000
+substream-exchange wasm_substreams_manifest.yaml pairs 10000 -s 6821000
+substream-exchange wasm_substreams_manifest.yaml pairs 2000 -s 6831000
 ```
 
 
