@@ -70,7 +70,9 @@ func (p *Pipeline) BuildNative(ioFactory state.IOFactory, forceLoadState bool) e
 		"volumesState":           reflect.ValueOf(&exchange.PCSVolume24hStateBuilder{SubstreamIntrinsics: p.intr}),
 	}
 
-	p.stores = map[string]*state.Builder{}
+	if err := p.setupStores(streams, ioFactory, forceLoadState); err != nil {
+		return fmt.Errorf("setting up stores: %w", err)
+	}
 	p.nativeOutputs = map[string]reflect.Value{}
 
 	for _, stream := range streams {
@@ -136,7 +138,10 @@ func (p *Pipeline) BuildWASM(ioFactory state.IOFactory, forceLoadState bool) err
 		return fmt.Errorf("building execution graph: %w", err)
 	}
 
-	p.stores = map[string]*state.Builder{}
+	if err := p.setupStores(streams, ioFactory, forceLoadState); err != nil {
+		return fmt.Errorf("setting up stores: %w", err)
+	}
+
 	p.wasmOutputs = map[string][]byte{}
 
 	for _, stream := range streams {
@@ -166,6 +171,7 @@ func (p *Pipeline) BuildWASM(ioFactory state.IOFactory, forceLoadState bool) err
 			}
 		}
 		streamName := stream.Name // to ensure it's enclosed
+		entrypoint := stream.Code.Entrypoint
 
 		mod, err := wasm.NewModule(stream.Code.Content)
 		if err != nil {
@@ -174,42 +180,23 @@ func (p *Pipeline) BuildWASM(ioFactory state.IOFactory, forceLoadState bool) err
 
 		switch stream.Kind {
 		case "Mapper":
-			fmt.Printf("Adding mapper for stream %q\n", stream.Name)
+			fmt.Printf("Adding mapper for stream %q\n", streamName)
 			p.streamFuncs = append(p.streamFuncs, func() error {
-				return wasmMapper(p.wasmOutputs, mod, stream.Code.Entrypoint, streamName, inputs, debugOutput)
+				return wasmMapper(p.wasmOutputs, mod, entrypoint, streamName, inputs, debugOutput)
 			})
 		case "StateBuilder":
+			mergeStrategy := stream.Output.StoreMergeStrategy // enclose in the loop
 			inputs = append(inputs, &wasm.Input{
 				Type:          wasm.OutputStore,
 				Name:          streamName,
 				Store:         p.stores[streamName],
-				MergeStrategy: stream.Output.StoreMergeStrategy,
+				MergeStrategy: mergeStrategy,
 			})
-			fmt.Printf("Adding state builder for stream %q\n", stream.Name)
+			fmt.Printf("Adding state builder for stream %q\n", streamName)
+
 			p.streamFuncs = append(p.streamFuncs, func() error {
-				return wasmStateBuilder(p.wasmOutputs, mod, stream.Code.Entrypoint, streamName, inputs, debugOutput)
+				return wasmStateBuilder(p.wasmOutputs, mod, entrypoint, streamName, inputs, debugOutput)
 			})
-
-		// case "StateBuilder":
-		// 	method := f.MethodByName("BuildState")
-		// 	if method.IsZero() {
-		// 		return fmt.Errorf("BuildState() method not found on %T", f.Interface())
-		// 	}
-		// 	store := state.New(stream.Name, ioFactory)
-		// 	if forceLoadState {
-		// 		// Use AN ABSOLUTE store, or SQUASH ALL PARTIAL!
-
-		// 		if err := store.Init(p.startBlockNum); err != nil {
-		// 			return fmt.Errorf("could not load state for store %s at block num %d: %w", stream.Name, p.startBlockNum, err)
-		// 		}
-		// 	}
-		// 	p.stores[stream.Name] = store
-		// 	p.wasmOutputs[stream.Name] = reflect.ValueOf(store)
-
-		// 	fmt.Printf("Adding state builder for stream %q\n", stream.Name)
-		// 	p.streamFuncs = append(p.streamFuncs, func() error {
-		// 		return stateBuilder(p.streamOutputs, method, streamName, inputs, debugOutput)
-		// 	})
 
 		default:
 			return fmt.Errorf("unknown value %q for 'kind' in stream %q", stream.Kind, stream.Name)
@@ -217,6 +204,22 @@ func (p *Pipeline) BuildWASM(ioFactory state.IOFactory, forceLoadState bool) err
 
 	}
 
+	return nil
+}
+
+func (p *Pipeline) setupStores(streams []*manifest.Stream, ioFactory state.IOFactory, forceLoadState bool) error {
+	p.stores = make(map[string]*state.Builder)
+	for _, s := range streams {
+		store := state.New(s.Name, s.Output.StoreMergeStrategy, ioFactory)
+		if forceLoadState {
+			// Use AN ABSOLUTE store, or SQUASH ALL PARTIAL!
+
+			if err := store.Init(p.startBlockNum); err != nil {
+				return fmt.Errorf("could not load state for store %s at block num %d: %w", s.Name, p.startBlockNum, err)
+			}
+		}
+		p.stores[s.Name] = store
+	}
 	return nil
 }
 
@@ -348,15 +351,11 @@ func wasmMapper(vals map[string][]byte, mod *wasm.Module, entrypoint string, nam
 	if vm, err = wasmCall(vals, mod, entrypoint, name, inputs); err != nil {
 		return err
 	}
-
 	out := vm.Output()
-
 	vals[name] = out
-
 	if len(out) != 0 && printOutputs {
 		fmt.Printf("Stream output %q:\n    %v\n", name, out)
 	}
-
 	return nil
 }
 
@@ -365,11 +364,9 @@ func wasmStateBuilder(vals map[string][]byte, mod *wasm.Module, entrypoint strin
 	if vm, err = wasmCall(vals, mod, entrypoint, name, inputs); err != nil {
 		return err
 	}
-
 	if printOutputs {
 		vm.PrintDeltas()
 	}
-
 	return nil
 }
 
@@ -379,14 +376,29 @@ func wasmCall(vals map[string][]byte, mod *wasm.Module, entrypoint string, name 
 		return nil, fmt.Errorf("new wasm instance: %w", err)
 	}
 
+	hasInput := false
 	for _, input := range inputs {
-		if input.Type == wasm.InputStream {
-			input.StreamData = vals[input.Name]
+		switch input.Type {
+		case wasm.InputStream:
+			val := vals[input.Name]
+			if len(val) != 0 {
+				input.StreamData = val
+				hasInput = true
+			}
+		case wasm.InputStore:
+			hasInput = true
+		case wasm.OutputStore:
 		}
 	}
 
-	if err = vmInst.Execute(inputs); err != nil {
-		return nil, fmt.Errorf("stream %s: wasm execution failed: %w", name, err)
+	// This allows us to skip the execution of the VM if there are no inputs.
+	// This assumption should either be configurable by the manifest, or clearly documented:
+	//  state builders will not be called if their input streams are 0 bytes length (and there's no
+	//  state store in read mode)
+	if hasInput {
+		if err = vmInst.Execute(inputs); err != nil {
+			return nil, fmt.Errorf("stream %s: wasm execution failed: %w", name, err)
+		}
 	}
 
 	return vmInst, err

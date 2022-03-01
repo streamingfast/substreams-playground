@@ -57,7 +57,10 @@ func (h *Heap) ReadBytes(offset int32, length int32) ([]byte, error) {
 		return nil, fmt.Errorf("end %d env out of memory bounds ending at %d env", end, len(bytes))
 	}
 
-	return bytes[offset : offset+length], nil
+	out := make([]byte, length)
+	copy(out, bytes[offset:offset+length])
+
+	return out, nil
 }
 
 func (h *Heap) PrintMem() {

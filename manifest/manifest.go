@@ -47,7 +47,6 @@ func New(path string) (m *Manifest, err error) {
 
 	for _, s := range m.Streams {
 		if s.Code.File != "" {
-			fmt.Println("MAMAMALSKDJ", s.Code.File)
 			cnt, err := ioutil.ReadFile(s.Code.File)
 			if err != nil {
 				return nil, fmt.Errorf("reading file %q: %w", s.Code.File, err)
@@ -55,7 +54,6 @@ func New(path string) (m *Manifest, err error) {
 			if len(cnt) == 0 {
 				return nil, fmt.Errorf("reference wasm file empty: %s", s.Code.File)
 			}
-			fmt.Println("content", len(cnt))
 			s.Code.Content = cnt
 		}
 	}

@@ -217,6 +217,7 @@ func (i *Instance) Execute(inputs []*Input) (err error) {
 			i.outputStore = input.Store
 		}
 	}
+	fmt.Println("")
 
 	_, err = i.entrypoint.Call(args...)
 	return
@@ -231,5 +232,9 @@ func (i *Instance) Output() []byte {
 }
 
 func (i *Instance) PrintDeltas() {
+	if i.outputStore == nil {
+		return
+	}
+
 	i.outputStore.Print()
 }

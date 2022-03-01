@@ -42,11 +42,6 @@ pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
 
     let mut pairs = pcs::Pairs { pairs: vec![] };
 
-    let msg = format!("transaction traces count: {}, len: {}", blk.transaction_traces.len(), block_len);
-    unsafe {
-        println(msg.as_ptr(), msg.len());
-    }
-
     for trx in blk.transaction_traces {
         /* PCS Factory address */
         if hex::encode(&trx.to) != "ca143ce32fe78f1f7019d7d551a6402fc5350c73" {
@@ -55,11 +50,6 @@ pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
 
         for log in trx.receipt.unwrap().logs {
             let sig = hex::encode(&log.topics[0]);
-            let msg = format!("trx: 0x{} sig: {}", hex::encode(&trx.hash), &sig);
-
-            unsafe {
-                println(msg.as_ptr(), msg.len());
-            }
 
             if sig != "0d3648bd0f6ba80134a33ba9275ac585d9d315f0ad8355cddefde31afa28d0e9" {
                 continue;
