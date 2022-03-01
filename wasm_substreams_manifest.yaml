@@ -10,17 +10,31 @@ protoFiles:
 streams:
 - name: pairExtractor
   kind: Mapper
-  code: ./wasm-filters/pair_extractor/pkg/pair_extractor_bg.wasm
+  code:
+    file: ./wasm-filters/pair_extractor/pkg/pair_extractor_bg.wasm
+    entrypoint:  map_pairs
   inputs:
   - proto:sf.ethereum.types.v1.Block
   output:
     type: proto:pcs.types.v1.Pairs
 
-# - name: pairs
-#   kind: StateBuilder
-#   code: ./wasm-filters/pkg/pairs_state.wasm
-#   code: ./pairsState.wasm
-#   inputs:
-#   - stream:pairExtractor
-#   output:
-#     storeMergeStrategy: LAST_KEY   # SUM_INTS, SUM_FLOATS
+- name: pairs
+  kind: StateBuilder
+  code:
+    file: ./wasm-filters/pair_extractor/pkg/pair_extractor_bg.wasm
+    entrypoint: build_pairs_state
+  inputs:
+  - stream:pairExtractor
+  output:
+    storeMergeStrategy: LAST_KEY   # SUM_INTS, SUM_FLOATS
+
+- name: reservesExtractor
+  kind: Mapper
+  code:
+    file: ./wasm-filters/pair_extractor/pkg/pair_extractor_bg.wasm
+    entrypoint: map_reserves
+  inputs:
+  - proto:sf.ethereum.types.v1.Block
+  - store:pairs
+  output:
+    type: proto:pcs.types.v1.ReserveUpdates

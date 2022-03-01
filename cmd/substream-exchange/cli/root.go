@@ -36,11 +36,7 @@ func runRoot(cmd *cobra.Command, args []string) error {
 
 	manif, err := manifest.New(manifestPath)
 	if err != nil {
-		return fmt.Errorf("unable to read manifest %q: %w", manifestPath, err)
-	}
-
-	if err := manif.IsValid(); err != nil {
-		return fmt.Errorf("manifest %q invalid: %w", manifestPath, err)
+		return fmt.Errorf("read manifest %q: %w", manifestPath, err)
 	}
 
 	var blockCount uint64 = 1000

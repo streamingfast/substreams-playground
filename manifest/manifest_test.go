@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
 
@@ -29,7 +30,8 @@ func TestStreamYamlDecode(t *testing.T) {
 			rawYamlInput: `---
 name: pairExtractor
 kind: Mapper
-code: ./pairExtractor.wasm
+code:
+  file: ./pairExtractor.wasm
 inputs:
   - proto:sf.ethereum.types.v1.Block
 output:
@@ -37,7 +39,7 @@ output:
 			expectedOutput: Stream{
 				Name:   "pairExtractor",
 				Kind:   "Mapper",
-				Code:   "./pairExtractor.wasm",
+				Code:   Code{File: "./pairExtractor.wasm"},
 				Inputs: []string{"proto:sf.ethereum.types.v1.Block"},
 				Output: StreamOutput{Type: "proto:pcs.types.v1.Pairs"},
 			},
@@ -47,7 +49,8 @@ output:
 			rawYamlInput: `---
 name: prices
 kind: StateBuilder
-code: ./pricesState.wasm
+code:
+  file: ./pricesState.wasm
 inputs:
   - proto:sf.ethereum.types.v1.Block
   - store:pairs
@@ -56,7 +59,7 @@ output:
 			expectedOutput: Stream{
 				Name:   "prices",
 				Kind:   "StateBuilder",
-				Code:   "./pricesState.wasm",
+				Code:   Code{File: "./pricesState.wasm"},
 				Inputs: []string{"proto:sf.ethereum.types.v1.Block", "store:pairs"},
 				Output: StreamOutput{StoreMergeStrategy: "LAST_KEY"},
 			},
@@ -72,32 +75,26 @@ output:
 }
 
 func TestStream_Signature_Basic(t *testing.T) {
-	manifest, err := New("./test/test_manifest.yaml")
-	assert.NoError(t, err)
+	manifest, err := newWithoutLoad("./test/test_manifest.yaml")
+	require.NoError(t, err)
 
 	pairExtractorStream := manifest.Graph.streams["pairExtractor"]
-	sig, err := pairExtractorStream.Signature(manifest.Graph)
-	assert.NoError(t, err)
-
-	sigString := base64.StdEncoding.EncodeToString(sig)
-	assert.Equal(t, "4E8LY/jRrRfuzPneS53QBItGhwU=", sigString)
+	sig := pairExtractorStream.Signature(manifest.Graph)
+	assert.Equal(t, "ny5Jjyb9HlO1oeqHnVtIUA7dDnc=", base64.StdEncoding.EncodeToString(sig))
 }
 
 func TestStream_Signature_Composed(t *testing.T) {
-	manifest, err := New("./test/test_manifest.yaml")
-	assert.NoError(t, err)
+	manifest, err := newWithoutLoad("./test/test_manifest.yaml")
+	require.NoError(t, err)
 
 	pairsStream := manifest.Graph.streams["pairs"]
-	sig, err := pairsStream.Signature(manifest.Graph)
-	assert.NoError(t, err)
-
-	sigString := base64.StdEncoding.EncodeToString(sig)
-	assert.Equal(t, "OAvI+VUy9FU2dWDUNRcZ3KHEoh8=", sigString)
+	sig := pairsStream.Signature(manifest.Graph)
+	assert.Equal(t, "NdMQs33boHViLomWKtcSzmoaSYY=", base64.StdEncoding.EncodeToString(sig))
 }
 
 func TestStreamLinks_Streams(t *testing.T) {
-	manifest, err := New("./test/test_manifest.yaml")
-	assert.NoError(t, err)
+	manifest, err := newWithoutLoad("./test/test_manifest.yaml")
+	require.NoError(t, err)
 
 	manifest.Graph.StreamsFor("prices")
 }

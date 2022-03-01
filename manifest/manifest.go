@@ -19,28 +19,19 @@ type Manifest struct {
 	Graph *StreamsGraph `yaml:"-"`
 }
 
-func (m *Manifest) IsValid() error {
-	for _, s := range m.Streams {
-		if err := s.IsValid(); err != nil {
-			return fmt.Errorf("stream %s: %w", s.Name, err)
-		}
-	}
-
-	switch m.CodeType {
-	case "wasm/rust-v1", "native":
-	default:
-		return fmt.Errorf("invalid value %q for 'codeType'", m.CodeType)
-	}
-
-	return nil
-}
-
 type Stream struct {
 	Name   string       `yaml:"name"`
 	Kind   string       `yaml:"kind"`
-	Code   string       `yaml:"code"`
+	Code   Code         `yaml:"code"`
 	Inputs []string     `yaml:"inputs"`
 	Output StreamOutput `yaml:"output"`
+}
+
+type Code struct {
+	File       string `yaml:"file"`
+	Native     string `yaml:"native"`
+	Content    []byte `yaml:"-"`
+	Entrypoint string `yaml:"entrypoint"`
 }
 
 type StreamOutput struct {
@@ -48,76 +39,93 @@ type StreamOutput struct {
 	StoreMergeStrategy string `yaml:"storeMergeStrategy"`
 }
 
-func (s *Stream) IsValid() error {
-	switch s.Kind {
-	case "Mapper":
-		if s.Output.Type == "" {
-			return fmt.Errorf("missing 'output.type' for kind Mapper")
-		}
-	case "StateBuilder":
-		if s.Output.StoreMergeStrategy == "" {
-			return fmt.Errorf("missing 'output.storeMergeStrategy' for kind StateBuilder")
-		}
-	default:
-		return fmt.Errorf("invalid kind %q", s.Kind)
-	}
-
-	return nil
-}
-
-func (s *Stream) Signature(graph *StreamsGraph) ([]byte, error) {
-	codeData, err := ioutil.ReadFile(s.Code)
-	if err != nil {
-		return nil, fmt.Errorf("could not read code %s: %w", s.Code, err)
-	}
-
+func (s *Stream) Signature(graph *StreamsGraph) []byte {
 	buf := bytes.NewBuffer(nil)
-	buf.WriteString(s.Name)
 	buf.WriteString(s.Kind)
+	buf.Write(s.Code.Content)
+	buf.Write([]byte(s.Code.Entrypoint))
 
 	sort.Strings(s.Inputs)
 	for _, input := range s.Inputs {
 		buf.WriteString(input)
 	}
 
-	buf.Write(codeData)
-
-	ancestors, err := graph.AncestorsOf(s.Name)
-	if err != nil {
-		return nil, err
-	}
+	ancestors := graph.AncestorsOf(s.Name)
 	for _, ancestor := range ancestors {
-		sig, err := ancestor.Signature(graph)
-		if err != nil {
-			return nil, err
-		}
+		sig := ancestor.Signature(graph)
 		buf.Write(sig)
 	}
 
 	h := sha1.New()
 	h.Write(buf.Bytes())
 
-	return h.Sum(nil), nil
+	return h.Sum(nil)
 }
 
 func (s *Stream) String() string {
 	return s.Name
 }
 
-func New(path string) (*Manifest, error) {
-	_, manif, err := DecodeYamlManifestFromFile(path)
+func New(path string) (m *Manifest, err error) {
+	m, err = newWithoutLoad(path)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, s := range m.Streams {
+		if s.Code.Native == "" {
+			cnt, err := ioutil.ReadFile(s.Code.File)
+			if err != nil {
+				return nil, fmt.Errorf("reading file %q: %w", s.Code.File, err)
+			}
+			s.Code.Content = cnt
+		}
+	}
+
+	return
+}
+func newWithoutLoad(path string) (*Manifest, error) {
+	_, m, err := DecodeYamlManifestFromFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("decoding yaml: %w", err)
 	}
 
-	graph, err := NewStreamsGraph(manif.Streams)
+	switch m.CodeType {
+	case "wasm/rust-v1", "native":
+	default:
+		return nil, fmt.Errorf("invalid value %q for 'codeType'", m.CodeType)
+	}
+
+	for _, s := range m.Streams {
+		switch s.Kind {
+		case "Mapper":
+			if s.Output.Type == "" {
+				return nil, fmt.Errorf("stream %q: missing 'output.type' for kind Mapper", s.Name)
+			}
+			if s.Code.Entrypoint == "" {
+				s.Code.Entrypoint = "map"
+			}
+		case "StateBuilder":
+			if s.Output.StoreMergeStrategy == "" {
+				return nil, fmt.Errorf("stream %q: missing 'output.storeMergeStrategy' for kind StateBuilder", s.Name)
+			}
+			if s.Code.Entrypoint == "" {
+				s.Code.Entrypoint = "build_state"
+			}
+
+		default:
+			return nil, fmt.Errorf("stream %q: invalid kind %q", s.Name, s.Kind)
+		}
+	}
+
+	graph, err := NewStreamsGraph(m.Streams)
 	if err != nil {
 		return nil, fmt.Errorf("computing streams graph: %w", err)
 	}
 
-	manif.Graph = graph
+	m.Graph = graph
 
-	return manif, nil
+	return m, nil
 }
 
 type StreamsGraph struct {
@@ -177,14 +185,14 @@ func (g *StreamsGraph) GroupedStreamsFor(streamName string) ([][]Stream, error) 
 	return append(parents, []Stream{thisStream}), nil
 }
 
-func (g *StreamsGraph) AncestorsOf(streamName string) ([]Stream, error) {
+func (g *StreamsGraph) AncestorsOf(streamName string) []Stream {
 	parents := g.ancestorsOf(streamName)
-	return parents, nil
+	return parents
 }
 
-func (g *StreamsGraph) GroupedAncestorsOf(streamName string) ([]Stream, error) {
+func (g *StreamsGraph) GroupedAncestorsOf(streamName string) []Stream {
 	parents := g.ancestorsOf(streamName)
-	return parents, nil
+	return parents
 }
 
 func (g *StreamsGraph) ancestorsOf(streamName string) []Stream {

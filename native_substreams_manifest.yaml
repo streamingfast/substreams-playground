@@ -10,7 +10,8 @@ protoFiles:
 streams:
 - name: pairExtractor
   kind: Mapper
-  code: ./pairExtractor.wasm
+  code:
+    native: pairExtractor
   inputs:
   - proto:sf.ethereum.types.v1.Block
   output:
@@ -18,7 +19,8 @@ streams:
 
 - name: pairs
   kind: StateBuilder
-  code: ./pairsState.wasm
+  code:
+    native: pairsState
   inputs:
   - stream:pairExtractor
   output:
@@ -26,7 +28,8 @@ streams:
 
 - name: reservesExtractor
   kind: Mapper
-  code: ./reservesExtractor.wasm
+  code:
+    native: reservesExtractor
   inputs:
   - proto:sf.ethereum.types.v1.Block
   - store:pairs
@@ -35,7 +38,8 @@ streams:
 
 - name: prices
   kind: StateBuilder
-  code: ./pricesState.wasm
+  code:
+    native: pricesState
   inputs:
   - stream:reservesExtractor
   - store:pairs
@@ -44,7 +48,8 @@ streams:
 
 - name: mintBurnSwapsExtractor
   kind: Mapper
-  code: ./mintBurnSwapsExtractor.wasm
+  code:
+    native: mintBurnSwapsExtractor
   inputs:
   - proto:sf.ethereum.types.v1.Block
   - store:pairs
@@ -54,7 +59,8 @@ streams:
 
 - name: totals
   kind: StateBuilder
-  code: ./totalsState.wasm
+  code:
+    native: totalsState
   inputs:
   - stream:pairExtractor
   - stream:mintBurnSwapsExtractor
@@ -63,7 +69,8 @@ streams:
 
 - name: volumes
   kind: StateBuilder
-  code: ./volumesState.wasm
+  code:
+    native: volumesState
   inputs:
   - proto:sf.ethereum.types.v1.Block  # Only needed for Number/Timestamp, so a smaller stream would be just as fine.
   - stream:mintBurnSwapsExtractor

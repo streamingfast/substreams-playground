@@ -184,7 +184,11 @@ func (i *Instance) newImports() *wasmer.ImportObject {
 					zero := wasmer.NewI32(0)
 					return []wasmer.Value{zero, zero, zero}, nil
 				} else {
-					ptr := i.heap.Write(val)
+					ptr, err := i.heap.Write(val)
+					if err != nil {
+						return nil, err
+					}
+
 					return []wasmer.Value{wasmer.NewI32(ptr), wasmer.NewI32(len(val)), wasmer.NewI32(1)}, nil
 				}
 			},
@@ -193,7 +197,7 @@ func (i *Instance) newImports() *wasmer.ImportObject {
 	return imports
 }
 
-func (i *Instance) Execute(inputs []Input) (out []byte, err error) {
+func (i *Instance) Execute(inputs []Input) (err error) {
 	i.returnValue = nil
 	i.panicError = nil
 
@@ -203,7 +207,7 @@ func (i *Instance) Execute(inputs []Input) (out []byte, err error) {
 		case InputStream:
 			ptr, err := i.heap.Write(input.StreamData)
 			if err != nil {
-				return nil, fmt.Errorf("writing %q to heap: %w", input.Name, err)
+				return fmt.Errorf("writing %q to heap: %w", input.Name, err)
 			}
 			len := int32(len(input.StreamData))
 			args = append(args, ptr, len)
@@ -214,10 +218,8 @@ func (i *Instance) Execute(inputs []Input) (out []byte, err error) {
 			i.outputStore = input.Store
 		}
 	}
-
 	_, err = i.entrypoint.Call(args...)
-
-	return i.returnValue, nil
+	return
 }
 
 func (i *Instance) Err() error {
@@ -226,4 +228,8 @@ func (i *Instance) Err() error {
 
 func (i *Instance) Output() []byte {
 	return i.returnValue
+}
+
+func (i *Instance) PrintDeltas() {
+	i.outputStore.Print()
 }

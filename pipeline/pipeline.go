@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"reflect"
 	"strings"
 
@@ -62,20 +61,20 @@ func (p *Pipeline) BuildNative(ioFactory state.IOFactory, forceLoadState bool) e
 	}
 
 	nativeStreams := map[string]reflect.Value{
-		"./pairExtractor.wasm":          reflect.ValueOf(&exchange.PairExtractor{SubstreamIntrinsics: p.intr}),
-		"./pairsState.wasm":             reflect.ValueOf(&exchange.PairsStateBuilder{SubstreamIntrinsics: p.intr}),
-		"./reservesExtractor.wasm":      reflect.ValueOf(&exchange.ReservesExtractor{SubstreamIntrinsics: p.intr}),
-		"./pricesState.wasm":            reflect.ValueOf(&exchange.PricesStateBuilder{SubstreamIntrinsics: p.intr}),
-		"./mintBurnSwapsExtractor.wasm": reflect.ValueOf(&exchange.SwapsExtractor{SubstreamIntrinsics: p.intr}),
-		"./totalsState.wasm":            reflect.ValueOf(&exchange.TotalPairsStateBuilder{SubstreamIntrinsics: p.intr}),
-		"./volumesState.wasm":           reflect.ValueOf(&exchange.PCSVolume24hStateBuilder{SubstreamIntrinsics: p.intr}),
+		"pairExtractor":          reflect.ValueOf(&exchange.PairExtractor{SubstreamIntrinsics: p.intr}),
+		"pairsState":             reflect.ValueOf(&exchange.PairsStateBuilder{SubstreamIntrinsics: p.intr}),
+		"reservesExtractor":      reflect.ValueOf(&exchange.ReservesExtractor{SubstreamIntrinsics: p.intr}),
+		"pricesState":            reflect.ValueOf(&exchange.PricesStateBuilder{SubstreamIntrinsics: p.intr}),
+		"mintBurnSwapsExtractor": reflect.ValueOf(&exchange.SwapsExtractor{SubstreamIntrinsics: p.intr}),
+		"totalsState":            reflect.ValueOf(&exchange.TotalPairsStateBuilder{SubstreamIntrinsics: p.intr}),
+		"volumesState":           reflect.ValueOf(&exchange.PCSVolume24hStateBuilder{SubstreamIntrinsics: p.intr}),
 	}
 
 	p.stores = map[string]*state.Builder{}
 	p.nativeOutputs = map[string]reflect.Value{}
 
 	for _, stream := range streams {
-		f, found := nativeStreams[stream.Code]
+		f, found := nativeStreams[stream.Code.Native]
 		if !found {
 			// TODO: eventually, LOAD the CODE Into WASM boom!
 			return fmt.Errorf("native code not found for %q", stream.Code)
@@ -134,7 +133,7 @@ func (p *Pipeline) BuildNative(ioFactory state.IOFactory, forceLoadState bool) e
 func (p *Pipeline) BuildWASM(ioFactory state.IOFactory, forceLoadState bool) error {
 	streams, err := p.manifest.Graph.StreamsFor(p.outputStreamName)
 	if err != nil {
-		return fmt.Errorf("whoops: %w", err)
+		return fmt.Errorf("building execution graph: %w", err)
 	}
 
 	p.stores = map[string]*state.Builder{}
@@ -164,12 +163,7 @@ func (p *Pipeline) BuildWASM(ioFactory state.IOFactory, forceLoadState bool) err
 		}
 		streamName := stream.Name // to ensure it's enclosed
 
-		wasmCode, err := ioutil.ReadFile(stream.Code)
-		if err != nil {
-			return err
-		}
-
-		mod, err := wasm.NewModule(wasmCode)
+		mod, err := wasm.NewModule(stream.Code.Content)
 		if err != nil {
 			return fmt.Errorf("new wasm module: %w", err)
 		}
@@ -178,7 +172,7 @@ func (p *Pipeline) BuildWASM(ioFactory state.IOFactory, forceLoadState bool) err
 		case "Mapper":
 			fmt.Printf("Adding mapper for stream %q\n", stream.Name)
 			p.streamFuncs = append(p.streamFuncs, func() error {
-				return wasmMapper(p.wasmOutputs, mod, streamName, inputs, debugOutput)
+				return wasmMapper(p.wasmOutputs, mod, stream.Code.Entrypoint, streamName, inputs, debugOutput)
 			})
 		case "StateBuilder":
 			inputs = append(inputs, wasm.Input{
@@ -187,9 +181,9 @@ func (p *Pipeline) BuildWASM(ioFactory state.IOFactory, forceLoadState bool) err
 				Store:         p.stores[streamName],
 				MergeStrategy: stream.Output.StoreMergeStrategy,
 			})
-			fmt.Printf("Adding mapper for stream %q\n", stream.Name)
+			fmt.Printf("Adding state builder for stream %q\n", stream.Name)
 			p.streamFuncs = append(p.streamFuncs, func() error {
-				return wasmStateBuilder(p.wasmOutputs, mod, streamName, inputs, debugOutput)
+				return wasmStateBuilder(p.wasmOutputs, mod, stream.Code.Entrypoint, streamName, inputs, debugOutput)
 			})
 
 		// case "StateBuilder":
@@ -345,24 +339,14 @@ func nativeStateBuilder(vals map[string]reflect.Value, method reflect.Value, nam
 	return nil
 }
 
-func wasmMapper(vals map[string][]byte, mod *wasm.Module, name string, inputs []wasm.Input, stores []string, printOutputs bool) error {
-	vmInst, err := mod.NewInstance("map")
-	if err != nil {
-		return fmt.Errorf("new wasm instance: %w", err)
+func wasmMapper(vals map[string][]byte, mod *wasm.Module, entrypoint string, name string, inputs []wasm.Input, printOutputs bool) (err error) {
+	var vm *wasm.Instance
+	if vm, err = wasmCall(vals, mod, entrypoint, name, inputs); err != nil {
+		return err
 	}
 
-	// eventually map all inputs, even when multiple input streams, and multiple stores (read and write)
-	var streams [][]byte
-	for _, input := range inputs {
-		if input.Type == wasm.InputStream {
-			input.StreamData = vals[input.Name]
-		}
-	}
+	out := vm.Output()
 
-	out, err := vmInst.Execute(inputs)
-	if err != nil {
-		return fmt.Errorf("stream %s: wasm execution failed: %w", name, err)
-	}
 	vals[name] = out
 
 	if len(out) != 0 && printOutputs {
@@ -370,4 +354,36 @@ func wasmMapper(vals map[string][]byte, mod *wasm.Module, name string, inputs []
 	}
 
 	return nil
+}
+
+func wasmStateBuilder(vals map[string][]byte, mod *wasm.Module, entrypoint string, name string, inputs []wasm.Input, printOutputs bool) (err error) {
+	var vm *wasm.Instance
+	if vm, err = wasmCall(vals, mod, entrypoint, name, inputs); err != nil {
+		return err
+	}
+
+	if printOutputs {
+		vm.PrintDeltas()
+	}
+
+	return nil
+}
+
+func wasmCall(vals map[string][]byte, mod *wasm.Module, entrypoint string, name string, inputs []wasm.Input) (*wasm.Instance, error) {
+	vmInst, err := mod.NewInstance(entrypoint)
+	if err != nil {
+		return nil, fmt.Errorf("new wasm instance: %w", err)
+	}
+
+	for _, input := range inputs {
+		if input.Type == wasm.InputStream {
+			input.StreamData = vals[input.Name]
+		}
+	}
+
+	if err = vmInst.Execute(inputs); err != nil {
+		return nil, fmt.Errorf("stream %s: wasm execution failed: %w", name, err)
+	}
+
+	return vmInst, err
 }

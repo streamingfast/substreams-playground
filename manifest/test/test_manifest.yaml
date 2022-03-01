@@ -1,6 +1,6 @@
 specVersion: 0.1.0
 description: PancakeSwap substreams
-codeType: wasm/assemblyscript-1.0
+codeType: wasm/rust-v1
 
 genesisBlock: 6809737
 
@@ -10,7 +10,8 @@ protoFiles:
 streams:
   - name: pairExtractor
     kind: Mapper
-    code: ./test/code/pairExtractor.wasm
+    code:
+      file: ./test/code/pairExtractor.wasm
     inputs:
       - proto:sf.ethereum.types.v1.Block
     output:
@@ -18,7 +19,8 @@ streams:
 
   - name: pairs
     kind: StateBuilder
-    code: ./test/code/pairsState.wasm
+    code:
+      file: ./test/code/pairsState.wasm
     inputs:
       - stream:pairExtractor
     output:
@@ -26,7 +28,8 @@ streams:
 
   - name: reservesExtractor
     kind: Mapper
-    code: ./reservesExtractor.wasm
+    code:
+      file: ./reservesExtractor.wasm
     inputs:
       - proto:sf.ethereum.types.v1.Block
       #- store:pairs
@@ -35,7 +38,8 @@ streams:
 
   - name: prices
     kind: StateBuilder
-    code: ./pricesState.wasm
+    code:
+      file: ./pricesState.wasm
     inputs:
       - stream:reservesExtractor
       - store:pairs
@@ -44,7 +48,8 @@ streams:
 
   - name: mintBurnSwapsExtractor
     kind: Mapper
-    code: ./mintBurnSwapsExtractor.wasm
+    code:
+      file: ./mintBurnSwapsExtractor.wasm
     inputs:
       - proto:sf.ethereum.types.v1.Block
       - store:pairs
@@ -54,7 +59,8 @@ streams:
 
   - name: totals
     kind: StateBuilder
-    code: ./totalsState.wasm
+    code:
+      file: ./totalsState.wasm
     inputs:
       - stream:pairExtractor
       - stream:mintBurnSwapsExtractor
@@ -63,7 +69,8 @@ streams:
 
   - name: volumes
     kind: StateBuilder
-    code: ./volumesState.wasm
+    code:
+      file: ./volumesState.wasm
     inputs:
       - proto:sf.ethereum.types.v1.Block  # Only needed for Number/Timestamp, so a smaller stream would be just as fine.
       - stream:mintBurnSwapsExtractor

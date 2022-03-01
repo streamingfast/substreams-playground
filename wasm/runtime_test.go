@@ -37,7 +37,7 @@ func TestRustInstance(t *testing.T) {
 	blockBytes, err := proto.Marshal(block)
 	require.NoError(t, err)
 
-	retVal, err := instance.Execute(blockBytes)
+	retVal, err := instance.Execute([]Input{Input{Name: "block", Type: InputStream, StreamData: blockBytes}})
 	if err != nil {
 		fmt.Printf("error here: %T, %v\n", err, err)
 	}
