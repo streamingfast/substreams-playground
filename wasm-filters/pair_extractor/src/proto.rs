@@ -9,3 +9,14 @@ pub fn decode<T: std::default::Default + prost::Message>(ptr: *mut u8, size: usi
         obj
     }
 }
+pub fn encode<M: prost::Message>(msg: &M) -> (*const u8, usize) {
+    let mut buf = Vec::new();
+
+    let encoded_len = msg.encoded_len();
+    buf.reserve(encoded_len);
+    if let Err(e) = msg.encode(&mut buf) {
+        panic!("{}", e);
+    }
+
+    (buf.as_ptr(), buf.len())
+}
