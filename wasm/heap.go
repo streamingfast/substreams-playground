@@ -7,46 +7,34 @@ import (
 )
 
 type Heap struct {
-	memory          *wasmer.Memory
-	allocator       wasmer.NativeFunction
-	nextPtrLocation int32
-	freeSpace       uint
+	memory    *wasmer.Memory
+	allocator wasmer.NativeFunction
 }
 
-func NewHeap(memory *wasmer.Memory) *Heap {
+func NewHeap(memory *wasmer.Memory, allocator wasmer.NativeFunction) *Heap {
 	if len(memory.Data()) != int(memory.DataSize()) {
 		panic("ALSKDJ")
 	}
 	return &Heap{
 		memory:    memory,
-		freeSpace: memory.DataSize(), // double check, is that the FREE memory or the total allocated memory?
+		allocator: allocator,
 	}
 }
 
-func (h *Heap) Write(bytes []byte) int32 {
+func (h *Heap) Write(bytes []byte) (int32, error) {
 	size := len(bytes)
 
-	if uint(size) > h.freeSpace {
-		numberOfPages := ((uint(size) - h.freeSpace) / wasmer.WasmPageSize) + 1
-		numberOfBytes := wasmer.WasmPageSize * numberOfPages
-
-		//fmt.Printf("growing memory: %d pages, %d bytes\n", numberOfPages, numberOfBytes)
-		grown := h.memory.Grow(wasmer.Pages(numberOfPages))
-		if !grown {
-			panic("couldn't grow memory")
-		}
-		h.freeSpace += numberOfBytes
+	allocation, err := h.allocator(size)
+	if err != nil {
+		return 0, fmt.Errorf("allocating memory for size %d:%w", size, err)
 	}
 
-	ptr := h.nextPtrLocation
+	ptr := allocation.(int32)
 
 	memoryData := h.memory.Data()
 	copy(memoryData[ptr:], bytes)
 
-	h.nextPtrLocation += int32(size)
-	h.freeSpace -= uint(size)
-
-	return ptr
+	return ptr, nil
 }
 
 func (h *Heap) ReadString(offset int32, length int32) (string, error) {

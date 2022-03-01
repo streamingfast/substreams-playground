@@ -1,3 +1,5 @@
+mod memory;
+
 use std::convert::TryInto;
 use std::io::Cursor;
 use hex;
@@ -8,7 +10,6 @@ pub mod eth {
 pub mod pcs {
     include!(concat!(env!("OUT_DIR"), "/pcs.types.v1.rs"));
 }
-
 
 extern "C" {
     fn println(ptr: *const u8, len: usize);
@@ -58,7 +59,6 @@ pub extern "C" fn map(ptr: *mut u8, len: usize) {
 		})
 	    }
 	}
-
 
         let mut out = Vec::<u8>::new();
         ::prost::Message::encode(&pairs, &mut out).unwrap();

@@ -56,17 +56,18 @@ func (m *Module) NewInstance(functionName string) (*Instance, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to get the wasm module memory: %w", err)
 	}
+
+	alloc, err := vmInstance.Exports.GetFunction("alloc")
+	if err != nil {
+		return nil, fmt.Errorf("gettting alloc function: %w", err)
+	}
+
 	instance.memory = memory
-	instance.heap = NewHeap(memory)
+	instance.heap = NewHeap(memory, alloc)
 	instance.entrypoint, err = vmInstance.Exports.GetRawFunction(functionName)
 	if err != nil {
 		return nil, fmt.Errorf("getting wasm module function %q: %w", functionName, err)
 	}
-
-	// heap.allocator, err = instance.Exports.GetFunction("memory.allocate")
-	// if err != nil {
-	// 	panic(fmt.Errorf("getting memory.allocate func: %w", err))
-	// }
 
 	return instance, nil
 }
@@ -146,12 +147,14 @@ func (i *Instance) Execute(block []byte) (out []byte, err error) {
 	i.returnValue = nil
 	i.panicError = nil
 
-	blockPtr := i.heap.Write(block)
+	blockPtr, err := i.heap.Write(block)
+	if err != nil {
+		return nil, fmt.Errorf("writing block to heap: %w", err)
+	}
+
 	blockLen := int32(len(block))
 
-	//i.heap.PrintMem()
 	_, err = i.entrypoint.Call(blockPtr, blockLen)
-	//i.heap.PrintMem()
 
 	return i.returnValue, nil
 }
