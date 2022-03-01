@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	pbcodec "github.com/streamingfast/sparkle/pb/sf/ethereum/codec/v1"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 )
@@ -37,14 +36,12 @@ func TestRustInstance(t *testing.T) {
 	blockBytes, err := proto.Marshal(block)
 	require.NoError(t, err)
 
-	retVal, err := instance.Execute([]Input{Input{Name: "block", Type: InputStream, StreamData: blockBytes}})
+	err = instance.Execute([]*Input{{Name: "block", Type: InputStream, StreamData: blockBytes}})
 	if err != nil {
 		fmt.Printf("error here: %T, %v\n", err, err)
 	}
 	require.NoError(t, err)
 
-	expect, err := proto.Marshal(block.Header)
+	_, err = proto.Marshal(block.Header)
 	require.NoError(t, err)
-
-	assert.Equal(t, retVal, expect)
 }
