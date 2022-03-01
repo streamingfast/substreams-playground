@@ -10,11 +10,11 @@ import (
 )
 
 type Manifest struct {
-	SpecVersion  string   `yaml:"specVersion"`
-	Description  string   `yaml:"description"`
-	CodeType     string   `yaml:"codeType"`
-	GenesisBlock int      `yaml:"genesisBlock"`
-	Streams      []Stream `yaml:"streams"`
+	SpecVersion  string    `yaml:"specVersion"`
+	Description  string    `yaml:"description"`
+	CodeType     string    `yaml:"codeType"`
+	GenesisBlock int       `yaml:"genesisBlock"`
+	Streams      []*Stream `yaml:"streams"`
 
 	Graph *StreamsGraph `yaml:"-"`
 }
@@ -39,33 +39,6 @@ type StreamOutput struct {
 	StoreMergeStrategy string `yaml:"storeMergeStrategy"`
 }
 
-func (s *Stream) Signature(graph *StreamsGraph) []byte {
-	buf := bytes.NewBuffer(nil)
-	buf.WriteString(s.Kind)
-	buf.Write(s.Code.Content)
-	buf.Write([]byte(s.Code.Entrypoint))
-
-	sort.Strings(s.Inputs)
-	for _, input := range s.Inputs {
-		buf.WriteString(input)
-	}
-
-	ancestors := graph.AncestorsOf(s.Name)
-	for _, ancestor := range ancestors {
-		sig := ancestor.Signature(graph)
-		buf.Write(sig)
-	}
-
-	h := sha1.New()
-	h.Write(buf.Bytes())
-
-	return h.Sum(nil)
-}
-
-func (s *Stream) String() string {
-	return s.Name
-}
-
 func New(path string) (m *Manifest, err error) {
 	m, err = newWithoutLoad(path)
 	if err != nil {
@@ -73,17 +46,22 @@ func New(path string) (m *Manifest, err error) {
 	}
 
 	for _, s := range m.Streams {
-		if s.Code.Native == "" {
+		if s.Code.File != "" {
+			fmt.Println("MAMAMALSKDJ", s.Code.File)
 			cnt, err := ioutil.ReadFile(s.Code.File)
 			if err != nil {
 				return nil, fmt.Errorf("reading file %q: %w", s.Code.File, err)
 			}
+			if len(cnt) == 0 {
+				return nil, fmt.Errorf("reference wasm file empty: %s", s.Code.File)
+			}
+			fmt.Println("content", len(cnt))
 			s.Code.Content = cnt
 		}
 	}
-
 	return
 }
+
 func newWithoutLoad(path string) (*Manifest, error) {
 	_, m, err := DecodeYamlManifestFromFile(path)
 	if err != nil {
@@ -128,15 +106,42 @@ func newWithoutLoad(path string) (*Manifest, error) {
 	return m, nil
 }
 
-type StreamsGraph struct {
-	streams map[string]Stream
-	links   map[string][]Stream
+func (s *Stream) Signature(graph *StreamsGraph) []byte {
+	buf := bytes.NewBuffer(nil)
+	buf.WriteString(s.Kind)
+	buf.Write(s.Code.Content)
+	buf.Write([]byte(s.Code.Entrypoint))
+
+	sort.Strings(s.Inputs)
+	for _, input := range s.Inputs {
+		buf.WriteString(input)
+	}
+
+	ancestors := graph.AncestorsOf(s.Name)
+	for _, ancestor := range ancestors {
+		sig := ancestor.Signature(graph)
+		buf.Write(sig)
+	}
+
+	h := sha1.New()
+	h.Write(buf.Bytes())
+
+	return h.Sum(nil)
 }
 
-func NewStreamsGraph(streams []Stream) (*StreamsGraph, error) {
+func (s *Stream) String() string {
+	return s.Name
+}
+
+type StreamsGraph struct {
+	streams map[string]*Stream
+	links   map[string][]*Stream
+}
+
+func NewStreamsGraph(streams []*Stream) (*StreamsGraph, error) {
 	sg := &StreamsGraph{
-		streams: map[string]Stream{},
-		links:   map[string][]Stream{},
+		streams: map[string]*Stream{},
+		links:   map[string][]*Stream{},
 	}
 
 	for _, stream := range streams {
@@ -144,7 +149,7 @@ func NewStreamsGraph(streams []Stream) (*StreamsGraph, error) {
 	}
 
 	for _, stream := range streams {
-		var links []Stream
+		var links []*Stream
 		for _, input := range stream.Inputs {
 			for _, streamPrefix := range []string{"stream:", "store:"} {
 				if strings.HasPrefix(input, streamPrefix) {
@@ -164,7 +169,7 @@ func NewStreamsGraph(streams []Stream) (*StreamsGraph, error) {
 	return sg, nil
 }
 
-func (g *StreamsGraph) StreamsFor(streamName string) ([]Stream, error) {
+func (g *StreamsGraph) StreamsFor(streamName string) ([]*Stream, error) {
 	thisStream, found := g.streams[streamName]
 	if !found {
 		return nil, fmt.Errorf("stream %q not found", streamName)
@@ -175,29 +180,29 @@ func (g *StreamsGraph) StreamsFor(streamName string) ([]Stream, error) {
 }
 
 //TODO: use this in pipeline and deduplicate everything
-func (g *StreamsGraph) GroupedStreamsFor(streamName string) ([][]Stream, error) {
+func (g *StreamsGraph) GroupedStreamsFor(streamName string) ([][]*Stream, error) {
 	thisStream, found := g.streams[streamName]
 	if !found {
 		return nil, fmt.Errorf("stream %q not found", streamName)
 	}
 
 	parents := g.groupedAncestorsOf(streamName)
-	return append(parents, []Stream{thisStream}), nil
+	return append(parents, []*Stream{thisStream}), nil
 }
 
-func (g *StreamsGraph) AncestorsOf(streamName string) []Stream {
+func (g *StreamsGraph) AncestorsOf(streamName string) []*Stream {
 	parents := g.ancestorsOf(streamName)
 	return parents
 }
 
-func (g *StreamsGraph) GroupedAncestorsOf(streamName string) []Stream {
+func (g *StreamsGraph) GroupedAncestorsOf(streamName string) []*Stream {
 	parents := g.ancestorsOf(streamName)
 	return parents
 }
 
-func (g *StreamsGraph) ancestorsOf(streamName string) []Stream {
+func (g *StreamsGraph) ancestorsOf(streamName string) []*Stream {
 	type streamWithTreeDepth struct {
-		stream Stream
+		stream *Stream
 		depth  int
 	}
 
@@ -227,7 +232,7 @@ func (g *StreamsGraph) ancestorsOf(streamName string) []Stream {
 	})
 
 	seen := map[string]struct{}{}
-	var result []Stream
+	var result []*Stream
 	for _, parent := range parentsWithDepth {
 		if _, ok := seen[parent.stream.Name]; ok {
 			continue
@@ -239,9 +244,9 @@ func (g *StreamsGraph) ancestorsOf(streamName string) []Stream {
 	return result
 }
 
-func (g *StreamsGraph) groupedAncestorsOf(streamName string) [][]Stream {
+func (g *StreamsGraph) groupedAncestorsOf(streamName string) [][]*Stream {
 	type streamWithTreeDepth struct {
-		stream Stream
+		stream *Stream
 		depth  int
 	}
 
@@ -270,7 +275,7 @@ func (g *StreamsGraph) groupedAncestorsOf(streamName string) [][]Stream {
 		return parentsWithDepth[i].depth > parentsWithDepth[j].depth
 	})
 
-	grouped := map[int][]Stream{}
+	grouped := map[int][]*Stream{}
 	seen := map[string]struct{}{}
 	for _, parent := range parentsWithDepth {
 		if _, ok := seen[parent.stream.Name]; ok {
@@ -280,7 +285,7 @@ func (g *StreamsGraph) groupedAncestorsOf(streamName string) [][]Stream {
 		seen[parent.stream.Name] = struct{}{}
 	}
 
-	result := make([][]Stream, len(grouped), len(grouped))
+	result := make([][]*Stream, len(grouped), len(grouped))
 	for i, streams := range grouped {
 		result[len(grouped)-1-i] = streams
 	}

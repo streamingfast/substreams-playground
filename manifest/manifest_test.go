@@ -80,7 +80,7 @@ func TestStream_Signature_Basic(t *testing.T) {
 
 	pairExtractorStream := manifest.Graph.streams["pairExtractor"]
 	sig := pairExtractorStream.Signature(manifest.Graph)
-	assert.Equal(t, "ny5Jjyb9HlO1oeqHnVtIUA7dDnc=", base64.StdEncoding.EncodeToString(sig))
+	assert.Equal(t, "6udco/e0Cs9WlTak8aVqDEaLf5w=", base64.StdEncoding.EncodeToString(sig))
 }
 
 func TestStream_Signature_Composed(t *testing.T) {
@@ -89,7 +89,7 @@ func TestStream_Signature_Composed(t *testing.T) {
 
 	pairsStream := manifest.Graph.streams["pairs"]
 	sig := pairsStream.Signature(manifest.Graph)
-	assert.Equal(t, "NdMQs33boHViLomWKtcSzmoaSYY=", base64.StdEncoding.EncodeToString(sig))
+	assert.Equal(t, "pHzwn8h6952T5++c0mTLarIwb54=", base64.StdEncoding.EncodeToString(sig))
 }
 
 func TestStreamLinks_Streams(t *testing.T) {
@@ -101,7 +101,7 @@ func TestStreamLinks_Streams(t *testing.T) {
 
 func TestStreamLinks_StreamsFor(t *testing.T) {
 	streamGraph := &StreamsGraph{
-		streams: map[string]Stream{
+		streams: map[string]*Stream{
 			"A": {Name: "A"},
 			"B": {Name: "B"},
 			"C": {Name: "C"},
@@ -112,16 +112,16 @@ func TestStreamLinks_StreamsFor(t *testing.T) {
 			"H": {Name: "H"},
 			"I": {Name: "I"},
 		},
-		links: map[string][]Stream{
-			"A": {Stream{Name: "B"}, Stream{Name: "C"}},
-			"B": {Stream{Name: "D"}, Stream{Name: "E"}, Stream{Name: "F"}},
-			"C": {Stream{Name: "F"}},
+		links: map[string][]*Stream{
+			"A": {&Stream{Name: "B"}, &Stream{Name: "C"}},
+			"B": {&Stream{Name: "D"}, &Stream{Name: "E"}, &Stream{Name: "F"}},
+			"C": {&Stream{Name: "F"}},
 			"D": {},
 			"E": {},
-			"F": {Stream{Name: "G"}, Stream{Name: "H"}},
+			"F": {&Stream{Name: "G"}, &Stream{Name: "H"}},
 			"G": {},
 			"H": {},
-			"I": {Stream{Name: "H"}},
+			"I": {&Stream{Name: "H"}},
 		},
 	}
 
@@ -133,7 +133,7 @@ func TestStreamLinks_StreamsFor(t *testing.T) {
 
 func TestStreamLinks_GroupedStreamsFor(t *testing.T) {
 	streamGraph := &StreamsGraph{
-		streams: map[string]Stream{
+		streams: map[string]*Stream{
 			"A": {Name: "A"},
 			"B": {Name: "B"},
 			"C": {Name: "C"},
@@ -144,16 +144,16 @@ func TestStreamLinks_GroupedStreamsFor(t *testing.T) {
 			"H": {Name: "H"},
 			"I": {Name: "I"},
 		},
-		links: map[string][]Stream{
-			"A": {Stream{Name: "B"}, Stream{Name: "C"}},
-			"B": {Stream{Name: "D"}, Stream{Name: "E"}, Stream{Name: "F"}},
-			"C": {Stream{Name: "F"}},
+		links: map[string][]*Stream{
+			"A": {&Stream{Name: "B"}, &Stream{Name: "C"}},
+			"B": {&Stream{Name: "D"}, &Stream{Name: "E"}, &Stream{Name: "F"}},
+			"C": {&Stream{Name: "F"}},
 			"D": {},
 			"E": {},
-			"F": {Stream{Name: "G"}, Stream{Name: "H"}},
+			"F": {&Stream{Name: "G"}, &Stream{Name: "H"}},
 			"G": {},
 			"H": {},
-			"I": {Stream{Name: "H"}},
+			"I": {&Stream{Name: "H"}},
 		},
 	}
 

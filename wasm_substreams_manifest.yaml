@@ -14,7 +14,7 @@ streams:
     file: ./wasm-filters/pair_extractor/pkg/pair_extractor_bg.wasm
     entrypoint:  map_pairs
   inputs:
-  - proto:sf.ethereum.types.v1.Block
+    - proto:sf.ethereum.types.v1.Block
   output:
     type: proto:pcs.types.v1.Pairs
 
@@ -24,7 +24,7 @@ streams:
     file: ./wasm-filters/pair_extractor/pkg/pair_extractor_bg.wasm
     entrypoint: build_pairs_state
   inputs:
-  - stream:pairExtractor
+    - stream:pairExtractor
   output:
     storeMergeStrategy: LAST_KEY   # SUM_INTS, SUM_FLOATS
 
@@ -34,7 +34,7 @@ streams:
     file: ./wasm-filters/pair_extractor/pkg/pair_extractor_bg.wasm
     entrypoint: map_reserves
   inputs:
-  - proto:sf.ethereum.types.v1.Block
-  - store:pairs
+    - proto:sf.ethereum.types.v1.Block
+    - store:pairs
   output:
     type: proto:pcs.types.v1.ReserveUpdates
