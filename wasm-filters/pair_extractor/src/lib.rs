@@ -99,7 +99,50 @@ pub extern "C" fn build_pairs_state(pairs_ptr: *mut u8, pairs_len: usize) {
 pub extern "C" fn map_reserves(block_ptr: *mut u8, block_len: usize, pairs_store_idx: i32) {
     register_panic_hook();
 
-    let _blk: eth::Block = proto::decode(block_ptr, block_len).unwrap();
+    let blk: eth::Block = proto::decode(block_ptr, block_len).unwrap();
+
+    let mut reserves = pcs::Reserves { reserves: vec![] };
+
+    for trx in blk.transaction_traces {
+	for log in trx.receipt.logs {
+	    let addr = hex::encode(log.address);
+	    let (pairBytes, found) = state::get_last(pairs_store_idx, format!("pair:{}", addr));
+	    if !found {
+		continue
+	    }
+
+            let sig = hex::encode(&log.topics[0]);
+	    // Sync(uint112,uint112)
+	    if sig != "1c411e9a96e071241c2f21f7726b17ae89e3cab4c78be50e062b03a9fffbbad1" {
+		continue
+	    }
+
+	    // Continue handling a Pair's Sync event
+	    let pair: pcs::Pair = proto::decode(pairBytes);
+
+	    // TODO: Read the log's Reserve0, and Reserve1
+	    // TODO: take the `pair.token0/1.decimals` and add the decimal point on that Reserve0
+	    // TODO: do floating point calculations
+
+	    reserves.reserves.push(pcs::Reserve{
+		pair_address: pair.address,
+		reserve0: "123".to_string(),
+		reserve1: "234".to_string(),
+		log_ordinal: log.block_index,
+	    }
+	}
+    }
+
+    let mut out = Vec::<u8>::new();
+    ::prost::Message::encode(&reserves, &mut out).unwrap();
+
+    let out_len = out.len() as u32;
+    let ptr = out.as_ptr();
+    std::mem::forget(out); // to prevent a drop which would crash
+
+    unsafe {
+        output(ptr as *const u8, out_len);
+    }
 }
 
 fn decode_address(input: &Vec<u8>) -> String {

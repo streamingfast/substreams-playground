@@ -23,3 +23,14 @@ message ERC20Token {
   string symbol = 3;
   uint64 decimals = 4;
 }
+
+message Reserves {
+  repeated Reserve reserves = 1;
+}
+
+message Reserve {
+  uint64 log_ordinal = 1;
+  string pair_address = 2;
+  string reserve0 = 3;
+  string reserve1 = 4;
+}
