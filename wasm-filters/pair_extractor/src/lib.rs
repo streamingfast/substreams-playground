@@ -77,7 +77,7 @@ pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
         }
     }
 
-    let (ptr, len) = proto::encode_to_ptr(&mut pairs);
+    let (ptr, len) = proto::encode_to_ptr(&mut pairs).unwrap();
 
     unsafe {
         output(ptr as *const u8, len as u32);
@@ -92,7 +92,7 @@ pub extern "C" fn build_pairs_state(pairs_ptr: *mut u8, pairs_len: usize) {
 
     for pair in pairs.pairs {
         let key = format!("pair:{}", pair.address);
-        state::set(pair.log_ordinal as i64, key, proto::encode(&pair));
+        state::set(pair.log_ordinal as i64, key, proto::encode(&pair).unwrap());
     }
 }
 
