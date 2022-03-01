@@ -141,23 +141,23 @@ func (p *Pipeline) BuildWASM(ioFactory state.IOFactory, forceLoadState bool) err
 
 	for _, stream := range streams {
 		debugOutput := stream.Name == p.outputStreamName
-		var inputs []wasm.Input
+		var inputs []*wasm.Input
 		for _, in := range stream.Inputs {
 			t := strings.Split(in, ":") // TODO: check we do have 2 and only 2 parts.
 			switch t[0] {
 			case "stream":
-				inputs = append(inputs, wasm.Input{
+				inputs = append(inputs, &wasm.Input{
 					Type: wasm.InputStream,
 					Name: t[1],
 				})
 			case "store":
-				inputs = append(inputs, wasm.Input{
+				inputs = append(inputs, &wasm.Input{
 					Type:  wasm.InputStore,
 					Name:  t[1],
 					Store: p.stores[t[1]],
 				})
 			case "proto":
-				inputs = append(inputs, wasm.Input{
+				inputs = append(inputs, &wasm.Input{
 					Type: wasm.InputStream,
 					Name: t[1],
 				})
@@ -179,7 +179,7 @@ func (p *Pipeline) BuildWASM(ioFactory state.IOFactory, forceLoadState bool) err
 				return wasmMapper(p.wasmOutputs, mod, stream.Code.Entrypoint, streamName, inputs, debugOutput)
 			})
 		case "StateBuilder":
-			inputs = append(inputs, wasm.Input{
+			inputs = append(inputs, &wasm.Input{
 				Type:          wasm.OutputStore,
 				Name:          streamName,
 				Store:         p.stores[streamName],
@@ -343,7 +343,7 @@ func nativeStateBuilder(vals map[string]reflect.Value, method reflect.Value, nam
 	return nil
 }
 
-func wasmMapper(vals map[string][]byte, mod *wasm.Module, entrypoint string, name string, inputs []wasm.Input, printOutputs bool) (err error) {
+func wasmMapper(vals map[string][]byte, mod *wasm.Module, entrypoint string, name string, inputs []*wasm.Input, printOutputs bool) (err error) {
 	var vm *wasm.Instance
 	if vm, err = wasmCall(vals, mod, entrypoint, name, inputs); err != nil {
 		return err
@@ -360,7 +360,7 @@ func wasmMapper(vals map[string][]byte, mod *wasm.Module, entrypoint string, nam
 	return nil
 }
 
-func wasmStateBuilder(vals map[string][]byte, mod *wasm.Module, entrypoint string, name string, inputs []wasm.Input, printOutputs bool) (err error) {
+func wasmStateBuilder(vals map[string][]byte, mod *wasm.Module, entrypoint string, name string, inputs []*wasm.Input, printOutputs bool) (err error) {
 	var vm *wasm.Instance
 	if vm, err = wasmCall(vals, mod, entrypoint, name, inputs); err != nil {
 		return err
@@ -373,7 +373,7 @@ func wasmStateBuilder(vals map[string][]byte, mod *wasm.Module, entrypoint strin
 	return nil
 }
 
-func wasmCall(vals map[string][]byte, mod *wasm.Module, entrypoint string, name string, inputs []wasm.Input) (*wasm.Instance, error) {
+func wasmCall(vals map[string][]byte, mod *wasm.Module, entrypoint string, name string, inputs []*wasm.Input) (*wasm.Instance, error) {
 	vmInst, err := mod.NewInstance(entrypoint)
 	if err != nil {
 		return nil, fmt.Errorf("new wasm instance: %w", err)

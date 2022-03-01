@@ -45,7 +45,6 @@ func NewModule(wasmCode []byte) (*Module, error) {
 
 func (m *Module) NewInstance(functionName string) (*Instance, error) {
 	// WARN: An instance needs to be created on the same thread that it is consumed.
-
 	instance := &Instance{
 		wasmStore: m.store,
 		module:    m,
@@ -58,7 +57,7 @@ func (m *Module) NewInstance(functionName string) (*Instance, error) {
 
 	memory, err := vmInstance.Exports.GetMemory("memory")
 	if err != nil {
-		return nil, fmt.Errorf("unable to get the wasm module memory: %w", err)
+		return nil, fmt.Errorf("getting module memory: %w", err)
 	}
 
 	alloc, err := vmInstance.Exports.GetFunction("alloc")
@@ -197,7 +196,7 @@ func (i *Instance) newImports() *wasmer.ImportObject {
 	return imports
 }
 
-func (i *Instance) Execute(inputs []Input) (err error) {
+func (i *Instance) Execute(inputs []*Input) (err error) {
 	i.returnValue = nil
 	i.panicError = nil
 
@@ -218,6 +217,7 @@ func (i *Instance) Execute(inputs []Input) (err error) {
 			i.outputStore = input.Store
 		}
 	}
+
 	_, err = i.entrypoint.Call(args...)
 	return
 }

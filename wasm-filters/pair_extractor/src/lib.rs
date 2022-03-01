@@ -41,6 +41,12 @@ pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
     let blk: eth::Block = proto::decode(block_ptr, block_len);
 
     let mut pairs = pcs::Pairs { pairs: vec![] };
+
+    let msg = format!("transaction traces count: {}, len: {}", blk.transaction_traces.len(), block_len);
+    unsafe {
+        println(msg.as_ptr(), msg.len());
+    }
+
     for trx in blk.transaction_traces {
         /* PCS Factory address */
         if hex::encode(&trx.to) != "ca143ce32fe78f1f7019d7d551a6402fc5350c73" {

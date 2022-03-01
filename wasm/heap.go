@@ -12,9 +12,6 @@ type Heap struct {
 }
 
 func NewHeap(memory *wasmer.Memory, allocator wasmer.NativeFunction) *Heap {
-	if len(memory.Data()) != int(memory.DataSize()) {
-		panic("ALSKDJ")
-	}
 	return &Heap{
 		memory:    memory,
 		allocator: allocator,
