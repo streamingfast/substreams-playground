@@ -2,6 +2,12 @@ use prost::{DecodeError, EncodeError};
 use std::io::Cursor;
 
 pub fn decode<T: std::default::Default + prost::Message>(
+    buf: Vec<u8>,
+) -> Result<T, DecodeError> {
+    ::prost::Message::decode(&mut Cursor::new(&buf))
+}
+
+pub fn decode_ptr<T: std::default::Default + prost::Message>(
     ptr: *mut u8,
     size: usize,
 ) -> Result<T, DecodeError> {
