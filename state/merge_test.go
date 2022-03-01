@@ -32,13 +32,52 @@ func TestBuilder_Merge(t *testing.T) {
 			},
 			next: New("b2", "LAST_KEY", nil),
 			nextKV: map[string][]byte{
-				"one": []byte("baz"),
-				"two": []byte("bar"),
+				"one":   []byte("baz"),
+				"three": []byte("lol"),
 			},
 			expectedError: false,
 			expectedKV: map[string][]byte{
-				"one": []byte("baz"),
-				"two": []byte("bar"),
+				"one":   []byte("baz"),
+				"two":   []byte("bar"),
+				"three": []byte("lol"),
+			},
+		},
+		{
+			name: "sum_ints",
+			this: New("b1", "SUM_INTS", nil),
+			thisKV: map[string][]byte{
+				"one": []byte("1"),
+				"two": []byte("2"),
+			},
+			next: New("b2", "SUM_INTS", nil),
+			nextKV: map[string][]byte{
+				"one":   []byte("1"),
+				"three": []byte("3"),
+			},
+			expectedError: false,
+			expectedKV: map[string][]byte{
+				"one":   []byte("2"),
+				"two":   []byte("2"),
+				"three": []byte("3"),
+			},
+		},
+		{
+			name: "sum_floats",
+			this: New("b1", "SUM_FLOATS", nil),
+			thisKV: map[string][]byte{
+				"one": []byte("1.0"),
+				"two": []byte("2.0"),
+			},
+			next: New("b2", "SUM_FLOATS", nil),
+			nextKV: map[string][]byte{
+				"one":   []byte("1.0"),
+				"three": []byte("3.0"),
+			},
+			expectedError: false,
+			expectedKV: map[string][]byte{
+				"one":   []byte("2.0"),
+				"two":   []byte("2.0"),
+				"three": []byte("3.0"),
 			},
 		},
 	}
@@ -54,6 +93,25 @@ func TestBuilder_Merge(t *testing.T) {
 			}
 			continue
 		}
-		assert.Equal(t, tt.expectedKV, tt.this.KV)
+
+		for k, v := range tt.this.KV {
+			if tt.this.mergeStrategy == "SUM_FLOATS" {
+				actual, _ := foundOrZeroFloat(v, true).Float64()
+				expected, _ := foundOrZeroFloat(tt.expectedKV[k], true).Float64()
+				assert.InDelta(t, actual, expected, 0.01)
+			} else {
+				assert.Equal(t, v, tt.expectedKV[k])
+			}
+		}
+
+		for k, v := range tt.expectedKV {
+			if tt.this.mergeStrategy == "SUM_FLOATS" {
+				actual, _ := foundOrZeroFloat(v, true).Float64()
+				expected, _ := foundOrZeroFloat(tt.this.KV[k], true).Float64()
+				assert.InDelta(t, actual, expected, 0.01)
+			} else {
+				assert.Equal(t, v, tt.this.KV[k])
+			}
+		}
 	}
 }
