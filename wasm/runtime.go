@@ -33,7 +33,7 @@ func NewModule(wasmCode []byte) (*Module, error) {
 
 	module, err := wasmer.NewModule(store, wasmCode)
 	if err != nil {
-		return nil, fmt.Errorf("building wasm module:%w", err)
+		return nil, fmt.Errorf("loading wasm module: %w", err)
 	}
 
 	return &Module{
@@ -63,7 +63,7 @@ func (m *Module) NewInstance(functionName string) (*Instance, error) {
 
 	alloc, err := vmInstance.Exports.GetFunction("alloc")
 	if err != nil {
-		return nil, fmt.Errorf("gettting alloc function: %w", err)
+		return nil, fmt.Errorf("getting alloc function: %w", err)
 	}
 
 	instance.memory = memory

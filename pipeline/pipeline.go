@@ -146,7 +146,6 @@ func (p *Pipeline) BuildWASM(ioFactory state.IOFactory, forceLoadState bool) err
 			t := strings.Split(in, ":") // TODO: check we do have 2 and only 2 parts.
 			switch t[0] {
 			case "stream":
-
 				inputs = append(inputs, wasm.Input{
 					Type: wasm.InputStream,
 					Name: t[1],
@@ -156,6 +155,11 @@ func (p *Pipeline) BuildWASM(ioFactory state.IOFactory, forceLoadState bool) err
 					Type:  wasm.InputStore,
 					Name:  t[1],
 					Store: p.stores[t[1]],
+				})
+			case "proto":
+				inputs = append(inputs, wasm.Input{
+					Type: wasm.InputStream,
+					Name: t[1],
 				})
 			default:
 				return fmt.Errorf("invalid input type %q for stream %q in input %q", t[0], stream.Name, in)
