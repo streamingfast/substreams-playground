@@ -28,7 +28,7 @@ pub extern "C" fn map(ptr: *mut u8, len: usize) {
 	let mut pairs = pcs::Pairs{pairs: vec![]};
 	for trx in blk.transaction_traces {
 	    if hex::encode(&trx.to) != "ca143ce32fe78f1f7019d7d551a6402fc5350c73" {
-		continue
+		    continue
 	    }
 
 	    for log in trx.receipt.unwrap().logs {
