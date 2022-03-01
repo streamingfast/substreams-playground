@@ -34,6 +34,32 @@ func (b *Builder) Merge(next *Builder) error {
 			v_sum := bf().Add(v0, v1).SetPrec(100)
 			b.Set(next.lastOrdinal, k, floatToStr(v_sum))
 		}
+	case "MIN_INT":
+		minInt := func(a, b uint64) uint64 {
+			if a < b {
+				return a
+			}
+			return b
+		}
+		for k, v := range next.KV {
+			v0 := foundOrZeroUint64(b.GetLast(k))
+			v1 := foundOrZeroUint64(v, true)
+			b.Set(next.lastOrdinal, k, fmt.Sprintf("%d", minInt(v0, v1)))
+		}
+	case "MIN_FLOAT":
+		minFloat := func(a, b *big.Float) *big.Float {
+			if a.Cmp(b) < 1 {
+				return a
+			}
+			return b
+		}
+		for k, v := range next.KV {
+			v0 := foundOrZeroFloat(b.GetLast(k))
+			v1 := foundOrZeroFloat(v, true)
+
+			m := minFloat(v0, v1).SetPrec(100)
+			b.Set(next.lastOrdinal, k, floatToStr(m))
+		}
 	default:
 		return fmt.Errorf("unsupported merge strategy %s", b.mergeStrategy)
 	}
