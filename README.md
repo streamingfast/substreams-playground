@@ -4,6 +4,10 @@
 
 This repo holds the `exchange` substream-based "pseudo-subgraph" from PancakeSwap.
 
+## Build wasm
+```bash 
+go generate ./...
+```
 
 ## Usage
 
