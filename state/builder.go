@@ -21,14 +21,16 @@ type Builder struct {
 	KV     map[string][]byte // KV is the state, and assumes all Deltas were already applied to it.
 	Deltas []StateDelta      // Deltas are always deltas for the given block.
 
-	lastOrdinal uint64
+	mergeStrategy string
+	lastOrdinal   uint64
 }
 
-func New(name string, ioFactory IOFactory) *Builder {
+func New(name string, mergeStrategy string, ioFactory IOFactory) *Builder {
 	b := &Builder{
-		Name:    name,
-		KV:      make(map[string][]byte),
-		bundler: nil,
+		Name:          name,
+		KV:            make(map[string][]byte),
+		bundler:       nil,
+		mergeStrategy: mergeStrategy,
 	}
 	if ioFactory != nil {
 		b.io = ioFactory.New(name)

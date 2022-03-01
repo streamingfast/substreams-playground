@@ -5,3 +5,7 @@ type Reader interface {
 	GetLast(key string) ([]byte, bool)
 	GetAt(ord uint64, key string) ([]byte, bool)
 }
+
+type Mergeable interface {
+	Merge(other *Builder) error
+}

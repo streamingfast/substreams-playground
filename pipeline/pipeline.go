@@ -103,7 +103,8 @@ func (p *Pipeline) BuildNative(ioFactory state.IOFactory, forceLoadState bool) e
 			if method.IsZero() {
 				return fmt.Errorf("BuildState() method not found on %T", f.Interface())
 			}
-			store := state.New(stream.Name, ioFactory)
+
+			store := state.New(stream.Name, stream.Output.StoreMergeStrategy, ioFactory)
 			if forceLoadState {
 				// Use AN ABSOLUTE store, or SQUASH ALL PARTIAL!
 
