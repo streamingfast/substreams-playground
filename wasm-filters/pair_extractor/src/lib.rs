@@ -1,5 +1,6 @@
 mod memory;
 mod proto;
+mod state;
 
 use hex;
 
@@ -21,31 +22,31 @@ extern "C" {
         line: u32,
         column: u32,
     );
-    fn state_set(ord: i64, key_ptr: *const u8, key_len: u32, value_ptr: *const u8, value_len: u32);
-    fn state_get_at(
-        store_idx: u32,
-        ord: i64,
-        key_ptr: *const u8,
-        key_len: u32,
-        value_ptr: *const u8,
-        value_len: u32,
-    );
 
     //fn state_get_pairs_at()
+}
+
+fn log(msg: String) {
+    unsafe {
+        println(msg.as_ptr(), msg.len());
+    }
 }
 
 #[no_mangle]
 pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
     register_panic_hook();
 
-    let blk: eth::Block = proto::decode(block_ptr, block_len);
+    let blk: eth::Block = proto::decode(block_ptr, block_len).unwrap();
 
     let mut pairs = pcs::Pairs { pairs: vec![] };
 
-    let msg = format!("transaction traces count: {}, len: {}", blk.transaction_traces.len(), block_len);
-    unsafe {
-        println(msg.as_ptr(), msg.len());
-    }
+    let msg = format!(
+        "transaction traces count: {}, len: {}",
+        blk.transaction_traces.len(),
+        block_len
+    );
+
+    log(msg.to_string());
 
     for trx in blk.transaction_traces {
         /* PCS Factory address */
@@ -81,15 +82,10 @@ pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
         }
     }
 
-    let mut out = Vec::<u8>::new();
-    ::prost::Message::encode(&pairs, &mut out).unwrap();
-
-    let out_len = out.len() as u32;
-    let ptr = out.as_ptr();
-    std::mem::forget(out); // to prevent a drop which would crash
+    let (ptr, len) = proto::encode_to_ptr(&mut pairs);
 
     unsafe {
-        output(ptr as *const u8, out_len);
+        output(ptr as *const u8, len as u32);
     }
 }
 
@@ -97,28 +93,18 @@ pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
 pub extern "C" fn build_pairs_state(pairs_ptr: *mut u8, pairs_len: usize) {
     register_panic_hook();
 
-    let pairs: pcs::Pairs = proto::decode(pairs_ptr, pairs_len);
+    let pairs: pcs::Pairs = proto::decode(pairs_ptr, pairs_len).unwrap();
 
     for pair in pairs.pairs {
         let key = format!("pair:{}", pair.address);
-        let mut val = Vec::<u8>::new();
-        ::prost::Message::encode(&pair, &mut val).unwrap();
-        unsafe {
-            state_set(
-                pair.log_ordinal as i64,
-                key.as_ptr(),
-                key.len() as u32,
-                val.as_ptr(),
-                val.len() as u32,
-            );
-        }
+        state::set(pair.log_ordinal as i64, key, proto::encode(&pair));
     }
 }
 
 pub extern "C" fn map_reserves(block_ptr: *mut u8, block_len: usize, pairs_store_idx: i32) {
     register_panic_hook();
 
-    let _blk: eth::Block = proto::decode(block_ptr, block_len);
+    let _blk: eth::Block = proto::decode(block_ptr, block_len).unwrap();
 }
 
 fn decode_address(input: &Vec<u8>) -> String {
