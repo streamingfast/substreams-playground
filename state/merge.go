@@ -32,15 +32,15 @@ func (b *Builder) Merge(next *Builder) error {
 		for k, v := range next.KV {
 			v0 := foundOrZeroUint64(b.GetLast(k))
 			v1 := foundOrZeroUint64(v, true)
-			v_sum := v0 + v1
-			b.Set(next.lastOrdinal, k, fmt.Sprintf("%d", v_sum))
+			sum := v0 + v1
+			b.Set(next.lastOrdinal, k, fmt.Sprintf("%d", sum))
 		}
 	case MergeStrategySumFloats:
 		for k, v := range next.KV {
 			v0 := foundOrZeroFloat(b.GetLast(k))
 			v1 := foundOrZeroFloat(v, true)
-			v_sum := bf().Add(v0, v1).SetPrec(100)
-			b.Set(next.lastOrdinal, k, floatToStr(v_sum))
+			sum := bf().Add(v0, v1).SetPrec(100)
+			b.Set(next.lastOrdinal, k, floatToStr(sum))
 		}
 	case MergeStrategyMinInt:
 		minInt := func(a, b uint64) uint64 {
@@ -87,6 +87,8 @@ func (b *Builder) Merge(next *Builder) error {
 
 	return nil
 }
+
+//TODO(colin): all funcs below are copied from other parts of this repo.  de-duplicate this!
 
 func foundOrZeroUint64(in []byte, found bool) uint64 {
 	if !found {

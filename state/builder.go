@@ -185,6 +185,7 @@ func (b *Builder) SetBytes(ord uint64, key string, value []byte) {
 	var delta *StateDelta
 	if found {
 		//Uncomment when finished debugging:
+		fmt.Println("PREV", len(val), "NEXT", len(value))
 		if bytes.Compare(value, val) == 0 {
 			return
 		}
