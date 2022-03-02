@@ -247,6 +247,7 @@ func (g *StreamsGraph) ancestorsOf(streamName string) []*Stream {
 
 	//sort by depth in descending order
 	sort.Slice(parentsWithDepth, func(i, j int) bool {
+		//tie break alphabetically by name
 		if parentsWithDepth[i].depth == parentsWithDepth[j].depth {
 			return parentsWithDepth[i].stream.Name < parentsWithDepth[j].stream.Name
 		}
@@ -291,6 +292,7 @@ func (g *StreamsGraph) groupedAncestorsOf(streamName string) [][]*Stream {
 
 	//sort by depth in descending order
 	sort.Slice(parentsWithDepth, func(i, j int) bool {
+		//tie break alphabetically by name
 		if parentsWithDepth[i].depth == parentsWithDepth[j].depth {
 			return parentsWithDepth[i].stream.Name < parentsWithDepth[j].stream.Name
 		}
