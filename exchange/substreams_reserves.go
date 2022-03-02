@@ -12,7 +12,7 @@ type ReservesStateBuilder struct {
 	*SubstreamIntrinsics
 }
 
-func (p *ReservesStateBuilder) BuildState(reserveUpdates PCSReserveUpdates, pairs state.Reader, reserves *state.Builder) error {
+func (p *ReservesStateBuilder) BuildState(reserveUpdates PCSReserveUpdates, pairs state.Reader, reserves state.Writer) error {
 	for _, update := range reserveUpdates {
 		// TODO: cache those pairs we've already decoded in this `BuildState` run
 		var pair *PCSPair

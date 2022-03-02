@@ -19,17 +19,32 @@ type Builder struct {
 	bundler *bundle.Bundler
 	io      StateIO
 
-	KV     map[string][]byte // KV is the state, and assumes all Deltas were already applied to it.
-	Deltas []StateDelta      // Deltas are always deltas for the given block.
-
+	// KV     map[string][]byte // KV is the state, and assumes all Deltas were already applied to it.
+	Deltas        []StateDelta // Deltas are always deltas for the given block.
+	KV            map[string]Value
 	mergeStrategy string
 	lastOrdinal   uint64
+}
+
+type Value struct {
+	// "is" = int sum
+	// "im" = int min
+	// "iM" = int max
+	// "fs" = float sum
+	// "fm" = float min
+	// "fM" = float max
+	// "kl" = set key, last key wins
+	// "kf" = set key, first key wins (noop if the key is set)
+	// "dr" = delete range key
+	// "D[sep-character]" = deletes pointer range
+	KeyType string // eventually something better
+	Value   []byte
 }
 
 func New(name string, mergeStrategy string, ioFactory IOFactory) *Builder {
 	b := &Builder{
 		Name:          name,
-		KV:            make(map[string][]byte),
+		KV:            make(map[string]Value),
 		bundler:       nil,
 		mergeStrategy: mergeStrategy,
 	}
@@ -50,7 +65,7 @@ func (b *Builder) Print() {
 }
 
 func (b *Builder) PrintDelta(delta *StateDelta) {
-	fmt.Printf("  %s (%d) KEY: %q\n", strings.ToUpper(delta.Op), delta.Ordinal, delta.Key)
+	fmt.Printf("  %s (o=%d, t=%s) KEY: %q\n", strings.ToUpper(delta.Op), delta.Ordinal, delta.KeyType, delta.Key)
 	fmt.Printf("    OLD: %s\n", string(delta.OldValue))
 	fmt.Printf("    NEW: %s\n", string(delta.NewValue))
 }
@@ -96,20 +111,21 @@ type StateDelta struct {
 	Op       string // "c"reate, "u"pdate, "d"elete, same as https://nightlies.apache.org/flink/flink-docs-master/docs/connectors/table/formats/debezium/#how-to-use-debezium-format
 	Ordinal  uint64 // a sorting key to order deltas, and provide pointers to changes midway
 	Key      string
+	KeyType  string
 	OldValue []byte
 	NewValue []byte
 }
 
 var NotFound = errors.New("state key not found")
 
-func (b *Builder) GetFirst(key string) ([]byte, bool) {
+func (b *Builder) GetFirst(key string) (Value, bool) {
 	for _, delta := range b.Deltas {
 		if delta.Key == key {
 			switch delta.Op {
 			case "d", "u":
-				return delta.OldValue, true
+				return Value{Value: delta.OldValue, KeyType: delta.KeyType}, true
 			case "c":
-				return nil, false
+				return Value{}, false
 			default:
 				// WARN: is that legit? what if some upstream stream is broken? can we trust all those streams?
 				panic(fmt.Sprintf("invalid value %q for StateDelta::Op for key %q", delta.Op, delta.Key))
@@ -119,14 +135,13 @@ func (b *Builder) GetFirst(key string) ([]byte, bool) {
 	return b.GetLast(key)
 }
 
-func (b *Builder) GetLast(key string) ([]byte, bool) {
+func (b *Builder) GetLast(key string) (Value, bool) {
 	val, found := b.KV[key]
 	return val, found
-
 }
 
 // GetAt returns the key for the state that includes the processing of `ord`.
-func (b *Builder) GetAt(ord uint64, key string) (out []byte, found bool) {
+func (b *Builder) GetAt(ord uint64, key string) (out Value, found bool) {
 	out, found = b.GetLast(key)
 
 	for i := len(b.Deltas) - 1; i >= 0; i-- {
@@ -137,10 +152,10 @@ func (b *Builder) GetAt(ord uint64, key string) (out []byte, found bool) {
 		if delta.Key == key {
 			switch delta.Op {
 			case "d", "u":
-				out = delta.OldValue
+				out = Value{Value: delta.OldValue, KeyType: delta.KeyType}
 				found = true
 			case "c":
-				out = nil
+				out = Value{}
 				found = false
 			default:
 				// WARN: is that legit? what if some upstream stream is broken? can we trust all those streams?
@@ -160,7 +175,8 @@ func (b *Builder) Del(ord uint64, key string) {
 			Op:       "d",
 			Ordinal:  ord,
 			Key:      key,
-			OldValue: val,
+			KeyType:  val.KeyType, // maybe we don't care about the key type for a delete?
+			OldValue: val.Value,
 			NewValue: nil,
 		}
 		b.applyDelta(delta)
@@ -181,14 +197,14 @@ func (b *Builder) AddInt(ord uint64, key string, value *big.Int) {
 	if !found {
 		sum = value
 	} else {
-		prev, _ := new(big.Int).SetString(string(val), 10)
+		prev, _ := new(big.Int).SetString(string(val.Value), 10)
 		if prev == nil {
 			sum = value
 		} else {
 			sum.Add(prev, value)
 		}
 	}
-	b.Set(ord, key, sum.String())
+	b.set(ord, key, "is", []byte(sum.String()))
 }
 
 func (b *Builder) AddFloat(ord uint64, key string, value *big.Float) {
@@ -197,35 +213,43 @@ func (b *Builder) AddFloat(ord uint64, key string, value *big.Float) {
 	if !found {
 		sum = value
 	} else {
-		prev, _, err := big.ParseFloat(string(val), 10, 100, big.ToNearestEven)
+		prev, _, err := big.ParseFloat(string(val.Value), 10, 100, big.ToNearestEven)
 		if prev == nil || err != nil {
 			sum = value
 		} else {
 			sum.Add(prev, value)
 		}
 	}
-	b.Set(ord, key, sum.Text('g', -1))
-}
-
-func (b *Builder) Set(ord uint64, key string, value string) {
-	b.SetBytes(ord, key, []byte(value))
+	b.set(ord, key, "fs", []byte(sum.Text('g', -1)))
 }
 
 func (b *Builder) SetBytes(ord uint64, key string, value []byte) {
+	b.set(ord, key, "kl", value)
+}
+func (b *Builder) Set(ord uint64, key string, value string) {
+	b.set(ord, key, "kl", []byte(value))
+}
+
+func (b *Builder) set(ord uint64, key string, keyType string, value []byte) {
 	b.bumpOrdinal(ord)
 
 	val, found := b.GetLast(key)
+	if keyType != val.KeyType {
+		panic(fmt.Sprintf("key %q cannot change aggregation method", key))
+	}
+
 	var delta *StateDelta
 	if found {
 		//Uncomment when finished debugging:
-		if bytes.Compare(value, val) == 0 {
+		if bytes.Compare(value, val.Value) == 0 {
 			return
 		}
 		delta = &StateDelta{
 			Op:       "u",
 			Ordinal:  ord,
 			Key:      key,
-			OldValue: val,
+			KeyType:  keyType,
+			OldValue: val.Value,
 			NewValue: value,
 		}
 	} else {
@@ -233,6 +257,7 @@ func (b *Builder) SetBytes(ord uint64, key string, value []byte) {
 			Op:       "c",
 			Ordinal:  ord,
 			Key:      key,
+			KeyType:  keyType,
 			OldValue: nil,
 			NewValue: value,
 		}
@@ -244,7 +269,10 @@ func (b *Builder) SetBytes(ord uint64, key string, value []byte) {
 func (b *Builder) applyDelta(delta *StateDelta) {
 	switch delta.Op {
 	case "u", "c":
-		b.KV[delta.Key] = delta.NewValue
+		b.KV[delta.Key] = Value{
+			KeyType:  delta.KeyType,
+			Value: delta.NewValue,
+		}
 	case "d":
 		delete(b.KV, delta.Key)
 	}
@@ -309,13 +337,13 @@ func (b *Builder) ReadState(ctx context.Context, startBlockNum uint64) error {
 		return err
 	}
 
-	kv := map[string]string{}
+	kv := map[string]Value{}
 
 	if err = json.Unmarshal(data, &kv); err != nil {
 		return fmt.Errorf("unmarshalling kv for %s at block %d: %w", b.Name, startBlockNum, err)
 	}
 
-	b.KV = byteMap(kv) // FOR READABILITY ON DISK
+	b.KV = kv
 
 	fmt.Printf("loading KV from disk for %q: %d entries\n", b.Name, len(b.KV))
 
@@ -323,9 +351,9 @@ func (b *Builder) ReadState(ctx context.Context, startBlockNum uint64) error {
 }
 
 func (b *Builder) WriteState(ctx context.Context, block *bstream.Block) error {
-	kv := stringMap(b.KV) // FOR READABILITY ON DISK
+	// kv := stringMap(b.KV) // FOR READABILITY ON DISK
 
-	content, err := json.MarshalIndent(kv, "", "  ")
+	content, err := json.MarshalIndent(b.KV, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshal kv state: %w", err)
 	}

@@ -3,14 +3,24 @@ package state
 import "math/big"
 
 type Reader interface {
-	GetFirst(key string) ([]byte, bool)
-	GetLast(key string) ([]byte, bool)
-	GetAt(ord uint64, key string) ([]byte, bool)
+	GetFirst(key string) (Value, bool)
+	GetLast(key string) (Value, bool)
+	GetAt(ord uint64, key string) (Value, bool)
 }
 
+type BigWriter interface {
+	Writer
+	FirstKeyWriter
+	Deleter
+	IntegerMaximumWriter
+	FloatMaximumWriter
+}
+
+// LastKeyWins
 type Writer interface {
 	Set(ord uint64, key string, value string)
 	SetBytes(ord uint64, key string, value []byte)
+	Del(ord uint64, key string)
 }
 
 type FirstKeyWriter interface {
@@ -28,30 +38,23 @@ type Deleter interface {
 // for LAST_KEY, and FIRST_KEY merge strategy, the Writer will simply write the key, with no regard
 // to what was there before
 type IntegerMaximumWriter interface {
+	MaxInt(ord uint64, key string, value *big.Int)
 }
 
 type FloatMaximumWriter interface {
 }
 
 type IntegerMinimumWriter interface {
+	MinInt(ord uint64, key string, value *big.Int)
 }
 
 type FloatMinimumWriter interface {
+	MinFloat(ord uint64, key string, value *big.Float)
 }
 
 // NOTE: Ça commence à faire beaucoup d'interfaces et de merge strategies
 // pkoi ça serait pas le DATA qui porte sa merge strategy? Dépendemment de comment tu set
 // la valeur, elle est settée avec un préfixe, toujours, genre:
-// is: = int sum
-// im: = int min
-// iM: = int max
-// fs: = float sum
-// fm: = float min
-// fM: = float max
-// kl: = set key, last key wins
-// kf: = set key, first key wins (noop if the key is set)
-// dr: = delete range key
-// dp:SEP: = deletes pointer range
 //
 // All these prefixes would only apply to the `partial` stores, and we'd need to keep track
 // that we don't write to the same key with two different modes, unless we need to start reading

@@ -21,64 +21,78 @@ func (b *Builder) Merge(next *Builder) error {
 
 	switch b.mergeStrategy {
 	case MergeStrategyLastKey:
-		if next.lastOrdinal < b.lastOrdinal {
-			return nil
-		}
-
-		for k, v := range next.KV {
-			b.SetBytes(next.lastOrdinal, k, v)
-		}
-	case MergeStrategySumInts:
-		for k, v := range next.KV {
-			v0 := foundOrZeroUint64(b.GetLast(k))
-			v1 := foundOrZeroUint64(v, true)
-			sum := v0 + v1
-			b.Set(next.lastOrdinal, k, fmt.Sprintf("%d", sum))
-		}
-	case MergeStrategySumFloats:
-		for k, v := range next.KV {
-			v0 := foundOrZeroFloat(b.GetLast(k))
-			v1 := foundOrZeroFloat(v, true)
-			sum := bf().Add(v0, v1).SetPrec(100)
-			b.Set(next.lastOrdinal, k, floatToStr(sum))
-		}
-	case MergeStrategyMinInt:
-		minInt := func(a, b uint64) uint64 {
-			if a < b {
-				return a
+		first := next
+		last := b
+		for k, v := range first.KV {
+			if _, found := last.KV[k]; !found {
+				last.KV[k] = v
 			}
-			return b
 		}
-		for k, v := range next.KV {
-			v1 := foundOrZeroUint64(v, true)
+	// case MergeStrategyFirstKey:
+	// 	first := next
+	// 	last := b
+	// 	for k, v := range first.KV {
+	// 		if _, found := last.KV[k]; found {
+	// 			last.KV[k] = v
+	// 		}
+	// 	}
+	// case MergeStrategySumInts:
+	// 	first := next
+	// 	last := b
 
-			_, found := b.GetLast(k)
-			if !found {
-				b.Set(next.lastOrdinal, k, fmt.Sprintf("%d", v1))
-			}
-			v0 := foundOrZeroUint64(b.GetLast(k))
-			b.Set(next.lastOrdinal, k, fmt.Sprintf("%d", minInt(v0, v1)))
-		}
-	case MergeStrategyMinFloat:
-		minFloat := func(a, b *big.Float) *big.Float {
-			if a.Cmp(b) < 1 {
-				return a
-			}
-			return b
-		}
-		for k, v := range next.KV {
-			v1 := foundOrZeroFloat(v, true)
+	// 	for k, v := range first.KV {
+	// 		latestVal, found := last.KV[k]
+	// 		if !found {
+	// 			last.KV[k] = v
+	// 		} else {
+	// 			// decode `v` as big.Int, decode `latestVal` as big.Int
+	// 			// last.KV[k] = bi().Add(vbigint, latestbigint).String()
+	// 		}
+	// 	}
+	// case MergeStrategySumFloats:
+	// 	for k, v := range next.KV {
+	// 		v0 := foundOrZeroFloat(b.GetLast(k))
+	// 		v1 := foundOrZeroFloat(v, true)
+	// 		sum := bf().Add(v0, v1).SetPrec(100)
+	// 		b.Set(next.lastOrdinal, k, floatToStr(sum))
+	// 	}
+	// case MergeStrategyMinInt:
+	// 	minInt := func(a, b uint64) uint64 {
+	// 		if a < b {
+	// 			return a
+	// 		}
+	// 		return b
+	// 	}
+	// 	for k, v := range next.KV {
+	// 		v1 := foundOrZeroUint64(v, true)
 
-			_, found := b.GetLast(k)
-			if !found {
-				b.Set(next.lastOrdinal, k, floatToStr(v1))
-			}
+	// 		_, found := b.GetLast(k)
+	// 		if !found {
+	// 			b.Set(next.lastOrdinal, k, fmt.Sprintf("%d", v1))
+	// 		}
+	// 		v0 := foundOrZeroUint64(b.GetLast(k))
+	// 		b.Set(next.lastOrdinal, k, fmt.Sprintf("%d", minInt(v0, v1)))
+	// 	}
+	// case MergeStrategyMinFloat:
+	// 	minFloat := func(a, b *big.Float) *big.Float {
+	// 		if a.Cmp(b) < 1 {
+	// 			return a
+	// 		}
+	// 		return b
+	// 	}
+	// 	for k, v := range next.KV {
+	// 		v1 := foundOrZeroFloat(v, true)
 
-			v0 := foundOrZeroFloat(b.GetLast(k))
+	// 		_, found := b.GetLast(k)
+	// 		if !found {
+	// 			b.Set(next.lastOrdinal, k, floatToStr(v1))
+	// 		}
 
-			m := minFloat(v0, v1).SetPrec(100)
-			b.Set(next.lastOrdinal, k, floatToStr(m))
-		}
+	// 		v0 := foundOrZeroFloat(b.GetLast(k))
+
+	// 		m := minFloat(v0, v1).SetPrec(100)
+	// 		b.Set(next.lastOrdinal, k, floatToStr(m))
+	// 	}
 	default:
 		return fmt.Errorf("unsupported merge strategy %s", b.mergeStrategy)
 	}
