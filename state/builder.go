@@ -45,6 +45,10 @@ func (v Value) String() string {
 	return string(v.Value)
 }
 
+func (v Value) Bytes() []byte {
+	return v.Value
+}
+
 func New(name string, mergeStrategy string, ioFactory IOFactory) *Builder {
 	b := &Builder{
 		Name:          name,
