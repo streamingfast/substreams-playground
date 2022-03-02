@@ -69,7 +69,7 @@ func (p *Pipeline) BuildNative(ioFactory state.IOFactory, forceLoadState bool) e
 		"pcs_derived_prices_state_builder": reflect.ValueOf(&exchange.DerivedPricesStateBuilder{SubstreamIntrinsics: p.intr}),
 		"pcs_mint_burn_swaps_extractor":    reflect.ValueOf(&exchange.SwapsExtractor{SubstreamIntrinsics: p.intr}),
 		"pcs_totals_state_builder":         reflect.ValueOf(&exchange.TotalsStateBuilder{SubstreamIntrinsics: p.intr}),
-		"pcs_volume_state_builder":         reflect.ValueOf(&exchange.PCSVolume24hStateBuilder{SubstreamIntrinsics: p.intr}),
+		"pcs_volumes_state_builder":        reflect.ValueOf(&exchange.PCSVolume24hStateBuilder{SubstreamIntrinsics: p.intr}),
 	}
 
 	if err := p.setupStores(streams, ioFactory, forceLoadState); err != nil {

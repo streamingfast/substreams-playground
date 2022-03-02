@@ -2,7 +2,6 @@ package exchange
 
 import (
 	"fmt"
-	"math/big"
 
 	"github.com/streamingfast/substream-pancakeswap/state"
 
@@ -13,7 +12,7 @@ type PCSVolume24hStateBuilder struct {
 	*SubstreamIntrinsics
 }
 
-func (p *PCSVolume24hStateBuilder) BuildState(block *pbcodec.Block, evs PCSEvents, volume24hStore *state.Builder) error {
+func (p *PCSVolume24hStateBuilder) BuildState(block *pbcodec.Block, evs PCSEvents, volumes state.FloatDeltaWriter) error {
 	timestamp := block.MustTime().Unix()
 	dayId := timestamp / 86400
 	//prevDayId := dayId - 1
@@ -34,11 +33,9 @@ func (p *PCSVolume24hStateBuilder) BuildState(block *pbcodec.Block, evs PCSEvent
 
 		// Get("day") // "12312" == currentDayId
 
-		increment(volume24hStore, fmt.Sprintf("pair:%s:%d", swap.PairAddress, dayId), swap.LogOrdinal, amountUSD)
-		increment(volume24hStore, fmt.Sprintf("token:%s:%d", swap.Token0, dayId), swap.LogOrdinal, amountUSD)
-		increment(volume24hStore, fmt.Sprintf("token:%s:%d", swap.Token1, dayId), swap.LogOrdinal, amountUSD)
-		//increment(volume24hStore, fmt.Sprintf("sender:%s:%d", swap.Sender, dayId), swap.LogOrdinal, amountUSD)
-		//increment(volume24hStore, fmt.Sprintf("receiver:%s:%d", swap.To, dayId), swap.LogOrdinal, amountUSD)
+		volumes.AddFloat(swap.LogOrdinal, fmt.Sprintf("pair:%s:%d", swap.PairAddress, dayId), amountUSD)
+		volumes.AddFloat(swap.LogOrdinal, fmt.Sprintf("token:%s:%d", swap.Token0, dayId), amountUSD)
+		volumes.AddFloat(swap.LogOrdinal, fmt.Sprintf("token:%s:%d", swap.Token1, dayId), amountUSD)
 
 		// volume24hStore.SetExpireBlock(dayPairId, block.Number + 1000)
 		// "_db:fffffffee:REV_BLOCK_NUM:recevier:%s%:%d" -> ""
@@ -73,10 +70,4 @@ func (p *PCSVolume24hStateBuilder) BuildState(block *pbcodec.Block, evs PCSEvent
 	// up keys that would have been cleaned-up had we been linear.
 	// Once they are applied, we can delete them from the "absolute" store.
 	return nil
-}
-
-func increment(store *state.Builder, key string, ord uint64, amount *big.Float) {
-	volume := foundOrZeroFloat(store.GetAt(ord, key))
-	newVolume := bf().Add(volume, amount).SetPrec(100)
-	store.Set(ord, key, floatToStr(newVolume))
 }
