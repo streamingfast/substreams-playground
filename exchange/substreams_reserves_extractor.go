@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	eth "github.com/streamingfast/eth-go"
-	"github.com/streamingfast/substream-pancakeswap/state"
 	pbcodec "github.com/streamingfast/sparkle/pb/sf/ethereum/codec/v1"
+	"github.com/streamingfast/substream-pancakeswap/state"
 )
 
 type ReservesExtractor struct {
@@ -37,7 +37,7 @@ func (p *ReservesExtractor) Map(block *pbcodec.Block, pairsState state.Reader) (
 				}
 
 				var pair PCSPair
-				if err := json.Unmarshal(pairCnt, &pair); err != nil {
+				if err := json.Unmarshal(pairCnt.Bytes(), &pair); err != nil {
 					return nil, err
 				}
 

@@ -24,7 +24,7 @@ func (p *DerivedPricesStateBuilder) BuildState(reserveUpdates PCSReserveUpdates,
 			zlog.Warn("pair not found for a reserve update!", zap.String("pair", update.PairAddress))
 			continue
 		}
-		if err := json.Unmarshal(pairData, &pair); err != nil {
+		if err := json.Unmarshal(pairData.Bytes(), &pair); err != nil {
 			return fmt.Errorf("decoding pair: %w", err)
 		}
 
@@ -123,7 +123,7 @@ func (p *DerivedPricesStateBuilder) findBnbPricePerToken(logOrdinal uint64, tiny
 
 	directToBNBPrice, found := reserves.GetLast(fmt.Sprintf("price:%s:%s", WBNB_ADDRESS, tinyTokenAddr)) // FIXME: ensure order is right
 	if found {
-		return bytesToFloat(directToBNBPrice)
+		return bytesToFloat(directToBNBPrice.Bytes())
 	}
 
 	// loop all whitelist for a matching pair
@@ -151,13 +151,13 @@ func (p *DerivedPricesStateBuilder) findBnbPricePerToken(logOrdinal uint64, tiny
 		}
 
 		// Check if we have sufficient reserves in those
-		majorReserve, found := reserves.GetAt(logOrdinal, fmt.Sprintf("reserve:%s:%s", string(tinyToMajorPair), majorToken))
+		majorReserve, found := reserves.GetAt(logOrdinal, fmt.Sprintf("reserve:%s:%s", string(tinyToMajorPair.Bytes()), majorToken))
 		if !found {
 			continue
 		}
 
-		majorToBNBPriceFloat := bytesToFloat(majorToBNBPrice)
-		bnbReserveInMajorPair := bf().Mul(majorToBNBPriceFloat, bytesToFloat(majorReserve))
+		majorToBNBPriceFloat := bytesToFloat(majorToBNBPrice.Bytes())
+		bnbReserveInMajorPair := bf().Mul(majorToBNBPriceFloat, bytesToFloat(majorReserve.Bytes()))
 		// We're checking for half of it, because `reserves_bnb` would have both sides in it.
 		// We could very well check the other reserve's BNB value, would be a bit more heavy, but we can do it.
 		if bnbReserveInMajorPair.Cmp(big.NewFloat(5)) <= 0 {
@@ -165,7 +165,7 @@ func (p *DerivedPricesStateBuilder) findBnbPricePerToken(logOrdinal uint64, tiny
 			continue
 		}
 
-		return bf().Mul(bytesToFloat(tinyToMajorPrice), majorToBNBPriceFloat)
+		return bf().Mul(bytesToFloat(tinyToMajorPrice.Bytes()), majorToBNBPriceFloat)
 	}
 
 	return nil

@@ -2,6 +2,7 @@ package exchange
 
 import (
 	"fmt"
+	"github.com/streamingfast/substream-pancakeswap/state"
 	"math/big"
 	"strconv"
 )
@@ -122,11 +123,12 @@ func stringMap(in map[string][]byte) map[string]string {
 	return out
 }
 
-func foundOrZeroFloat(in []byte, found bool) *big.Float {
+func foundOrZeroFloat(in state.Value, found bool) *big.Float {
 	if !found {
 		return bf()
 	}
-	return bytesToFloat(in)
+
+	return bytesToFloat(in.Bytes())
 }
 
 func foundOrZeroUint64(in []byte, found bool) uint64 {
