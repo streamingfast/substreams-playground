@@ -41,6 +41,10 @@ type Value struct {
 	Value   []byte
 }
 
+func (v Value) String() string {
+	return string(v.Value)
+}
+
 func New(name string, mergeStrategy string, ioFactory IOFactory) *Builder {
 	b := &Builder{
 		Name:          name,
@@ -234,7 +238,7 @@ func (b *Builder) set(ord uint64, key string, keyType string, value []byte) {
 	b.bumpOrdinal(ord)
 
 	val, found := b.GetLast(key)
-	if keyType != val.KeyType {
+	if found && keyType != val.KeyType {
 		panic(fmt.Sprintf("key %q cannot change aggregation method", key))
 	}
 
@@ -270,8 +274,8 @@ func (b *Builder) applyDelta(delta *StateDelta) {
 	switch delta.Op {
 	case "u", "c":
 		b.KV[delta.Key] = Value{
-			KeyType:  delta.KeyType,
-			Value: delta.NewValue,
+			KeyType: delta.KeyType,
+			Value:   delta.NewValue,
 		}
 	case "d":
 		delete(b.KV, delta.Key)
