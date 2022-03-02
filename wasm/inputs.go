@@ -18,8 +18,10 @@ type Input struct {
 	StreamData []byte
 
 	// InputType == InputStore || OutputStore
-	Store   *state.Builder
+	Store *state.Builder
 
 	// If InputType == OutputStore
-	MergeStrategy string // MAX_INT, MIN_INT, LAST_KEY, FIRST_KEY, SUM_INT, SUM_FLOAT, DISABLE_PARALLELISM
+	UpdatePolicy string
+	ValueType    string
+	ProtoType    string
 }

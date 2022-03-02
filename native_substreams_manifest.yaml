@@ -46,7 +46,7 @@ streams:
   - store:pairs
   output:
     updatePolicy: replace
-    valueType: bigfloat
+    valueType: string
 
 - name: prices
   kind: StateBuilder
@@ -57,20 +57,8 @@ streams:
     - store:pairs
     - store:reserves
   output:
-    # What to do when a previous key already exists
-    updatePolicy: max         # Exposes SetMaxInt|Float|Uint64|Int64|
-    updatePolicy: min         # Exposes SetMinInt|Float|...
-    updatePolicy: sum         # Exposes SumInt|Float|
-    updatePolicy: replace     # Exposes Set(), compatible with
-    updatePolicy: ignore      # Exposes SetIfNotExists()
-    valueType: bigint
-    valueType: int64
-    valueType: bigfloat
-    valueType: float64
-    valueType: bytes
+    updatePolicy: replace
     valueType: string
-    valueType: proto
-    protoType: pcs.types.v1.ReserveUpdate
 
 - name: mint_burn_swaps_extractor
   kind: Mapper
@@ -91,8 +79,8 @@ streams:
   - stream:pair_extractor
   - stream:mint_burn_swaps_extractor
   output:
-    updatePolicy:
-    valueType: INT_DELTA
+    updatePolicy: sum
+    valueType: int64
 
 - name: volumes
   kind: StateBuilder
@@ -102,7 +90,8 @@ streams:
   - proto:sf.ethereum.types.v1.Block  # Only needed for Number/Timestamp, so a smaller stream would be just as fine.
   - stream:mint_burn_swaps_extractor
   output:
-    dataType: FLOAT_DELTA
+    updatePolicy: sum
+    valueType: bigfloat
 
 
 # $ program manifest.yaml pairsExtractor

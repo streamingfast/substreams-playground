@@ -49,7 +49,7 @@ func (p *SwapsExtractor) Map(block *pbcodec.Block, pairs state.Reader, prices st
 			}
 
 			var pair *PCSPair
-			if err := json.Unmarshal(pairCnt.Bytes(), &pair); err != nil {
+			if err := json.Unmarshal(pairCnt, &pair); err != nil {
 				return nil, err
 			}
 

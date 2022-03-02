@@ -3,17 +3,17 @@ package state
 import "math/big"
 
 type Reader interface {
-	GetFirst(key string) (Value, bool)
-	GetLast(key string) (Value, bool)
-	GetAt(ord uint64, key string) (Value, bool)
+	GetFirst(key string) ([]byte, bool)
+	GetLast(key string) ([]byte, bool)
+	GetAt(ord uint64, key string) ([]byte, bool)
 }
 
-type LastKeySetter interface {
+type UpdateKeySetter interface {
 	Set(ord uint64, key string, value string)
 	SetBytes(ord uint64, key string, value []byte)
 }
 
-type FirstKeySetter interface {
+type ConditionalKeySetter interface {
 	SetIfNotExists(ord uint64, key string, value string)
 	SetBytesIfNotExists(ord uint64, key string, value []byte)
 }
@@ -37,14 +37,31 @@ type MaxFloat64Setter interface {
 type MaxBigFloatSetter interface {
 	SetMaxBigFloat(ord uint64, key string, value *big.Float)
 }
+
 type MinBigIntSetter interface {
 	SetMinBigInt(ord uint64, key string, value *big.Int)
 }
 type MinInt64Setter interface {
 	SetMinInt64(ord uint64, key string, value int64)
 }
+type MinFloat64Setter interface {
+	SetMinFloat64(ord uint64, key string, value float64)
+}
 type MinBigFloatSetter interface {
 	SetMinBigFloat(ord uint64, key string, value *big.Float)
+}
+
+type SumBigIntSetter interface {
+	SumBigInt(ord uint64, key string, value *big.Int)
+}
+type SumInt64Setter interface {
+	SumInt64(ord uint64, key string, value int64)
+}
+type SumFloat64Setter interface {
+	SumFloat64(ord uint64, key string, value float64)
+}
+type SumBigFloatSetter interface {
+	SumBigFloat(ord uint64, key string, value *big.Float)
 }
 
 type Mergeable interface {

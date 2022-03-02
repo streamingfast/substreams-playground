@@ -99,7 +99,7 @@ func newWithoutLoad(path string) (*Manifest, error) {
 				s.Code.Entrypoint = "map"
 			}
 		case "StateBuilder":
-			if err := validateStateBuidlerOutput(s.Output); err != nil {
+			if err := validateStateBuilderOutput(s.Output); err != nil {
 				return nil, fmt.Errorf("stream %q: %w", s.Name, err)
 			}
 

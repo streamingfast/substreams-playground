@@ -183,12 +183,12 @@ func (i *Instance) newImports() *wasmer.ImportObject {
 					zero := wasmer.NewI32(0)
 					return []wasmer.Value{zero, zero, zero}, nil
 				} else {
-					ptr, err := i.heap.Write(val.Value)
+					ptr, err := i.heap.Write(val)
 					if err != nil {
 						return nil, err
 					}
 
-					return []wasmer.Value{wasmer.NewI32(ptr), wasmer.NewI32(len(val.Value)), wasmer.NewI32(1)}, nil
+					return []wasmer.Value{wasmer.NewI32(ptr), wasmer.NewI32(len(val)), wasmer.NewI32(1)}, nil
 				}
 			},
 		),
@@ -210,12 +210,12 @@ func (i *Instance) newImports() *wasmer.ImportObject {
 					zero := wasmer.NewI32(0)
 					return []wasmer.Value{zero, zero, zero}, nil
 				} else {
-					ptr, err := i.heap.Write(val.Value)
+					ptr, err := i.heap.Write(val)
 					if err != nil {
 						return nil, err
 					}
 
-					return []wasmer.Value{wasmer.NewI32(ptr), wasmer.NewI32(len(val.Value)), wasmer.NewI32(1)}, nil
+					return []wasmer.Value{wasmer.NewI32(ptr), wasmer.NewI32(len(val)), wasmer.NewI32(1)}, nil
 				}
 			},
 		),
@@ -237,12 +237,12 @@ func (i *Instance) newImports() *wasmer.ImportObject {
 					zero := wasmer.NewI32(0)
 					return []wasmer.Value{zero, zero, zero}, nil
 				} else {
-					ptr, err := i.heap.Write(val.Value)
+					ptr, err := i.heap.Write(val)
 					if err != nil {
 						return nil, err
 					}
 
-					return []wasmer.Value{wasmer.NewI32(ptr), wasmer.NewI32(len(val.Value)), wasmer.NewI32(1)}, nil
+					return []wasmer.Value{wasmer.NewI32(ptr), wasmer.NewI32(len(val)), wasmer.NewI32(1)}, nil
 				}
 			},
 		),

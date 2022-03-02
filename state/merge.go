@@ -15,12 +15,13 @@ const (
 )
 
 func (b *Builder) Merge(next *Builder) error {
-	if b.mergeStrategy != next.mergeStrategy {
-		return fmt.Errorf("incompatible merge strategies. strategy %s cannot be merged with strategy %s", b.mergeStrategy, next.mergeStrategy)
+	if b.updatePolicy != next.updatePolicy {
+		return fmt.Errorf("incompatible update policies: policy %s cannot merge policy %s", b.updatePolicy, next.updatePolicy)
 	}
 
-	switch b.mergeStrategy {
-	case MergeStrategyLastKey:
+	switch b.updatePolicy {
+	case "replace":
+		// Last key wins merge strategy
 		first := next
 		last := b
 		for k, v := range first.KV {
@@ -28,14 +29,22 @@ func (b *Builder) Merge(next *Builder) error {
 				last.KV[k] = v
 			}
 		}
-	// case MergeStrategyFirstKey:
-	// 	first := next
-	// 	last := b
-	// 	for k, v := range first.KV {
-	// 		if _, found := last.KV[k]; found {
-	// 			last.KV[k] = v
-	// 		}
-	// 	}
+	case "ignore":
+		// First key wins merge strategy
+		first := next
+		last := b
+		for k, v := range first.KV {
+			if _, found := last.KV[k]; found {
+				last.KV[k] = v
+			}
+		}
+	case "sum":
+		// check valueType to do the right thing
+	case "max":
+		// check valueType to do the right thing
+	case "min":
+		// check valueType to do the right thing
+
 	// case MergeStrategySumInts:
 	// 	first := next
 	// 	last := b
@@ -94,7 +103,7 @@ func (b *Builder) Merge(next *Builder) error {
 	// 		b.Set(next.lastOrdinal, k, floatToStr(m))
 	// 	}
 	default:
-		return fmt.Errorf("unsupported merge strategy %s", b.mergeStrategy)
+		return fmt.Errorf("unsupported update policy %q", b.updatePolicy) // should have been validated already
 	}
 
 	b.bundler = nil

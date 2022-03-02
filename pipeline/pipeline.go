@@ -107,16 +107,7 @@ func (p *Pipeline) BuildNative(ioFactory state.IOFactory, forceLoadState bool) e
 				return fmt.Errorf("BuildState() method not found on %T", f.Interface())
 			}
 
-			store := state.New(stream.Name, stream.Output.StoreMergeStrategy, ioFactory)
-			if forceLoadState {
-				// Use AN ABSOLUTE store, or SQUASH ALL PARTIAL!
-
-				if err := store.Init(p.startBlockNum); err != nil {
-					return fmt.Errorf("could not load state for store %s at block num %d: %w", stream.Name, p.startBlockNum, err)
-				}
-			}
-			p.stores[stream.Name] = store
-			p.nativeOutputs[stream.Name] = reflect.ValueOf(store)
+			p.nativeOutputs[stream.Name] = reflect.ValueOf(p.stores[stream.Name])
 
 			fmt.Printf("Adding state builder for stream %q\n", stream.Name)
 			p.streamFuncs = append(p.streamFuncs, func() error {
@@ -192,13 +183,18 @@ func (p *Pipeline) BuildWASM(ioFactory state.IOFactory, forceLoadState bool) err
 				return wasmMapper(p.wasmOutputs, mod, entrypoint, streamName, inputs, debugOutput)
 			})
 		case "StateBuilder":
-			mergeStrategy := stream.Output.StoreMergeStrategy // enclose in the loop
+			updatePolicy := stream.Output.UpdatePolicy
+			valueType := stream.Output.ValueType
+			protoType := stream.Output.ProtoType
+
 			entrypoint := stream.Code.Entrypoint
 			inputs = append(inputs, &wasm.Input{
-				Type:          wasm.OutputStore,
-				Name:          streamName,
-				Store:         p.stores[streamName],
-				MergeStrategy: mergeStrategy,
+				Type:         wasm.OutputStore,
+				Name:         streamName,
+				Store:        p.stores[streamName],
+				UpdatePolicy: updatePolicy,
+				ValueType:    valueType,
+				ProtoType:    protoType,
 			})
 			fmt.Printf("Adding state builder for stream %q\n", streamName)
 
@@ -221,7 +217,8 @@ func (p *Pipeline) setupStores(streams []*manifest.Stream, ioFactory state.IOFac
 		if s.Kind != "StateBuilder" {
 			continue
 		}
-		store := state.New(s.Name, s.Output.StoreMergeStrategy, ioFactory)
+		output := s.Output
+		store := state.New(s.Name, output.UpdatePolicy, output.ValueType, output.ProtoType, ioFactory)
 		if forceLoadState {
 			// Use AN ABSOLUTE store, or SQUASH ALL PARTIAL!
 

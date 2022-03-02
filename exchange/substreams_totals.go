@@ -2,7 +2,6 @@ package exchange
 
 import (
 	"fmt"
-	"math/big"
 	"sort"
 
 	"github.com/streamingfast/substream-pancakeswap/state"
@@ -12,7 +11,7 @@ type TotalsStateBuilder struct {
 	*SubstreamIntrinsics
 }
 
-func (p *TotalsStateBuilder) BuildState(pairs PCSPairs, events PCSEvents /* burnEvents, mintEvents */, totals state.IntegerDeltaWriter) error {
+func (p *TotalsStateBuilder) BuildState(pairs PCSPairs, events PCSEvents /* burnEvents, mintEvents */, totals state.SumInt64Setter) error {
 	if len(pairs) == 0 && len(events) == 0 {
 		return nil
 	}
@@ -30,18 +29,16 @@ func (p *TotalsStateBuilder) BuildState(pairs PCSPairs, events PCSEvents /* burn
 		return all[i].GetOrdinal() < all[j].GetOrdinal()
 	})
 
-	one := big.NewInt(1)
-
 	for _, el := range all {
 		switch ev := el.(type) {
 		case *PCSSwap:
-			totals.AddInt(ev.LogOrdinal, fmt.Sprintf("pair:%s:swaps", ev.PairAddress), one)
+			totals.SumInt64(ev.LogOrdinal, fmt.Sprintf("pair:%s:swaps", ev.PairAddress), 1)
 		case *PCSBurn:
-			totals.AddInt(ev.LogOrdinal, fmt.Sprintf("pair:%s:burns", ev.PairAddress), one)
+			totals.SumInt64(ev.LogOrdinal, fmt.Sprintf("pair:%s:burns", ev.PairAddress), 1)
 		case *PCSMint:
-			totals.AddInt(ev.LogOrdinal, fmt.Sprintf("pair:%s:mints", ev.PairAddress), one)
+			totals.SumInt64(ev.LogOrdinal, fmt.Sprintf("pair:%s:mints", ev.PairAddress), 1)
 		case PCSPair:
-			totals.AddInt(ev.LogOrdinal, "pairs", one)
+			totals.SumInt64(ev.LogOrdinal, "pairs", 1)
 		}
 	}
 
