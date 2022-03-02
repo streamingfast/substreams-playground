@@ -19,30 +19,30 @@ func TestStateBuilder(t *testing.T) {
 	s.Set(5, "1", "val7")
 
 	val, found := s.GetFirst("1")
-	assert.Equal(t, string("val3"), string(val))
+	assert.Equal(t, string("val3"), val.String())
 	assert.True(t, found)
 
 	val, found = s.GetAt(0, "1")
-	assert.Equal(t, string("val4"), string(val))
+	assert.Equal(t, string("val4"), val.String())
 	assert.True(t, found)
 
 	val, found = s.GetAt(1, "1")
-	assert.Equal(t, string("val5"), string(val))
+	assert.Equal(t, string("val5"), val.String())
 	assert.True(t, found)
 
 	val, found = s.GetAt(3, "1")
-	assert.Equal(t, string("val6"), string(val))
+	assert.Equal(t, string("val6"), val.String())
 	assert.True(t, found)
 
 	val, found = s.GetAt(4, "1")
-	assert.Nil(t, val)
+	assert.Nil(t, val.Value)
 	assert.False(t, found)
 
 	val, found = s.GetAt(5, "1")
-	assert.Equal(t, string("val7"), string(val))
+	assert.Equal(t, string("val7"), val.String())
 	assert.True(t, found)
 
 	val, found = s.GetLast("1")
-	assert.Equal(t, string("val7"), string(val))
+	assert.Equal(t, string("val7"), val.String())
 	assert.True(t, found)
 }
