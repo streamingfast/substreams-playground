@@ -150,26 +150,31 @@ func (p *Pipeline) BuildWASM(ioFactory state.IOFactory, forceLoadState bool) err
 		debugOutput := stream.Name == p.outputStreamName
 		var inputs []*wasm.Input
 		for _, in := range stream.Inputs {
-			t := strings.Split(in, ":") // TODO: check we do have 2 and only 2 parts.
-			switch t[0] {
+			streamInput := manifest.StreamInput(in)
+			inputKind, inputName, err := streamInput.Parse()
+			if err != nil {
+				return err
+			}
+
+			switch inputKind {
 			case "stream":
 				inputs = append(inputs, &wasm.Input{
 					Type: wasm.InputStream,
-					Name: t[1],
+					Name: inputName,
 				})
 			case "store":
 				inputs = append(inputs, &wasm.Input{
 					Type:  wasm.InputStore,
-					Name:  t[1],
-					Store: p.stores[t[1]],
+					Name:  inputName,
+					Store: p.stores[inputName],
 				})
 			case "proto":
 				inputs = append(inputs, &wasm.Input{
 					Type: wasm.InputStream,
-					Name: t[1],
+					Name: inputName,
 				})
 			default:
-				return fmt.Errorf("invalid input type %q for stream %q in input %q", t[0], stream.Name, in)
+				return fmt.Errorf("invalid input type %q for stream %q in input %q", inputKind, stream.Name, in)
 			}
 		}
 		streamName := stream.Name // to ensure it's enclosed

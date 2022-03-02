@@ -27,6 +27,17 @@ type Stream struct {
 	Output StreamOutput `yaml:"output"`
 }
 
+type StreamInput string
+
+func (si StreamInput) Parse() (kind string, name string, err error) {
+	parts := strings.Split(string(si), ":")
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("invalid input. should be of format {kind}:{name}")
+	}
+
+	return parts[0], parts[1], nil
+}
+
 type Code struct {
 	File       string `yaml:"file"`
 	Native     string `yaml:"native"`
