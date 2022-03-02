@@ -8,7 +8,7 @@ protoFiles:
 - ./pancakeswap.proto
 
 streams:
-- name: pairExtractor
+- name: pair_extractor
   kind: Mapper
   code:
     file: ./wasm-filters/pair_extractor/pkg/pair_extractor_bg.wasm
@@ -24,11 +24,11 @@ streams:
     file: ./wasm-filters/pair_extractor/pkg/pair_extractor_bg.wasm
     entrypoint: build_pairs_state
   inputs:
-    - stream:pairExtractor
+    - stream:pair_extractor
   output:
     storeMergeStrategy: LAST_KEY   # SUM_INTS, SUM_FLOATS
 
-- name: reservesExtractor
+- name: reserves_extractor
   kind: Mapper
   code:
     file: ./wasm-filters/pair_extractor/pkg/pair_extractor_bg.wasm
@@ -37,4 +37,4 @@ streams:
     - proto:sf.ethereum.types.v1.Block
     - store:pairs
   output:
-    type: proto:pcs.types.v1.ReserveUpdates
+    type: proto:pcs.types.v1.Reserves
