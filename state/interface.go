@@ -8,22 +8,12 @@ type Reader interface {
 	GetAt(ord uint64, key string) (Value, bool)
 }
 
-type BigWriter interface {
-	Writer
-	FirstKeyWriter
-	Deleter
-	IntegerMaximumWriter
-	FloatMaximumWriter
-}
-
-// LastKeyWins
-type Writer interface {
+type LastKeySetter interface {
 	Set(ord uint64, key string, value string)
 	SetBytes(ord uint64, key string, value []byte)
-	Del(ord uint64, key string)
 }
 
-type FirstKeyWriter interface {
+type FirstKeySetter interface {
 	SetIfNotExists(ord uint64, key string, value string)
 	SetBytesIfNotExists(ord uint64, key string, value []byte)
 }
@@ -35,37 +25,26 @@ type Deleter interface {
 	DeleteRangePointers(lowKey, highKey, pointerSeparator string)
 }
 
-// for LAST_KEY, and FIRST_KEY merge strategy, the Writer will simply write the key, with no regard
-// to what was there before
-type IntegerMaximumWriter interface {
-	MaxInt(ord uint64, key string, value *big.Int)
+type MaxBigIntSetter interface {
+	SetMaxBigInt(ord uint64, key string, value *big.Int)
 }
-
-type FloatMaximumWriter interface {
+type MaxInt64Setter interface {
+	SetMaxInt64(ord uint64, key string, value int64)
 }
-
-type IntegerMinimumWriter interface {
-	MinInt(ord uint64, key string, value *big.Int)
+type MaxFloat64Setter interface {
+	SetMaxFloat64(ord uint64, key string, value float64)
 }
-
-type FloatMinimumWriter interface {
-	MinFloat(ord uint64, key string, value *big.Float)
+type MaxBigFloatSetter interface {
+	SetMaxBigFloat(ord uint64, key string, value *big.Float)
 }
-
-// NOTE: Ça commence à faire beaucoup d'interfaces et de merge strategies
-// pkoi ça serait pas le DATA qui porte sa merge strategy? Dépendemment de comment tu set
-// la valeur, elle est settée avec un préfixe, toujours, genre:
-//
-// All these prefixes would only apply to the `partial` stores, and we'd need to keep track
-// that we don't write to the same key with two different modes, unless we need to start reading
-// keys by specifying those prefixes too.
-
-type IntegerDeltaWriter interface {
-	AddInt(ord uint64, key string, value *big.Int)
+type MinBigIntSetter interface {
+	SetMinBigInt(ord uint64, key string, value *big.Int)
 }
-
-type FloatDeltaWriter interface {
-	AddFloat(ord uint64, key string, value *big.Float)
+type MinInt64Setter interface {
+	SetMinInt64(ord uint64, key string, value int64)
+}
+type MinBigFloatSetter interface {
+	SetMinBigFloat(ord uint64, key string, value *big.Float)
 }
 
 type Mergeable interface {

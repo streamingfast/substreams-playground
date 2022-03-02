@@ -12,6 +12,12 @@ type PCSVolume24hStateBuilder struct {
 	*SubstreamIntrinsics
 }
 
+func (p *PCSVolume24hStateBuilder) Prefixes() map[string]KeyType {
+	return map[string]KeyType{
+		"pair:": LAST_KEY,
+	}
+}
+
 func (p *PCSVolume24hStateBuilder) BuildState(block *pbcodec.Block, evs PCSEvents, volumes state.FloatDeltaWriter) error {
 	timestamp := block.MustTime().Unix()
 	dayId := timestamp / 86400
@@ -33,7 +39,9 @@ func (p *PCSVolume24hStateBuilder) BuildState(block *pbcodec.Block, evs PCSEvent
 
 		// Get("day") // "12312" == currentDayId
 
-		volumes.AddFloat(swap.LogOrdinal, fmt.Sprintf("pair:%s:%d", swap.PairAddress, dayId), amountUSD)
+		volumes.AddFloat(swap.LogOrdinal, fmt.Sprintf("pairs:%s:%d", swap.PairAddress, dayId), amountUSD)
+		volumes.AddFloat(swap.LogOrdinal, fmt.Sprintf("day:%d:pair:%s", dayId, swap.PairAddress), amountUSD)
+		//volumes.Set(swap.LogOrdinal, fmt.Sprintf("pair:%s:%d", swap.PairAddress, dayId), amountUSD)
 		volumes.AddFloat(swap.LogOrdinal, fmt.Sprintf("token:%s:%d", swap.Token0, dayId), amountUSD)
 		volumes.AddFloat(swap.LogOrdinal, fmt.Sprintf("token:%s:%d", swap.Token1, dayId), amountUSD)
 

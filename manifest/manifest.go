@@ -3,6 +3,7 @@ package manifest
 import (
 	"bytes"
 	"crypto/sha1"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"sort"
@@ -46,8 +47,13 @@ type Code struct {
 }
 
 type StreamOutput struct {
-	Type               string `yaml:"type"`
-	StoreMergeStrategy string `yaml:"storeMergeStrategy"`
+	// For mappers
+	Type string `yaml:"type"`
+
+	// For state builders
+	ValueType    string `yaml:"valueType"`
+	ProtoType    string `yaml":protoType"` // when `ValueType` == "proto"
+	UpdatePolicy string `yaml:"updatePolicy"`
 }
 
 func New(path string) (m *Manifest, err error) {
@@ -93,9 +99,10 @@ func newWithoutLoad(path string) (*Manifest, error) {
 				s.Code.Entrypoint = "map"
 			}
 		case "StateBuilder":
-			if s.Output.StoreMergeStrategy == "" {
-				return nil, fmt.Errorf("stream %q: missing 'output.storeMergeStrategy' for kind StateBuilder", s.Name)
+			if err := validateStateBuidlerOutput(s.Output); err != nil {
+				return nil, fmt.Errorf("stream %q: %w", s.Name, err)
 			}
+
 			if s.Code.Entrypoint == "" {
 				s.Code.Entrypoint = "build_state"
 			}
@@ -113,6 +120,51 @@ func newWithoutLoad(path string) (*Manifest, error) {
 	m.Graph = graph
 
 	return m, nil
+}
+
+func validateStateBuilderOutput(output StreamOutput) error {
+	if output.UpdatePolicy == "" {
+		return errors.New("missing 'output.updatePolicy' for kind StateBuilder")
+	}
+	if output.ValueType == "" {
+		return errors.New("missing 'output.valueType' for kind StateBuilder")
+	}
+	if output.ValueType == "proto" && output.ProtoType == "" {
+		return errors.New("missing 'output.protoType' for kind StateBuidler, required when 'output.valueType' set to 'proto'")
+	}
+
+	combinations := []string{
+		"max:bigint",     // Exposes SetMaxBigInt
+		"max:int64",      // Exposes SetMaxInt64
+		"max:bigfloat",   // Exposes SetMaxBigFloat
+		"max:float64",    // Exposes SetMaxFloat64
+		"min:bigint",     // Exposes SetMinBigInt
+		"min:int64",      // Exposes SetMinInt64
+		"min:bigfloat",   // Exposes SetMinBigFloat
+		"min:float64",    // Exposes SetMinFloat64
+		"sum:bigint",     // Exposes SumBigInt
+		"sum:int64",      // Exposes SumInt64
+		"sum:bigfloat",   // Exposes SumBigFloat
+		"sum:float64",    // Exposes SubFloat64
+		"replace:bytes",  // Exposes SetBytes
+		"replace:string", // Exposes SetString
+		"replace:proto",  // Exposes SetBytes
+		"ignore:bytes",   // Exposes SetBytesIfNotExists
+		"ignore:string",  // Exposes SetStringIfNotExists
+		"ignore:proto",   // Exposes SetBytesIfNotExists
+	}
+	found := false
+	for _, comb := range combinations {
+		if fmt.Sprintf("%s:%s", output.UpdatePolicy, output.ValueType) == comb {
+			found = true
+		}
+	}
+
+	if !found {
+		return fmt.Errorf("invalid 'output.updatePolicy' and 'output.valueType' combination, use one of: %s", combinations)
+	}
+
+	return nil
 }
 
 func (m *Manifest) PrintMermaid() {

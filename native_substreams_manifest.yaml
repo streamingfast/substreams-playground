@@ -24,7 +24,8 @@ streams:
   inputs:
   - stream:pair_extractor
   output:
-    storeMergeStrategy: LAST_KEY
+    updatePolicy: replace
+    valueType: string
 
 - name: reserves_extractor
   kind: Mapper
@@ -44,18 +45,32 @@ streams:
   - stream:reserves_extractor
   - store:pairs
   output:
-    storeMergeStrategy: LAST_KEY
+    updatePolicy: replace
+    valueType: bigfloat
 
 - name: prices
   kind: StateBuilder
   code:
     native: pcs_derived_prices_state_builder
   inputs:
-  - stream:reserves_extractor
-  - store:pairs
-  - store:reserves
+    - stream:reserves_extractor
+    - store:pairs
+    - store:reserves
   output:
-    storeMergeStrategy: LAST_KEY
+    # What to do when a previous key already exists
+    updatePolicy: max         # Exposes SetMaxInt|Float|Uint64|Int64|
+    updatePolicy: min         # Exposes SetMinInt|Float|...
+    updatePolicy: sum         # Exposes SumInt|Float|
+    updatePolicy: replace     # Exposes Set(), compatible with
+    updatePolicy: ignore      # Exposes SetIfNotExists()
+    valueType: bigint
+    valueType: int64
+    valueType: bigfloat
+    valueType: float64
+    valueType: bytes
+    valueType: string
+    valueType: proto
+    protoType: pcs.types.v1.ReserveUpdate
 
 - name: mint_burn_swaps_extractor
   kind: Mapper
@@ -76,7 +91,8 @@ streams:
   - stream:pair_extractor
   - stream:mint_burn_swaps_extractor
   output:
-    storeMergeStrategy: SUM_INTS
+    updatePolicy:
+    valueType: INT_DELTA
 
 - name: volumes
   kind: StateBuilder
@@ -86,7 +102,7 @@ streams:
   - proto:sf.ethereum.types.v1.Block  # Only needed for Number/Timestamp, so a smaller stream would be just as fine.
   - stream:mint_burn_swaps_extractor
   output:
-    storeMergeStrategy: SUM_FLOATS
+    dataType: FLOAT_DELTA
 
 
 # $ program manifest.yaml pairsExtractor
