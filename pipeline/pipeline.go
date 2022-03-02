@@ -213,6 +213,9 @@ func (p *Pipeline) BuildWASM(ioFactory state.IOFactory, forceLoadState bool) err
 func (p *Pipeline) setupStores(streams []*manifest.Stream, ioFactory state.IOFactory, forceLoadState bool) error {
 	p.stores = make(map[string]*state.Builder)
 	for _, s := range streams {
+		if s.Kind != "StateBuilder" {
+			continue
+		}
 		store := state.New(s.Name, s.Output.StoreMergeStrategy, ioFactory)
 		if forceLoadState {
 			// Use AN ABSOLUTE store, or SQUASH ALL PARTIAL!

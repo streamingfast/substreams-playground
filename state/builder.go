@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"strings"
 
 	"github.com/streamingfast/bstream"
@@ -174,6 +175,38 @@ func (b *Builder) bumpOrdinal(ord uint64) {
 	b.lastOrdinal = ord
 }
 
+func (b *Builder) AddInt(ord uint64, key string, value *big.Int) {
+	sum := new(big.Int)
+	val, found := b.GetAt(ord, key)
+	if !found {
+		sum = value
+	} else {
+		prev, _ := new(big.Int).SetString(string(val), 10)
+		if prev == nil {
+			sum = value
+		} else {
+			sum.Add(prev, value)
+		}
+	}
+	b.Set(ord, key, sum.String())
+}
+
+func (b *Builder) AddFloat(ord uint64, key string, value *big.Float) {
+	sum := new(big.Float)
+	val, found := b.GetAt(ord, key)
+	if !found {
+		sum = value
+	} else {
+		prev, _, err := big.ParseFloat(string(val), 10, 100, big.ToNearestEven)
+		if prev == nil || err != nil {
+			sum = value
+		} else {
+			sum.Add(prev, value)
+		}
+	}
+	b.Set(ord, key, sum.Text('g', -1))
+}
+
 func (b *Builder) Set(ord uint64, key string, value string) {
 	b.SetBytes(ord, key, []byte(value))
 }
@@ -185,7 +218,6 @@ func (b *Builder) SetBytes(ord uint64, key string, value []byte) {
 	var delta *StateDelta
 	if found {
 		//Uncomment when finished debugging:
-		fmt.Println("PREV", len(val), "NEXT", len(value))
 		if bytes.Compare(value, val) == 0 {
 			return
 		}
