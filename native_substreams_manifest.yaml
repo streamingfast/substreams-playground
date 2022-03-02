@@ -8,10 +8,10 @@ protoFiles:
 - ./pancakeswap.proto
 
 streams:
-- name: pairExtractor
+- name: pair_extractor
   kind: Mapper
   code:
-    native: pairExtractor
+    native: pcs_pair_extractor
   inputs:
   - proto:sf.ethereum.types.v1.Block
   output:
@@ -20,36 +20,47 @@ streams:
 - name: pairs
   kind: StateBuilder
   code:
-    native: pairsState
+    native: pcs_pairs_state_builder
   inputs:
-  - stream:pairExtractor
+  - stream:pair_extractor
   output:
-    storeMergeStrategy: LAST_KEY   # SUM_INTS, SUM_FLOATS
+    storeMergeStrategy: LAST_KEY
 
-- name: reservesExtractor
+- name: reserves_extractor
   kind: Mapper
   code:
-    native: reservesExtractor
+    native: pcs_reserves_extractor
   inputs:
   - proto:sf.ethereum.types.v1.Block
   - store:pairs
   output:
     type: proto:pcs.types.v1.ReserveUpdates
 
-- name: prices
+- name: reserves
   kind: StateBuilder
   code:
-    native: pricesState
+    native: pcs_reserves_state_builder
   inputs:
-  - stream:reservesExtractor
+  - stream:reserves_extractor
   - store:pairs
   output:
     storeMergeStrategy: LAST_KEY
 
-- name: mintBurnSwapsExtractor
+- name: prices
+  kind: StateBuilder
+  code:
+    native: pcs_derived_prices_state_builder
+  inputs:
+  - stream:reserves_extractor
+  - store:pairs
+  - store:reserves
+  output:
+    storeMergeStrategy: LAST_KEY
+
+- name: mint_burn_swaps_extractor
   kind: Mapper
   code:
-    native: mintBurnSwapsExtractor
+    native: pcs_mint_burn_swaps_extractor
   inputs:
   - proto:sf.ethereum.types.v1.Block
   - store:pairs
@@ -60,20 +71,20 @@ streams:
 - name: totals
   kind: StateBuilder
   code:
-    native: totalsState
+    native: pcs_totals_state_builder
   inputs:
-  - stream:pairExtractor
-  - stream:mintBurnSwapsExtractor
+  - stream:pair_extractor
+  - stream:mint_burn_swaps_extractor
   output:
     storeMergeStrategy: SUM_INTS
 
 - name: volumes
   kind: StateBuilder
   code:
-    native: volumesState
+    native: pcs_volumes_state_builder
   inputs:
   - proto:sf.ethereum.types.v1.Block  # Only needed for Number/Timestamp, so a smaller stream would be just as fine.
-  - stream:mintBurnSwapsExtractor
+  - stream:mint_burn_swaps_extractor
   output:
     storeMergeStrategy: SUM_FLOATS
 

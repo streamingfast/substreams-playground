@@ -104,6 +104,19 @@ func newWithoutLoad(path string) (*Manifest, error) {
 	return m, nil
 }
 
+func (m *Manifest) PrintMermaid() {
+	fmt.Println("Mermaid graph:\n\n```mermaid\ngraph TD;")
+
+	for _, s := range m.Streams {
+		for _, in := range s.Inputs {
+			fmt.Printf("  %s -- %q --> %s\n", strings.Split(in, ":")[1], in, s.Name)
+		}
+	}
+
+	fmt.Println("```")
+	fmt.Println("")
+}
+
 func (s *Stream) Signature(graph *StreamsGraph) []byte {
 	buf := bytes.NewBuffer(nil)
 	buf.WriteString(s.Kind)

@@ -39,6 +39,8 @@ func runRoot(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("read manifest %q: %w", manifestPath, err)
 	}
 
+	manif.PrintMermaid()
+
 	var blockCount uint64 = 1000
 	if len(args) > 0 {
 		val, err := strconv.ParseInt(args[2], 10, 64)

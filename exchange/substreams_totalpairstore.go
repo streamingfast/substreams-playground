@@ -7,11 +7,11 @@ import (
 	"github.com/streamingfast/substream-pancakeswap/state"
 )
 
-type TotalPairsStateBuilder struct {
+type TotalsStateBuilder struct {
 	*SubstreamIntrinsics
 }
 
-func (p *TotalPairsStateBuilder) BuildState(pairs PCSPairs, events PCSEvents /* burnEvents, mintEvents */, totalPairsStore *state.Builder) error {
+func (p *TotalsStateBuilder) BuildState(pairs PCSPairs, events PCSEvents /* burnEvents, mintEvents */, totalPairsStore *state.Builder) error {
 	if len(pairs) == 0 && len(events) == 0 {
 		return nil
 	}

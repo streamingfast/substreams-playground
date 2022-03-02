@@ -47,33 +47,26 @@ substream-exchange wasm_substreams_manifest.yaml pairs 2000 -s 6831000
 
 ## Current layout
 
+For `native_substreams_manifest.yaml`:
+
 ```mermaid
-
 graph TD;
-  PE["PairExtractor(Contract)"]
-  PAIRS[PCSPairStateBuilder]
-  TOTAL[PCSTotalPairsStateBuilder]
-  RE[ReservesExtractor]
-  B[Raw Chain Block]
-  PRICES[PCSPricesStateBuilder]
-  EVENTS[MintBurnSwapsExtractor]
-  VOL24[Volume24hStateBuilder]
-  HUB[Subscription hub]
-
-  B -- ETH Block --> PE
-  PE -- "[]PCSPair" --> PAIRS
-  PE -- "[]PCSPair" --> TOTAL
-  TOTAL -- Total Pairs Store --> HUB
-  PAIRS -- "Pairs Store" --> RE
-  B -- ETH Block --> RE
-  RE -- Reserves Updates --> PRICES
-  PRICES -- Prices Store --> HUB
-  PRICES -- Prices Store --> EVENTS
-  PAIRS -- Pairs Store --> EVENTS
-  B -- ETH Block --> EVENTS
-  EVENTS -- "[]Swap,[]Mint,[]Burn" --> VOL24
-  EVENTS -- "[]Swap,[]Mint,[]Burn" --> TOTAL
-  VOL24 -- "Volume Store" --> HUB
+  sf.ethereum.types.v1.Block -- "proto:sf.ethereum.types.v1.Block" --> pair_extractor
+  pair_extractor -- "stream:pair_extractor" --> pairs
+  sf.ethereum.types.v1.Block -- "proto:sf.ethereum.types.v1.Block" --> reserves_extractor
+  pairs -- "store:pairs" --> reserves_extractor
+  reserves_extractor -- "stream:reserves_extractor" --> reserves
+  pairs -- "store:pairs" --> reserves
+  reserves_extractor -- "stream:reserves_extractor" --> prices
+  pairs -- "store:pairs" --> prices
+  reserves -- "store:reserves" --> prices
+  sf.ethereum.types.v1.Block -- "proto:sf.ethereum.types.v1.Block" --> mint_burn_swaps_extractor
+  pairs -- "store:pairs" --> mint_burn_swaps_extractor
+  prices -- "store:prices" --> mint_burn_swaps_extractor
+  pair_extractor -- "stream:pair_extractor" --> totals
+  mint_burn_swaps_extractor -- "stream:mint_burn_swaps_extractor" --> totals
+  sf.ethereum.types.v1.Block -- "proto:sf.ethereum.types.v1.Block" --> volumes
+  mint_burn_swaps_extractor -- "stream:mint_burn_swaps_extractor" --> volumes
 ```
 
 ## References

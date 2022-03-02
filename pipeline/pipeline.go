@@ -62,13 +62,14 @@ func (p *Pipeline) BuildNative(ioFactory state.IOFactory, forceLoadState bool) e
 	}
 
 	nativeStreams := map[string]reflect.Value{
-		"pairExtractor":          reflect.ValueOf(&exchange.PairExtractor{SubstreamIntrinsics: p.intr}),
-		"pairsState":             reflect.ValueOf(&exchange.PairsStateBuilder{SubstreamIntrinsics: p.intr}),
-		"reservesExtractor":      reflect.ValueOf(&exchange.ReservesExtractor{SubstreamIntrinsics: p.intr}),
-		"pricesState":            reflect.ValueOf(&exchange.PricesStateBuilder{SubstreamIntrinsics: p.intr}),
-		"mintBurnSwapsExtractor": reflect.ValueOf(&exchange.SwapsExtractor{SubstreamIntrinsics: p.intr}),
-		"totalsState":            reflect.ValueOf(&exchange.TotalPairsStateBuilder{SubstreamIntrinsics: p.intr}),
-		"volumesState":           reflect.ValueOf(&exchange.PCSVolume24hStateBuilder{SubstreamIntrinsics: p.intr}),
+		"pcs_pair_extractor":               reflect.ValueOf(&exchange.PairExtractor{SubstreamIntrinsics: p.intr}),
+		"pcs_pairs_state_builder":          reflect.ValueOf(&exchange.PairsStateBuilder{SubstreamIntrinsics: p.intr}),
+		"pcs_reserves_extractor":           reflect.ValueOf(&exchange.ReservesExtractor{SubstreamIntrinsics: p.intr}),
+		"pcs_reserves_state_builder":       reflect.ValueOf(&exchange.ReservesStateBuilder{SubstreamIntrinsics: p.intr}),
+		"pcs_derived_prices_state_builder": reflect.ValueOf(&exchange.DerivedPricesStateBuilder{SubstreamIntrinsics: p.intr}),
+		"pcs_mint_burn_swaps_extractor":    reflect.ValueOf(&exchange.SwapsExtractor{SubstreamIntrinsics: p.intr}),
+		"pcs_totals_state_builder":         reflect.ValueOf(&exchange.TotalsStateBuilder{SubstreamIntrinsics: p.intr}),
+		"pcs_volume_state_builder":         reflect.ValueOf(&exchange.PCSVolume24hStateBuilder{SubstreamIntrinsics: p.intr}),
 	}
 
 	if err := p.setupStores(streams, ioFactory, forceLoadState); err != nil {
@@ -172,7 +173,6 @@ func (p *Pipeline) BuildWASM(ioFactory state.IOFactory, forceLoadState bool) err
 			}
 		}
 		streamName := stream.Name // to ensure it's enclosed
-		entrypoint := stream.Code.Entrypoint
 
 		mod, err := wasm.NewModule(stream.Code.Content)
 		if err != nil {
@@ -182,11 +182,13 @@ func (p *Pipeline) BuildWASM(ioFactory state.IOFactory, forceLoadState bool) err
 		switch stream.Kind {
 		case "Mapper":
 			fmt.Printf("Adding mapper for stream %q\n", streamName)
+			entrypoint := stream.Code.Entrypoint
 			p.streamFuncs = append(p.streamFuncs, func() error {
 				return wasmMapper(p.wasmOutputs, mod, entrypoint, streamName, inputs, debugOutput)
 			})
 		case "StateBuilder":
 			mergeStrategy := stream.Output.StoreMergeStrategy // enclose in the loop
+			entrypoint := stream.Code.Entrypoint
 			inputs = append(inputs, &wasm.Input{
 				Type:          wasm.OutputStore,
 				Name:          streamName,

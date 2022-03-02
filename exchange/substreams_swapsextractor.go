@@ -181,9 +181,9 @@ func convertPrices(prices state.Reader, logOrdinal uint64, amount0, amount1 *big
 	token0Amount := ConvertTokenToDecimal(amount0, pair.Token0.Decimals)
 	token1Amount := ConvertTokenToDecimal(amount1, pair.Token1.Decimals)
 
-	derivedBNB0 := foundOrZeroFloat(prices.GetAt(logOrdinal, fmt.Sprintf("prices:%s:bnb", pair.Token0.Address)))
-	derivedBNB1 := foundOrZeroFloat(prices.GetAt(logOrdinal, fmt.Sprintf("prices:%s:bnb", pair.Token1.Address)))
-	usdPrice := foundOrZeroFloat(prices.GetAt(logOrdinal, fmt.Sprintf("prices:usd:bnb")))
+	derivedBNB0 := foundOrZeroFloat(prices.GetAt(logOrdinal, fmt.Sprintf("dprice:%s:bnb", pair.Token0.Address)))
+	derivedBNB1 := foundOrZeroFloat(prices.GetAt(logOrdinal, fmt.Sprintf("dprice:%s:bnb", pair.Token1.Address)))
+	usdPrice := foundOrZeroFloat(prices.GetAt(logOrdinal, fmt.Sprintf("dprice:usd:bnb")))
 
 	amountTotalUSD := bf().Mul(
 		bf().Add(
@@ -244,7 +244,7 @@ func (p *SwapsExtractor) processSwap(prices state.Reader, pair *PCSPair, sync *P
 // }
 
 func getDerivedPrice(ord uint64, prices state.Reader, derivedToken string, tokenAmount *big.Float, tokenAddr string) *big.Float {
-	usdPrice := foundOrZeroFloat(prices.GetAt(ord, fmt.Sprintf("price:%s:%s", tokenAddr, derivedToken)))
+	usdPrice := foundOrZeroFloat(prices.GetAt(ord, fmt.Sprintf("dprice:%s:%s", tokenAddr, derivedToken)))
 	if usdPrice.Cmp(big.NewFloat(0)) == 0 {
 		return nil
 	}
