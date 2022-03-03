@@ -11,7 +11,7 @@ streams:
 - name: pair_extractor
   kind: Mapper
   code:
-    file: ./wasm-filters/pair_extractor/pkg/pair_extractor_bg.wasm
+    file: ./pcs-rust/pkg/pcs_substreams_bg.wasm
     entrypoint:  map_pairs
   inputs:
     - proto:sf.ethereum.codec.v1.Block
@@ -21,17 +21,18 @@ streams:
 - name: pairs
   kind: StateBuilder
   code:
-    file: ./wasm-filters/pair_extractor/pkg/pair_extractor_bg.wasm
+    file: ./pcs-rust/pkg/pcs_substreams_bg.wasm
     entrypoint: build_pairs_state
   inputs:
     - stream:pair_extractor
   output:
-    storeMergeStrategy: LAST_KEY   # SUM_INTS, SUM_FLOATS
+    updatePolicy: replace
+    valueType: bytes
 
 - name: reserves_extractor
   kind: Mapper
   code:
-    file: ./wasm-filters/pair_extractor/pkg/pair_extractor_bg.wasm
+    file:  ./pcs-rust/pkg/pcs_substreams_bg.wasm
     entrypoint: map_reserves
   inputs:
     - proto:sf.ethereum.codec.v1.Block
