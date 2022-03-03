@@ -31,7 +31,7 @@ pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
         block_len
     );
 
-    log::log(msg.to_string());
+    log::info(msg.to_string());
 
     for trx in blk.transaction_traces {
         /* PCS Factory address */

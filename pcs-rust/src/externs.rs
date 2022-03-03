@@ -1,5 +1,5 @@
+#[link(wasm_import_module = "env")]
 extern "C" {
-    pub fn println(ptr: *const u8, len: usize);
     pub fn output(ptr: *const u8, len: u32);
     pub fn register_panic(
         msg_ptr: *const u8,
@@ -9,4 +9,10 @@ extern "C" {
         line: u32,
         column: u32,
     );
+}
+
+#[link(wasm_import_module = "logger")]
+extern "C" {
+    pub fn debug(ptr: *const u8, len: usize);
+    pub fn info(ptr: *const u8, len: usize);
 }

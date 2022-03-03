@@ -14,7 +14,7 @@ require (
 	github.com/streamingfast/jsonpb v0.0.0-20210811021341-3670f0aa02d0
 	github.com/streamingfast/logging v0.0.0-20220222131651-12c3943aac2e
 	github.com/streamingfast/pbgo v0.0.6-0.20220228185940-1bbaafec7d8a
-	github.com/streamingfast/substreams v0.0.0-20220303145311-11efad55f710
+	github.com/streamingfast/substreams v0.0.0-20220303211040-74c184af4d27
 	github.com/stretchr/testify v1.7.1-0.20210427113832-6241f9ab9942
 	go.uber.org/zap v1.21.0
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8

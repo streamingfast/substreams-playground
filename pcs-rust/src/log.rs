@@ -1,11 +1,15 @@
 use crate::externs;
 
-pub fn log(msg: String) {
+pub fn debug(msg: String) {
     unsafe {
-        externs::println(msg.as_ptr(), msg.len());
+        externs::debug(msg.as_ptr(), msg.len());
     }
 }
-
+pub fn info(msg: String) {
+    unsafe {
+        externs::info(msg.as_ptr(), msg.len());
+    }
+}
 pub fn println(msg: String) {
-    log(msg);
+    debug(msg);
 }
