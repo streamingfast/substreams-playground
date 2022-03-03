@@ -13,7 +13,7 @@ streams:
   code:
     native: pcs_pair_extractor
   inputs:
-  - proto:sf.ethereum.types.v1.Block
+  - proto:sf.ethereum.codec.v1.Block
   output:
     type: proto:pcs.types.v1.Pairs
 
@@ -32,7 +32,7 @@ streams:
   code:
     native: pcs_reserves_extractor
   inputs:
-  - proto:sf.ethereum.types.v1.Block
+  - proto:sf.ethereum.codec.v1.Block
   - store:pairs
   output:
     type: proto:pcs.types.v1.ReserveUpdates
@@ -65,7 +65,7 @@ streams:
   code:
     native: pcs_mint_burn_swaps_extractor
   inputs:
-  - proto:sf.ethereum.types.v1.Block
+  - proto:sf.ethereum.codec.v1.Block
   - store:pairs
   - store:prices
   output:
@@ -87,7 +87,7 @@ streams:
   code:
     native: pcs_volumes_state_builder
   inputs:
-  - proto:sf.ethereum.types.v1.Block  # Only needed for Number/Timestamp, so a smaller stream would be just as fine.
+  - proto:sf.ethereum.codec.v1.Block  # Only needed for Number/Timestamp, so a smaller stream would be just as fine.
   - stream:mint_burn_swaps_extractor
   output:
     updatePolicy: sum

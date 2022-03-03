@@ -27,5 +27,7 @@ func main() {
 		return reflect.ValueOf(&pcs.PCSVolume24hStateBuilder{})
 	})
 
+	cli.ProtobufBlockType = "sf.ethereum.codec.v1.Block"
+
 	cli.Main()
 }

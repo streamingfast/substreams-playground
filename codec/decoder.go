@@ -17,10 +17,10 @@ package codec
 import (
 	"fmt"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/streamingfast/bstream"
 	pbbstream "github.com/streamingfast/pbgo/sf/bstream/v1"
 	pbcodec "github.com/streamingfast/substream-pancakeswap/pb/sf/ethereum/codec/v1"
+	"google.golang.org/protobuf/proto"
 )
 
 func BlockDecoder(blk *bstream.Block) (interface{}, error) {

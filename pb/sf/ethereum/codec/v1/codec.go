@@ -21,10 +21,10 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/streamingfast/bstream"
 	"github.com/streamingfast/jsonpb"
+	"google.golang.org/protobuf/proto"
 )
 
 var b0 = big.NewInt(0)
