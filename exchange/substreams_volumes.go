@@ -34,8 +34,6 @@ func (p *PCSVolume24hStateBuilder) BuildState(block *pbcodec.Block, evs PCSEvent
 		// Get("day") // "12312" == currentDayId
 
 		volumes.SumBigFloat(swap.LogOrdinal, fmt.Sprintf("pairs:%s:%d", swap.PairAddress, dayId), amountUSD)
-		volumes.SumBigFloat(swap.LogOrdinal, fmt.Sprintf("day:%d:pair:%s", dayId, swap.PairAddress), amountUSD)
-		//volumes.Set(swap.LogOrdinal, fmt.Sprintf("pair:%s:%d", swap.PairAddress, dayId), amountUSD)
 		volumes.SumBigFloat(swap.LogOrdinal, fmt.Sprintf("token:%s:%d", swap.Token0, dayId), amountUSD)
 		volumes.SumBigFloat(swap.LogOrdinal, fmt.Sprintf("token:%s:%d", swap.Token1, dayId), amountUSD)
 
