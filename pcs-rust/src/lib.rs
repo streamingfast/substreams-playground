@@ -105,33 +105,33 @@ pub extern "C" fn map_reserves(block_ptr: *mut u8, block_len: usize, pairs_store
     let mut reserves = pcs::Reserves { reserves: vec![] };
 
     for trx in blk.transaction_traces {
-	for log in trx.receipt.unwrap().logs {
-	    let addr = hex::encode(log.address);
-	    match state::get_last(pairs_store_idx, format!("pair:{}", addr)) {
-		None => continue,
-		Some(pairBytes) => {
-		    let sig = hex::encode(&log.topics[0]);
-		    // Sync(uint112,uint112)
-		    if sig != "1c411e9a96e071241c2f21f7726b17ae89e3cab4c78be50e062b03a9fffbbad1" {
-			continue
-		    }
+        for log in trx.receipt.unwrap().logs {
+            let addr = hex::encode(log.address);
+            match state::get_last(pairs_store_idx, format!("pair:{}", addr)) {
+                None => continue,
+                Some(pair_bytes) => {
+                    let sig = hex::encode(&log.topics[0]);
+                    // Sync(uint112,uint112)
+                    if sig != "1c411e9a96e071241c2f21f7726b17ae89e3cab4c78be50e062b03a9fffbbad1" {
+                        continue;
+                    }
 
-		    // Continue handling a Pair's Sync event
-		    let pair: pcs::Pair = proto::decode(pairBytes).unwrap();
+                    // Continue handling a Pair's Sync event
+                    let pair: pcs::Pair = proto::decode(pair_bytes).unwrap();
 
-		    // TODO: Read the log's Reserve0, and Reserve1
-		    // TODO: take the `pair.token0/1.decimals` and add the decimal point on that Reserve0
-		    // TODO: do floating point calculations
+                    // TODO: Read the log's Reserve0, and Reserve1
+                    // TODO: take the `pair.token0/1.decimals` and add the decimal point on that Reserve0
+                    // TODO: do floating point calculations
 
-		    reserves.reserves.push(pcs::Reserve{
-			pair_address: pair.address,
-			reserve0: "123".to_string(),
-			reserve1: "234".to_string(),
-			log_ordinal: log.block_index as u64,
-		    });
-		}
-	    }
-	}
+                    reserves.reserves.push(pcs::Reserve {
+                        pair_address: pair.address,
+                        reserve0: "123".to_string(),
+                        reserve1: "234".to_string(),
+                        log_ordinal: log.block_index as u64,
+                    });
+                }
+            }
+        }
     }
 
     let mut out = Vec::<u8>::new();
