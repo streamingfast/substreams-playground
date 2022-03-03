@@ -1,7 +1,13 @@
+mod eth_utils;
+mod externs;
+mod log;
 mod memory;
 mod proto;
 mod state;
+mod substream;
 
+use crate::eth_utils::decode_address;
+use crate::substream::register_panic_hook;
 use hex;
 
 pub mod eth {
@@ -9,27 +15,6 @@ pub mod eth {
 }
 pub mod pcs {
     include!(concat!(env!("OUT_DIR"), "/pcs.types.v1.rs"));
-}
-
-extern "C" {
-    fn println(ptr: *const u8, len: usize);
-    fn output(ptr: *const u8, len: u32);
-    fn register_panic(
-        msg_ptr: *const u8,
-        msg_len: u32,
-        file_ptr: *const u8,
-        file_len: u32,
-        line: u32,
-        column: u32,
-    );
-
-    //fn state_get_pairs_at()
-}
-
-fn log(msg: String) {
-    unsafe {
-        println(msg.as_ptr(), msg.len());
-    }
 }
 
 #[no_mangle]
@@ -46,7 +31,7 @@ pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
         block_len
     );
 
-    log(msg.to_string());
+    log::log(msg.to_string());
 
     for trx in blk.transaction_traces {
         /* PCS Factory address */
@@ -77,11 +62,7 @@ pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
         }
     }
 
-    let (ptr, len) = proto::encode_to_ptr(&mut pairs).unwrap();
-
-    unsafe {
-        output(ptr as *const u8, len as u32);
-    }
+    substream::output(&pairs);
 }
 
 #[no_mangle]
@@ -134,70 +115,5 @@ pub extern "C" fn map_reserves(block_ptr: *mut u8, block_len: usize, pairs_store
         }
     }
 
-    let mut out = Vec::<u8>::new();
-    ::prost::Message::encode(&reserves, &mut out).unwrap();
-
-    let out_len = out.len() as u32;
-    let ptr = out.as_ptr();
-    std::mem::forget(out); // to prevent a drop which would crash
-
-    unsafe {
-        output(ptr as *const u8, out_len);
-    }
-}
-
-fn decode_address(input: &Vec<u8>) -> String {
-    if input.len() > 40 {
-        "larger".to_string()
-    } else {
-        hex::encode(input)
-    }
-}
-
-// Ref: https://github.com/infinyon/fluvio/blob/master/crates/fluvio-smartmodule-derive/src/generator/map.rs#L73
-
-// See: https://github.com/Jake-Shadle/wasmer-rust-example/blob/master/wasm-sample-app/src/lib.rs
-fn hook(info: &std::panic::PanicInfo<'_>) {
-    let error_msg = info
-        .payload()
-        .downcast_ref::<String>()
-        .map(String::as_str)
-        .or_else(|| info.payload().downcast_ref::<&'static str>().copied())
-        .unwrap_or("");
-    let location = info.location();
-
-    unsafe {
-        let _ = match location {
-            Some(loc) => {
-                let file = loc.file();
-                let line = loc.line();
-                let column = loc.column();
-
-                register_panic(
-                    error_msg.as_ptr(),
-                    error_msg.len() as u32,
-                    file.as_ptr(),
-                    file.len() as u32,
-                    line,
-                    column,
-                )
-            }
-            None => register_panic(
-                error_msg.as_ptr(),
-                error_msg.len() as u32,
-                std::ptr::null(),
-                0,
-                0,
-                0,
-            ),
-        };
-    }
-}
-
-fn register_panic_hook() {
-    use std::sync::Once;
-    static SET_HOOK: Once = Once::new();
-    SET_HOOK.call_once(|| {
-        std::panic::set_hook(Box::new(hook));
-    });
+    substream::output(&reserves)
 }

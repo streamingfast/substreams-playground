@@ -1,9 +1,7 @@
 use prost::{DecodeError, EncodeError};
 use std::io::Cursor;
 
-pub fn decode<T: std::default::Default + prost::Message>(
-    buf: Vec<u8>,
-) -> Result<T, DecodeError> {
+pub fn decode<T: std::default::Default + prost::Message>(buf: Vec<u8>) -> Result<T, DecodeError> {
     ::prost::Message::decode(&mut Cursor::new(&buf))
 }
 
@@ -32,6 +30,7 @@ pub fn encode<M: prost::Message>(msg: &M) -> Result<Vec<u8>, EncodeError> {
     }
 }
 
+// todo: rename to encode_to_heap
 pub fn encode_to_ptr<M: prost::Message>(msg: &M) -> Result<(*const u8, usize), EncodeError> {
     match encode(msg) {
         Ok(buffer) => Ok((buffer.as_ptr(), buffer.len())),
