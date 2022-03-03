@@ -15,7 +15,7 @@ func main() {
 	registry.Register("pcs_pair_extractor", func(imp *imports.Imports) reflect.Value {
 		return reflect.ValueOf(&pcs.PairExtractor{Imports: imp})
 	})
-	registry.Register("pcs_pairs_state_builder", func(imp *imports.Imports) reflect.Value { return reflect.ValueOf(pcs.PairsStateBuilder{}) })
+	registry.Register("pcs_pairs_state_builder", func(imp *imports.Imports) reflect.Value { return reflect.ValueOf(&pcs.PairsStateBuilder{}) })
 	registry.Register("pcs_reserves_extractor", func(imp *imports.Imports) reflect.Value { return reflect.ValueOf(&pcs.ReservesExtractor{}) })
 	registry.Register("pcs_reserves_state_builder", func(imp *imports.Imports) reflect.Value { return reflect.ValueOf(&pcs.ReservesStateBuilder{}) })
 	registry.Register("pcs_derived_prices_state_builder", func(imp *imports.Imports) reflect.Value {
