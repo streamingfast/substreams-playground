@@ -22,4 +22,4 @@ require (
 	google.golang.org/protobuf v1.27.1
 )
 
-replace github.com/streamingfast/substreams => /Users/abourget/sf/substreams
+replace github.com/streamingfast/substreams => /Users/cbillett/devel/sf/substreams
