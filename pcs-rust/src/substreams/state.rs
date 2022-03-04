@@ -1,17 +1,7 @@
+use crate::pb::eth::BigInt;
 use crate::substreams::externs;
 use crate::substreams::memory::memory;
-
-pub fn set(ord: i64, key: String, value: Vec<u8>) {
-    unsafe {
-        externs::state::set(
-            ord,
-            key.as_ptr(),
-            key.len() as u32,
-            value.as_ptr(),
-            value.len() as u32,
-        )
-    }
-}
+use num_bigint::BigUint;
 
 pub fn get_at(store_idx: u32, ord: i64, key: String) -> Option<Vec<u8>> {
     unsafe {
@@ -67,5 +57,30 @@ pub fn get_first(store_idx: u32, key: String) -> Option<Vec<u8>> {
         } else {
             None
         };
+    }
+}
+
+pub fn set(ord: i64, key: String, value: Vec<u8>) {
+    unsafe {
+        externs::state::set(
+            ord,
+            key.as_ptr(),
+            key.len() as u32,
+            value.as_ptr(),
+            value.len() as u32,
+        )
+    }
+}
+
+pub fn sum_big_int(ord: i64, key: String, value: BigInt) {
+    let data = value.bytes();
+    unsafe {
+        externs::state::sum_big_int(
+            ord,
+            key.as_ptr(),
+            key.len() as u32,
+            data.as_ptr(),
+            data.len() as u32,
+        )
     }
 }

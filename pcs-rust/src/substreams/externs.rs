@@ -17,11 +17,9 @@ extern "C" {
     pub fn info(ptr: *const u8, len: usize);
 }
 
-
 pub mod state {
     #[link(wasm_import_module = "state")]
     extern "C" {
-        pub fn set(ord: i64, key_ptr: *const u8, key_len: u32, value_ptr: *const u8, value_len: u32);
         pub fn get_first(store_idx: u32, key_ptr: *const u8, key_len: u32, output_ptr: u32) -> u32;
         pub fn get_last(store_idx: u32, key_ptr: *const u8, key_len: u32, output_ptr: u32) -> u32;
         pub fn get_at(
@@ -31,5 +29,21 @@ pub mod state {
             key_len: u32,
             output_ptr: u32,
         ) -> u32;
+
+        pub fn set(
+            ord: i64,
+            key_ptr: *const u8,
+            key_len: u32,
+            value_ptr: *const u8,
+            value_len: u32,
+        );
+
+        pub fn sum_big_int(
+            ord: i64,
+            key_ptr: *const u8,
+            key_len: u32,
+            value_ptr: *const u8,
+            value_len: u32,
+        );
     }
 }
