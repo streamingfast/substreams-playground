@@ -75,7 +75,7 @@ pub extern "C" fn build_pairs_state(pairs_ptr: *mut u8, pairs_len: usize) {
 pub extern "C" fn map_reserves(block_ptr: *mut u8, block_len: usize, pairs_store_idx: u32) {
     register_panic_hook();
 
-    let blk: eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
+    let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
 
     let mut reserves = pb::pcs::Reserves { reserves: vec![] };
 
