@@ -1,4 +1,3 @@
-use crate::pb::eth::BigInt;
 use crate::substreams::externs;
 use crate::substreams::memory::memory;
 use num_bigint::BigUint;
@@ -72,8 +71,8 @@ pub fn set(ord: i64, key: String, value: Vec<u8>) {
     }
 }
 
-pub fn sum_big_int(ord: i64, key: String, value: BigInt) {
-    let data = value.bytes();
+pub fn sum_big_int(ord: i64, key: String, value: BigUint) {
+    let data = value.to_bytes_le();
     unsafe {
         externs::state::sum_big_int(
             ord,
