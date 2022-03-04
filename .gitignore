@@ -21,3 +21,4 @@ secrets.go
 /deploy/exchange
 
 rpc-cache
+localblocks
