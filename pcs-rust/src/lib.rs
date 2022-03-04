@@ -1,9 +1,10 @@
 mod eth;
 mod pb;
 mod substreams;
-use substreams::{log, proto, state};
+
 use eth::decode_address;
 use hex;
+use substreams::{log, proto, state};
 
 #[no_mangle]
 pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
