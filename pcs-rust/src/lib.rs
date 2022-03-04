@@ -5,7 +5,7 @@ mod memory;
 mod proto;
 mod state;
 mod substream;
-mod pcs;
+mod pb;
 
 use crate::eth::decode_address;
 use crate::substream::register_panic_hook;
@@ -15,9 +15,9 @@ use hex;
 pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
     register_panic_hook();
 
-    let blk: eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
+    let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
 
-    let mut pairs = pcs::Pairs { pairs: vec![] };
+    let mut pairs = pb::pcs::Pairs { pairs: vec![] };
 
     let msg = format!(
         "transaction traces count: {}, len: {}",
@@ -45,7 +45,7 @@ pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
             let pair_token1 = decode_address(&log.topics[2]);
             let pair_addr = decode_address(&log.data);
 
-            pairs.pairs.push(pcs::Pair {
+            pairs.pairs.push(pb::pcs::Pair {
                 address: pair_addr.clone(),
                 token0: pair_token0,
                 token1: pair_token1,
@@ -63,7 +63,7 @@ pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
 pub extern "C" fn build_pairs_state(pairs_ptr: *mut u8, pairs_len: usize) {
     register_panic_hook();
 
-    let pairs: pcs::Pairs = proto::decode_ptr(pairs_ptr, pairs_len).unwrap();
+    let pairs: pb::pcs::Pairs = proto::decode_ptr(pairs_ptr, pairs_len).unwrap();
 
     for pair in pairs.pairs {
         let key = format!("pair:{}", pair.address);
@@ -77,7 +77,7 @@ pub extern "C" fn map_reserves(block_ptr: *mut u8, block_len: usize, pairs_store
 
     let blk: eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
 
-    let mut reserves = pcs::Reserves { reserves: vec![] };
+    let mut reserves = pb::pcs::Reserves { reserves: vec![] };
 
     for trx in blk.transaction_traces {
         for log in trx.receipt.unwrap().logs {
@@ -92,13 +92,13 @@ pub extern "C" fn map_reserves(block_ptr: *mut u8, block_len: usize, pairs_store
                     }
 
                     // Continue handling a Pair's Sync event
-                    let pair: pcs::Pair = proto::decode(pair_bytes).unwrap();
+                    let pair: pb::pcs::Pair = proto::decode(pair_bytes).unwrap();
 
                     // TODO: Read the log's Reserve0, and Reserve1
                     // TODO: take the `pair.token0/1.decimals` and add the decimal point on that Reserve0
                     // TODO: do floating point calculations
 
-                    reserves.reserves.push(pcs::Reserve {
+                    reserves.reserves.push(pb::pcs::Reserve {
                         pair_address: pair.address,
                         reserve0: "123".to_string(),
                         reserve1: "234".to_string(),

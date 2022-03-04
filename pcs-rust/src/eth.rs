@@ -1,7 +1,3 @@
-#[path = "./pb/dfuse.ethereum.codec.v1.rs"]
-mod codec;
-pub use codec::*;
-
 pub fn decode_address(input: &Vec<u8>) -> String {
     if input.len() > 40 {
         "larger".to_string()
