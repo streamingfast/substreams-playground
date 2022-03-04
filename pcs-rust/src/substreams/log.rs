@@ -1,4 +1,4 @@
-use crate::externs;
+use crate::substreams::externs;
 
 pub fn debug(msg: String) {
     unsafe {

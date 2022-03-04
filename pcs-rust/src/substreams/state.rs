@@ -1,4 +1,4 @@
-use crate::memory::memory;
+use crate::substreams::memory::memory;
 use std::convert::TryInto;
 use std::slice;
 

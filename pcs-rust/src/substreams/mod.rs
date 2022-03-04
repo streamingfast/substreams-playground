@@ -1,4 +1,9 @@
-use crate::{externs, proto};
+mod externs;
+
+pub mod proto;
+pub mod log;
+pub mod state;
+mod memory;
 
 pub fn output<M: prost::Message>(msg: &M) {
     let (ptr, len) = proto::encode_to_ptr(msg).unwrap();

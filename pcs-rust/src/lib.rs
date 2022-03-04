@@ -1,19 +1,13 @@
 mod eth;
-mod externs;
-mod log;
-mod memory;
-mod proto;
-mod state;
-mod substream;
 mod pb;
-
-use crate::eth::decode_address;
-use crate::substream::register_panic_hook;
+mod substreams;
+use substreams::{log, proto, state};
+use eth::decode_address;
 use hex;
 
 #[no_mangle]
 pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
-    register_panic_hook();
+    substreams::register_panic_hook();
 
     let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
 
@@ -56,12 +50,12 @@ pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
         }
     }
 
-    substream::output(&pairs);
+    substreams::output(&pairs);
 }
 
 #[no_mangle]
 pub extern "C" fn build_pairs_state(pairs_ptr: *mut u8, pairs_len: usize) {
-    register_panic_hook();
+    substreams::register_panic_hook();
 
     let pairs: pb::pcs::Pairs = proto::decode_ptr(pairs_ptr, pairs_len).unwrap();
 
@@ -73,7 +67,7 @@ pub extern "C" fn build_pairs_state(pairs_ptr: *mut u8, pairs_len: usize) {
 
 #[no_mangle]
 pub extern "C" fn map_reserves(block_ptr: *mut u8, block_len: usize, pairs_store_idx: u32) {
-    register_panic_hook();
+    substreams::register_panic_hook();
 
     let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
 
@@ -109,5 +103,5 @@ pub extern "C" fn map_reserves(block_ptr: *mut u8, block_len: usize, pairs_store
         }
     }
 
-    substream::output(&reserves)
+    substreams::output(&reserves)
 }
