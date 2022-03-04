@@ -1,21 +1,15 @@
-mod eth_utils;
+mod eth;
 mod externs;
 mod log;
 mod memory;
 mod proto;
 mod state;
 mod substream;
+mod pcs;
 
-use crate::eth_utils::decode_address;
+use crate::eth::decode_address;
 use crate::substream::register_panic_hook;
 use hex;
-
-pub mod eth {
-    include!(concat!(env!("OUT_DIR"), "/dfuse.ethereum.codec.v1.rs"));
-}
-pub mod pcs {
-    include!(concat!(env!("OUT_DIR"), "/pcs.types.v1.rs"));
-}
 
 #[no_mangle]
 pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
