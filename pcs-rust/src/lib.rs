@@ -1,6 +1,5 @@
 mod eth;
 mod pb;
-mod substreams;
 
 use eth::decode_address;
 use hex;
