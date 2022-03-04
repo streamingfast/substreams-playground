@@ -4,12 +4,12 @@ mod substreams;
 
 use eth::decode_address;
 use hex;
+
 use substreams::{log, proto, state};
 
 #[no_mangle]
 pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
     substreams::register_panic_hook();
-
     let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
 
     let mut pairs = pb::pcs::Pairs { pairs: vec![] };

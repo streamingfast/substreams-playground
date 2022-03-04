@@ -1,9 +1,8 @@
 mod externs;
-
-pub mod proto;
 pub mod log;
-pub mod state;
 mod memory;
+pub mod proto;
+pub mod state;
 
 pub fn output<M: prost::Message>(msg: &M) {
     let (ptr, len) = proto::encode_to_ptr(msg).unwrap();
