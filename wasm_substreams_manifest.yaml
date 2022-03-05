@@ -12,7 +12,7 @@ streams:
   kind: Mapper
   code:
     file: ./pcs-rust/pkg/pcs_substreams_bg.wasm
-    entrypoint:  map_pairs
+    entrypoint: map_pairs
   inputs:
     - proto:sf.ethereum.codec.v1.Block
   output:

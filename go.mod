@@ -14,7 +14,7 @@ require (
 	github.com/streamingfast/jsonpb v0.0.0-20210811021341-3670f0aa02d0
 	github.com/streamingfast/logging v0.0.0-20220222131651-12c3943aac2e
 	github.com/streamingfast/pbgo v0.0.6-0.20220228185940-1bbaafec7d8a
-	github.com/streamingfast/substreams v0.0.0-20220304192644-1154df000f66
+	github.com/streamingfast/substreams v0.0.0-20220305053245-3f31be3ee11a
 	github.com/stretchr/testify v1.7.1-0.20210427113832-6241f9ab9942
 	go.uber.org/zap v1.21.0
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
@@ -104,3 +104,5 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
+
+//replace github.com/streamingfast/substreams => /Users/abourget/sf/substreams
