@@ -4,6 +4,13 @@
 
 This repo holds the `exchange` substream-based "pseudo-subgraph" from PancakeSwap.
 
+## Build and install wasm-pack
+```bash
+git clone https://github.com/rustwasm/wasm-pack.git $somedir
+cd $somedir && cargo build --release
+export PATH=$PATH:$somedir/target/release
+```
+
 ## Build wasm
 ```bash
 go generate ./...
