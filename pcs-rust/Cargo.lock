@@ -278,6 +278,7 @@ dependencies = [
 [[package]]
 name = "substreams"
 version = "0.1.0"
+source = "git+https://github.com/streamingfast/substreams?branch=develop#32d37f028f9ef3864ea18b222aecac4192c671be"
 dependencies = [
  "hex",
  "num-bigint",
