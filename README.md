@@ -29,19 +29,19 @@ go install -v ./cmd/substreams-pcs
 Run the native version:
 
 ```bash
-substerams-pcs native_substreams_manifest.yaml pairs 300
-substerams-pcs native_substreams_manifest.yaml pairs 10000 -s 6811000
-substerams-pcs native_substreams_manifest.yaml pairs 10000 -s 6821000
-substerams-pcs native_substreams_manifest.yaml pairs 2000 -s 6831000
+substreams-pcs native_substreams_manifest.yaml pairs 300
+substreams-pcs native_substreams_manifest.yaml pairs 10000 -s 6811000
+substreams-pcs native_substreams_manifest.yaml pairs 10000 -s 6821000
+substreams-pcs native_substreams_manifest.yaml pairs 2000 -s 6831000
 ```
 
 Run the WASM version:
 
 ```bash
-substerams-pcs wasm_substreams_manifest.yaml pairs 300
-substerams-pcs wasm_substreams_manifest.yaml pairs 10000 -s 6811000
-substerams-pcs wasm_substreams_manifest.yaml pairs 10000 -s 6821000
-substerams-pcs wasm_substreams_manifest.yaml pairs 2000 -s 6831000
+substreams-pcs wasm_substreams_manifest.yaml pairs 300
+substreams-pcs wasm_substreams_manifest.yaml pairs 10000 -s 6811000
+substreams-pcs wasm_substreams_manifest.yaml pairs 10000 -s 6821000
+substreams-pcs wasm_substreams_manifest.yaml pairs 2000 -s 6831000
 ```
 
 
