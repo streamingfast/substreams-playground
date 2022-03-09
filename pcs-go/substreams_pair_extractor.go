@@ -103,7 +103,7 @@ func (p *PairExtractor) getToken(addr eth.Address) (*ERC20Token, error) {
 
 	nameResponse := resps.Responses[1]
 	if !nameResponse.Failed {
-		decoded, err := decimalsMethod.DecodeOutput(nameResponse.Raw)
+		decoded, err := nameMethod.DecodeOutput(nameResponse.Raw)
 		if err != nil {
 			return nil, fmt.Errorf("decoding token name() response: %w", err)
 		}
@@ -114,7 +114,7 @@ func (p *PairExtractor) getToken(addr eth.Address) (*ERC20Token, error) {
 
 	symbolResponse := resps.Responses[2]
 	if !symbolResponse.Failed {
-		decoded, err := decimalsMethod.DecodeOutput(symbolResponse.Raw)
+		decoded, err := symbolMethod.DecodeOutput(symbolResponse.Raw)
 		if err != nil {
 			return nil, fmt.Errorf("decoding token symbol() response: %w", err)
 		}
