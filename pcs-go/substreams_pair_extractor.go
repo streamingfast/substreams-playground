@@ -2,13 +2,10 @@ package pcs
 
 import (
 	"bytes"
-	"fmt"
-	"math/big"
 
 	eth "github.com/streamingfast/eth-go"
 	pbcodec "github.com/streamingfast/substream-pancakeswap/pb/sf/ethereum/codec/v1"
 	imports "github.com/streamingfast/substreams/native-imports"
-	ssrpc "github.com/streamingfast/substreams/rpc"
 )
 
 type PairExtractor struct {
@@ -68,52 +65,54 @@ func (p *PairExtractor) getToken(addr eth.Address) (*ERC20Token, error) {
 	// 	Name:     "Bitcoin",
 	// 	Symbol:   "BSV",
 	// }, nil
-	calls := []*ssrpc.RPCCall{
-		{
-			ToAddr:          addr.Pretty(),
-			MethodSignature: "decimals() (uint256)",
-		},
-		{
-			ToAddr:          addr.Pretty(),
-			MethodSignature: "name() (string)",
-		},
-		{
-			ToAddr:          addr.Pretty(),
-			MethodSignature: "symbol() (string)",
-		},
-		//		{
-		//			ToAddr:          addr.Pretty(),
-		//			MethodSignature: "totalSupply() (uint256)",
-		//		},
-	}
+	//calls := []*ssrpc.RPCCall{
+	//	{
+	//		ToAddr:          addr.Pretty(),
+	//		MethodSignature: "decimals() (uint256)",
+	//	},
+	//	{
+	//		ToAddr:          addr.Pretty(),
+	//		MethodSignature: "name() (string)",
+	//	},
+	//	{
+	//		ToAddr:          addr.Pretty(),
+	//		MethodSignature: "symbol() (string)",
+	//	},
+	//	//		{
+	//	//			ToAddr:          addr.Pretty(),
+	//	//			MethodSignature: "totalSupply() (uint256)",
+	//	//		},
+	//}
 
-	resps, err := p.RPC(calls)
-	if err != nil {
-		return nil, fmt.Errorf("rpc call error: %w", err)
-	}
+	panic("this is now broken, rpc needs reimplement")
 
-	token := &ERC20Token{Address: addr.Pretty()}
+	//resps, err := p.RPC(calls)
+	//if err != nil {
+	//	return nil, fmt.Errorf("rpc call error: %w", err)
+	//}
 
-	decimalsResponse := resps[0]
-	if decimalsResponse.CallError == nil && decimalsResponse.DecodingError == nil {
-		token.Decimals = int64(decimalsResponse.Decoded[0].(*big.Int).Uint64())
-	}
+	//token := &ERC20Token{Address: addr.Pretty()}
 
-	nameResponse := resps[1]
-	if nameResponse.CallError == nil && nameResponse.DecodingError == nil {
-		token.Name = nameResponse.Decoded[0].(string)
-	} else {
-		token.Name = "unknown"
-	}
+	//decimalsResponse := resps[0]
+	//if decimalsResponse.CallError == nil && decimalsResponse.DecodingError == nil {
+	//	token.Decimals = int64(decimalsResponse.Decoded[0].(*big.Int).Uint64())
+	//}
 
-	symbolResponse := resps[2]
-	if symbolResponse.CallError == nil && symbolResponse.DecodingError == nil {
-		token.Symbol = symbolResponse.Decoded[0].(string)
-	} else {
-		token.Symbol = "unknown"
-	}
+	//nameResponse := resps[1]
+	//if nameResponse.CallError == nil && nameResponse.DecodingError == nil {
+	//	token.Name = nameResponse.Decoded[0].(string)
+	//} else {
+	//	token.Name = "unknown"
+	//}
 
-	return token, nil
+	//symbolResponse := resps[2]
+	//if symbolResponse.CallError == nil && symbolResponse.DecodingError == nil {
+	//	token.Symbol = symbolResponse.Decoded[0].(string)
+	//} else {
+	//	token.Symbol = "unknown"
+	//}
+
+	//return token, nil
 }
 
 func ssCodecLogToEthLog(l *pbcodec.Log) *eth.Log {
