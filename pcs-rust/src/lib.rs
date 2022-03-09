@@ -37,12 +37,12 @@ pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
             // topics[0] is the event signature
             let pair_token0 = decode_address(&log.topics[1]);
             let pair_token1 = decode_address(&log.topics[2]);
-            let pair_addr = decode_address(&log.data);
+            let pair_addr = decode_address(&log.data.as_slice());
 
             pairs.pairs.push(pb::pcs::Pair {
-                address: pair_addr.clone(),
-                token0: pair_token0,
-                token1: pair_token1,
+                address: pair_addr.to_string(),
+                token0: pair_token0.to_string(),
+                token1: pair_token1.to_string(),
                 creation_transaction_id: hex::encode(&trx.hash),
                 block_num: blk.number,
                 log_ordinal: log.block_index as u64,
@@ -106,18 +106,30 @@ pub extern "C" fn map_reserves(block_ptr: *mut u8, block_len: usize, pairs_store
     substreams::output(&reserves)
 }
 
-
 #[no_mangle]
-pub extern "C" fn map_to_database(reserves_ptr: *mut u8, reserves_len: usize, pairs_deltas_ptr: *mut u8, pairs_deltas_len: usize, pairs_store_idx: u32) {
+pub extern "C" fn map_to_database(
+    reserves_ptr: *mut u8,
+    reserves_len: usize,
+    pairs_deltas_ptr: *mut u8,
+    pairs_deltas_len: usize,
+    pairs_store_idx: u32,
+) {
     substreams::register_panic_hook();
 
     let reserves: pb::pcs::Reserves = proto::decode_ptr(reserves_ptr, reserves_len).unwrap();
-    let pair_deltas: pb::substreams::StoreDeltas = proto::decode_ptr(pairs_deltas_ptr, pairs_deltas_len).unwrap();
+    let pair_deltas: pb::substreams::StoreDeltas =
+        proto::decode_ptr(pairs_deltas_ptr, pairs_deltas_len).unwrap();
 
     for reserve in reserves.reserves {
-	log::println(format!("Reserve: {} {} {} {}", reserve.pair_address, reserve.log_ordinal, reserve.reserve0, reserve.reserve1));
+        log::println(format!(
+            "Reserve: {} {} {} {}",
+            reserve.pair_address, reserve.log_ordinal, reserve.reserve0, reserve.reserve1
+        ));
     }
     for delta in pair_deltas.deltas {
-	log::println(format!("Delta: {} {} {}", delta.operation, delta.key, delta.ordinal));	
+        log::println(format!(
+            "Delta: {} {} {}",
+            delta.operation, delta.key, delta.ordinal
+        ));
     }
 }
