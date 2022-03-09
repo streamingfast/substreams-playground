@@ -58,22 +58,39 @@ For `native_substreams_manifest.yaml`:
 
 ```mermaid
 graph TD;
-  sf.ethereum.types.v1.Block -- "proto:sf.ethereum.types.v1.Block" --> pair_extractor
-  pair_extractor -- "stream:pair_extractor" --> pairs
-  sf.ethereum.types.v1.Block -- "proto:sf.ethereum.types.v1.Block" --> reserves_extractor
-  pairs -- "store:pairs" --> reserves_extractor
-  reserves_extractor -- "stream:reserves_extractor" --> reserves
-  pairs -- "store:pairs" --> reserves
-  reserves_extractor -- "stream:reserves_extractor" --> prices
-  pairs -- "store:pairs" --> prices
-  reserves -- "store:reserves" --> prices
-  sf.ethereum.types.v1.Block -- "proto:sf.ethereum.types.v1.Block" --> mint_burn_swaps_extractor
-  pairs -- "store:pairs" --> mint_burn_swaps_extractor
-  prices -- "store:prices" --> mint_burn_swaps_extractor
-  pair_extractor -- "stream:pair_extractor" --> totals
-  mint_burn_swaps_extractor -- "stream:mint_burn_swaps_extractor" --> totals
-  sf.ethereum.types.v1.Block -- "proto:sf.ethereum.types.v1.Block" --> volumes
-  mint_burn_swaps_extractor -- "stream:mint_burn_swaps_extractor" --> volumes
+  sf.ethereum.type.v1.Block -- "source:sf.ethereum.type.v1.Block" --> block_to_pairs
+  block_to_pairs -- "map:block_to_pairs" --> pairs
+  pairs -- "store:pairs:deltas" --> pairs
+  sf.ethereum.type.v1.Block -- "source:sf.ethereum.type.v1.Block" --> block_to_reserves
+  pairs -- "store:pairs:get" --> block_to_reserves
+  block_to_reserves -- "map:block_to_reserves" --> reserves
+  pairs -- "store:pairs:get" --> reserves
+  block_to_reserves -- "map:block_to_reserves" --> prices
+  pairs -- "store:pairs:get" --> prices
+  reserves -- "store:reserves:get" --> prices
+  sf.ethereum.type.v1.Block -- "source:sf.ethereum.type.v1.Block" --> mint_burn_swaps_extractor
+  pairs -- "store:pairs:get" --> mint_burn_swaps_extractor
+  prices -- "store:prices:get" --> mint_burn_swaps_extractor
+  block_to_pairs -- "map:block_to_pairs" --> totals
+  mint_burn_swaps_extractor -- "map:mint_burn_swaps_extractor" --> totals
+  sf.ethereum.type.v1.Block -- "source:sf.ethereum.type.v1.Block" --> volumes
+  mint_burn_swaps_extractor -- "map:mint_burn_swaps_extractor" --> volumes
+  volumes -- "store:volumes:get" --> database_output
+  volumes -- "store:volumes:deltas" --> database_output
+  mint_burn_swaps_extractor -- "map:mint_burn_swaps_extractor" --> database_output
+```
+
+For `wasm_substreams_manifest.yaml`:
+
+```mermaid
+graph TD;
+  sf.ethereum.type.v1.Block -- "source:sf.ethereum.type.v1.Block" --> pair_extractor
+  pair_extractor -- "map:pair_extractor" --> pairs
+  sf.ethereum.type.v1.Block -- "source:sf.ethereum.type.v1.Block" --> reserves_extractor
+  pairs -- "store:pairs:get" --> reserves_extractor
+  reserves_extractor -- "map:reserves_extractor" --> db_out
+  pairs -- "store:pairs:deltas" --> db_out
+  pairs -- "store:pairs:get" --> db_out
 ```
 
 ## References

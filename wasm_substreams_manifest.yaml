@@ -36,20 +36,20 @@ modules:
     entrypoint: map_reserves
   inputs:
     - source: sf.ethereum.type.v1.Block
-    - store: pairs
+    #- store: pairs
   output:
     type: proto:pcs.types.v1.Reserves
 
-- name: db_out
-  kind: map
-  code:
-    file: ./pcs-rust/pkg/pcs_substreams_bg.wasm
-    entrypoint: map_to_database
-  inputs:
-    - map: reserves_extractor
-    - store: pairs
-      mode: deltas
-    - store: pairs ## Expose `get_at`, `get_first` and `get_last`
-      mode: get
-  output:
-    type: proto:sf.substreams.v1.DebeziumCDC
+# - name: db_out
+#   kind: map
+#   code:
+#     file: ./pcs-rust/pkg/pcs_substreams_bg.wasm
+#     entrypoint: map_to_database
+#   inputs:
+#     - map: reserves_extractor
+#     - store: pairs
+#       mode: deltas
+#     - store: pairs ## Expose `get_at`, `get_first` and `get_last`
+#       mode: get
+#   output:
+#     type: proto:sf.substreams.v1.DebeziumCDC

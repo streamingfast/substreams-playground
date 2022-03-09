@@ -66,7 +66,7 @@ pub extern "C" fn build_pairs_state(pairs_ptr: *mut u8, pairs_len: usize) {
 }
 
 #[no_mangle]
-pub extern "C" fn map_reserves(block_ptr: *mut u8, block_len: usize, pairs_store_idx: u32) {
+pub extern "C" fn map_reserves(block_ptr: *mut u8, block_len: usize) { // , pairs_store_idx: u32) {
     substreams::register_panic_hook();
 
     let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
