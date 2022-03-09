@@ -5,7 +5,7 @@ codeType: native
 genesisBlock: 6809737
 
 protoFiles:
-- ./pancakeswap.proto
+- ./proto/pcs.proto
 
 modules:
 - name: block_to_pairs
@@ -23,8 +23,6 @@ modules:
     native: pcs_pairs_state_builder
   inputs:
     - map: block_to_pairs
-    - store: pairs
-      mode: deltas
   output:
     updatePolicy: replace
     valueType: string

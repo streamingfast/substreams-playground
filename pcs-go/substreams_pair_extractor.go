@@ -2,10 +2,13 @@ package pcs
 
 import (
 	"bytes"
+	"fmt"
+	"math/big"
 
 	eth "github.com/streamingfast/eth-go"
 	pbcodec "github.com/streamingfast/substream-pancakeswap/pb/sf/ethereum/codec/v1"
 	imports "github.com/streamingfast/substreams/native-imports"
+	pbsubstreams "github.com/streamingfast/substreams/pb/sf/ethereum/substreams/v1"
 )
 
 type PairExtractor struct {
@@ -58,6 +61,13 @@ func (p *PairExtractor) Map(block *pbcodec.Block) (pairs PCSPairs, err error) {
 	return
 }
 
+var decimalsMethod = eth.MustNewMethodDef("decimals() (uint256)")
+var decimalsMethodSig = decimalsMethod.MethodID()
+var nameMethod = eth.MustNewMethodDef("name() (string)")
+var nameMethodSig = nameMethod.MethodID()
+var symbolMethod = eth.MustNewMethodDef("symbol() (string)")
+var symbolMethodSig = symbolMethod.MethodID()
+
 func (p *PairExtractor) getToken(addr eth.Address) (*ERC20Token, error) {
 	// return &ERC20Token{
 	// 	Address:  addr.Pretty(),
@@ -65,54 +75,60 @@ func (p *PairExtractor) getToken(addr eth.Address) (*ERC20Token, error) {
 	// 	Name:     "Bitcoin",
 	// 	Symbol:   "BSV",
 	// }, nil
-	//calls := []*ssrpc.RPCCall{
-	//	{
-	//		ToAddr:          addr.Pretty(),
-	//		MethodSignature: "decimals() (uint256)",
-	//	},
-	//	{
-	//		ToAddr:          addr.Pretty(),
-	//		MethodSignature: "name() (string)",
-	//	},
-	//	{
-	//		ToAddr:          addr.Pretty(),
-	//		MethodSignature: "symbol() (string)",
-	//	},
-	//	//		{
-	//	//			ToAddr:          addr.Pretty(),
-	//	//			MethodSignature: "totalSupply() (uint256)",
-	//	//		},
-	//}
+	addrBytes := addr.Bytes()
+	calls := &pbsubstreams.RpcCalls{
+		Calls: []*pbsubstreams.RpcCall{
+			{
+				ToAddr:          addrBytes,
+				MethodSignature: decimalsMethodSig,
+			},
+			{
+				ToAddr:          addrBytes,
+				MethodSignature: nameMethodSig,
+			},
+			{
+				ToAddr:          addrBytes,
+				MethodSignature: symbolMethodSig,
+			},
+	}
 
-	panic("this is now broken, rpc needs reimplement")
+	resps := p.RPC(calls)
 
-	//resps, err := p.RPC(calls)
-	//if err != nil {
-	//	return nil, fmt.Errorf("rpc call error: %w", err)
-	//}
+	token := &ERC20Token{Address: addr.Pretty()}
 
-	//token := &ERC20Token{Address: addr.Pretty()}
+	decimalsResponse := resps.Responses[0]
+	if !decimalsResponse.Failed {
+		decoded, err := decimalsMethod.DecodeOutput(decimalsResponse.Raw)
+		if err != nil {
+			return nil, fmt.Errorf("decoding token decimals() response: %w", err)
+		}
 
-	//decimalsResponse := resps[0]
-	//if decimalsResponse.CallError == nil && decimalsResponse.DecodingError == nil {
-	//	token.Decimals = int64(decimalsResponse.Decoded[0].(*big.Int).Uint64())
-	//}
+		token.Decimals = int64(decoded[0].(*big.Int).Uint64())
+	}
 
-	//nameResponse := resps[1]
-	//if nameResponse.CallError == nil && nameResponse.DecodingError == nil {
-	//	token.Name = nameResponse.Decoded[0].(string)
-	//} else {
-	//	token.Name = "unknown"
-	//}
+	nameResponse := resps.Responses[1]
+	if !nameResponse.Failed {
+		decoded, err := decimalsMethod.DecodeOutput(nameResponse.Raw)
+		if err != nil {
+			return nil, fmt.Errorf("decoding token name() response: %w", err)
+		}
+		token.Name = decoded[0].(string)
+	} else {
+		token.Name = "unknown"
+	}
 
-	//symbolResponse := resps[2]
-	//if symbolResponse.CallError == nil && symbolResponse.DecodingError == nil {
-	//	token.Symbol = symbolResponse.Decoded[0].(string)
-	//} else {
-	//	token.Symbol = "unknown"
-	//}
+	symbolResponse := resps.Responses[2]
+	if !symbolResponse.Failed {
+		decoded, err := decimalsMethod.DecodeOutput(symbolResponse.Raw)
+		if err != nil {
+			return nil, fmt.Errorf("decoding token symbol() response: %w", err)
+		}
+		token.Symbol = decoded[0].(string)
+	} else {
+		token.Symbol = "unknown"
+	}
 
-	//return token, nil
+	return token, nil
 }
 
 func ssCodecLogToEthLog(l *pbcodec.Log) *eth.Log {
