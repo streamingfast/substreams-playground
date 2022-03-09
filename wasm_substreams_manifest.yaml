@@ -2,13 +2,13 @@ specVersion: 0.1.0
 description: Test WASM substream
 codeType: wasm/rust-v1
 
-genesisBlock: 6809737
+startBlock: 6809737
 
 protoFiles:
-- ./pancakeswap.proto
+- ./proto/pcs.proto
 
 modules:
-- name: pair_extractor
+- name: block_to_pairs
   kind: map
   code:
     file: ./pcs-rust/pkg/pcs_substreams_bg.wasm
@@ -16,7 +16,7 @@ modules:
   inputs:
     - source: sf.ethereum.type.v1.Block
   output:
-    type: proto:pcs.types.v1.Pairs
+    type: proto:pcs.type.v1.Pairs
 
 - name: pairs
   kind: store
@@ -24,12 +24,12 @@ modules:
     file: ./pcs-rust/pkg/pcs_substreams_bg.wasm
     entrypoint: build_pairs_state
   inputs:
-    - map: pair_extractor
+    - map: block_to_pairs
   output:
     updatePolicy: replace
     valueType: bytes
 
-- name: reserves_extractor
+- name: block_to_reserves
   kind: map
   code:
     file:  ./pcs-rust/pkg/pcs_substreams_bg.wasm
@@ -38,7 +38,7 @@ modules:
     - source: sf.ethereum.type.v1.Block
     - store: pairs
   output:
-    type: proto:pcs.types.v1.Reserves
+    type: proto:pcs.type.v1.Reserves
 
 # - name: db_out
 #   kind: map

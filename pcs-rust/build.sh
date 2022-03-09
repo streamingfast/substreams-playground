@@ -1,4 +1,4 @@
 #!/bin/bash
 
-PROTOC_INCLUDE=. wasm-pack build --target nodejs
+PROTOC_INCLUDE=.. wasm-pack build --target nodejs
 
