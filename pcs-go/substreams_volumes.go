@@ -9,7 +9,7 @@ import (
 
 type PCSVolume24hStateBuilder struct{}
 
-func (p *PCSVolume24hStateBuilder) BuildState(block *pbcodec.Block, evs PCSEvents, volumes state.SumBigFloatSetter) error {
+func (p *PCSVolume24hStateBuilder) Store(block *pbcodec.Block, evs PCSEvents, volumes state.SumBigFloatSetter) error {
 	timestamp := block.MustTime().Unix()
 	dayId := timestamp / 86400
 	//prevDayId := dayId - 1

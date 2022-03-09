@@ -52,5 +52,4 @@ modules:
     - store: pairs ## Expose `get_at`, `get_first` and `get_last`
       mode: get
   output:
-    updatePolicy: replace
-    valueType: bytes
+    type: proto:sf.substreams.v1.DebeziumCDC

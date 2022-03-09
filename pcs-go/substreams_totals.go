@@ -9,7 +9,7 @@ import (
 
 type TotalsStateBuilder struct{}
 
-func (p *TotalsStateBuilder) BuildState(pairs PCSPairs, events PCSEvents /* burnEvents, mintEvents */, totals state.SumInt64Setter) error {
+func (p *TotalsStateBuilder) Store(pairs PCSPairs, events PCSEvents /* burnEvents, mintEvents */, totals state.SumInt64Setter) error {
 	if len(pairs) == 0 && len(events) == 0 {
 		return nil
 	}

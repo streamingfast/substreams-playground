@@ -11,11 +11,11 @@ import (
 
 type DerivedPricesStateBuilder struct{}
 
-func (p *DerivedPricesStateBuilder) BuildState(reserveUpdates PCSReserveUpdates, pairs state.Reader, reserves state.Reader, derivedPrices *state.Builder) error {
+func (p *DerivedPricesStateBuilder) Store(reserveUpdates PCSReserveUpdates, pairs state.Reader, reserves state.Reader, derivedPrices *state.Builder) error {
 	// TODO: could we get rid of `pairs` as a dependency, by packaging `Token0.Address` directly in the `ReserveUpdate` ?
 
 	for _, update := range reserveUpdates {
-		// TODO: cache those pairs we've already decoded in this `BuildState` run
+		// TODO: cache those pairs we've already decoded in this `Store` run
 		var pair *PCSPair
 		pairData, found := pairs.GetLast("pair:" + update.PairAddress)
 		if !found {

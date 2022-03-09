@@ -22,7 +22,7 @@ func NewPairsStateBuilder(imp *imports.Imports) *PairsStateBuilder { return &Pai
 
 // input: pbcodec.Block
 // output: STATE (path-to-storage, unique ID for storage)
-func (p *PairsStateBuilder) BuildState(pairs PCSPairs, pairsStore *state.Builder) error {
+func (p *PairsStateBuilder) Store(pairs PCSPairs, pairsStore *state.Builder) error {
 	for _, pair := range pairs {
 		jsonContent, err := json.Marshal(pair)
 		if err != nil {

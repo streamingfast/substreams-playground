@@ -10,9 +10,9 @@ import (
 
 type ReservesStateBuilder struct{}
 
-func (p *ReservesStateBuilder) BuildState(reserveUpdates PCSReserveUpdates, pairs state.Reader, reserves state.UpdateKeySetter) error {
+func (p *ReservesStateBuilder) Store(reserveUpdates PCSReserveUpdates, pairs state.Reader, reserves state.UpdateKeySetter) error {
 	for _, update := range reserveUpdates {
-		// TODO: cache those pairs we've already decoded in this `BuildState` run
+		// TODO: cache those pairs we've already decoded in this `Store` run
 		var pair *PCSPair
 		pairData, found := pairs.GetLast("pair:" + update.PairAddress)
 		if !found {
