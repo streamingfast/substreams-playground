@@ -30,25 +30,25 @@ gsutil -m cp gs://dfuseio-global-blocks-us/eth-bsc-mainnet/v1/000683* ./localblo
 Compile:
 
 ```bash
-go install -v ./cmd/substreams-pcs
+go install -v ./cmd/sseth
 ```
 
 Run the native version:
 
 ```bash
-substreams-pcs native_substreams_manifest.yaml pairs 300
-substreams-pcs native_substreams_manifest.yaml pairs 10000 -s 6811000
-substreams-pcs native_substreams_manifest.yaml pairs 10000 -s 6821000
-substreams-pcs native_substreams_manifest.yaml pairs 2000 -s 6831000
+sseth native_substreams_manifest.yaml pairs 300
+sseth native_substreams_manifest.yaml pairs 10000 -s 6811000
+sseth native_substreams_manifest.yaml pairs 10000 -s 6821000
+sseth native_substreams_manifest.yaml pairs 2000 -s 6831000
 ```
 
 Run the WASM version:
 
 ```bash
-substreams-pcs wasm_substreams_manifest.yaml pairs 300
-substreams-pcs wasm_substreams_manifest.yaml pairs 10000 -s 6811000
-substreams-pcs wasm_substreams_manifest.yaml pairs 10000 -s 6821000
-substreams-pcs wasm_substreams_manifest.yaml pairs 2000 -s 6831000
+sseth wasm_substreams_manifest.yaml pairs 300
+sseth wasm_substreams_manifest.yaml pairs 10000 -s 6811000
+sseth wasm_substreams_manifest.yaml pairs 10000 -s 6821000
+sseth wasm_substreams_manifest.yaml pairs 2000 -s 6831000
 ```
 
 
@@ -60,7 +60,6 @@ For `native_substreams_manifest.yaml`:
 graph TD;
   sf.ethereum.type.v1.Block -- "source:sf.ethereum.type.v1.Block" --> block_to_pairs
   block_to_pairs -- "map:block_to_pairs" --> pairs
-  pairs -- "store:pairs:deltas" --> pairs
   sf.ethereum.type.v1.Block -- "source:sf.ethereum.type.v1.Block" --> block_to_reserves
   pairs -- "store:pairs:get" --> block_to_reserves
   block_to_reserves -- "map:block_to_reserves" --> reserves
