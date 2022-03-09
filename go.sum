@@ -561,6 +561,8 @@ github.com/streamingfast/shutter v1.5.0 h1:NpzDYzj0HVpSiDJVO/FFSL6QIK/YKOxY0gJAt
 github.com/streamingfast/shutter v1.5.0/go.mod h1:B/T6efqdeMGbGwjzPS1ToXzYZI4kDzI5/u4I+7qbjY8=
 github.com/streamingfast/substreams v0.0.0-20220309205925-b606d303f0ff h1:3jCca0T7lvprGjy0iHGe6WKOhRZAZnAHQzg7Y7upKGI=
 github.com/streamingfast/substreams v0.0.0-20220309205925-b606d303f0ff/go.mod h1:AsMAySHZUdZLwqFRp7bCm9DLFH9SmOj+1G3TGj188XE=
+github.com/streamingfast/substreams v0.0.0-20220309225642-7a54d744f033 h1:Ty/w4jTxDCavC7d3+N/oge7pk+w3IQ1TEyhYJb9WtkU=
+github.com/streamingfast/substreams v0.0.0-20220309225642-7a54d744f033/go.mod h1:ELlXNkyHzR2++lhonDegVysJdPNXzfo5R+Q2A7yy3v8=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.1.1/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
