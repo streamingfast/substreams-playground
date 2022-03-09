@@ -22,3 +22,4 @@ secrets.go
 
 rpc-cache
 localblocks
+dist/
