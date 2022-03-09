@@ -549,7 +549,6 @@ github.com/streamingfast/logging v0.0.0-20220214194203-5c70c134fea8/go.mod h1:4G
 github.com/streamingfast/logging v0.0.0-20220222131651-12c3943aac2e/go.mod h1:4GdqELhZOXj4xwc4IaBmzofzdErGynnaSzuzxy0ZIBo=
 github.com/streamingfast/logging v0.0.0-20220304214715-bc750a74b424 h1:qKt1W13L7GXL3xqvD6z2ufSkIy/KDm9oGrfurypC78E=
 github.com/streamingfast/logging v0.0.0-20220304214715-bc750a74b424/go.mod h1:VlduQ80JcGJSargkRU4Sg9Xo63wZD/l8A5NC/Uo1/uU=
-github.com/streamingfast/merger v0.0.3-0.20220301162603-c0129b6f1ad4 h1:YDfb3CNhq2+eab3CZWViWV8cM7tKs3eoJ4Uz1hAJn5A=
 github.com/streamingfast/merger v0.0.3-0.20220301162603-c0129b6f1ad4/go.mod h1:QrzRRzU9o0yE2j4rxtulbLMDRhr4cBDDRUBgiE9l0hU=
 github.com/streamingfast/opaque v0.0.0-20210811180740-0c01d37ea308 h1:xlWSfi1BoPfsHtPb0VEHGUcAdBF208LUiFCwfaVPfLA=
 github.com/streamingfast/opaque v0.0.0-20210811180740-0c01d37ea308/go.mod h1:K1p8Bj/wG34KJvYzPUqtzpndffmpkrVY11u2hkyxCWQ=
@@ -559,8 +558,6 @@ github.com/streamingfast/pbgo v0.0.6-0.20220228185940-1bbaafec7d8a h1:PM5DDR1KTc
 github.com/streamingfast/pbgo v0.0.6-0.20220228185940-1bbaafec7d8a/go.mod h1:huKwfgTGFIFZMKSVbD5TywClM7zAeBUG/zePZMqvXQQ=
 github.com/streamingfast/shutter v1.5.0 h1:NpzDYzj0HVpSiDJVO/FFSL6QIK/YKOxY0gJAtyaTOgs=
 github.com/streamingfast/shutter v1.5.0/go.mod h1:B/T6efqdeMGbGwjzPS1ToXzYZI4kDzI5/u4I+7qbjY8=
-github.com/streamingfast/substreams v0.0.0-20220309205925-b606d303f0ff h1:3jCca0T7lvprGjy0iHGe6WKOhRZAZnAHQzg7Y7upKGI=
-github.com/streamingfast/substreams v0.0.0-20220309205925-b606d303f0ff/go.mod h1:AsMAySHZUdZLwqFRp7bCm9DLFH9SmOj+1G3TGj188XE=
 github.com/streamingfast/substreams v0.0.0-20220309225642-7a54d744f033 h1:Ty/w4jTxDCavC7d3+N/oge7pk+w3IQ1TEyhYJb9WtkU=
 github.com/streamingfast/substreams v0.0.0-20220309225642-7a54d744f033/go.mod h1:ELlXNkyHzR2++lhonDegVysJdPNXzfo5R+Q2A7yy3v8=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
