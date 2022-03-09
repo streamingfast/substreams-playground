@@ -69,12 +69,6 @@ var symbolMethod = eth.MustNewMethodDef("symbol() (string)")
 var symbolMethodSig = symbolMethod.MethodID()
 
 func (p *PairExtractor) getToken(addr eth.Address) (*ERC20Token, error) {
-	// return &ERC20Token{
-	// 	Address:  addr.Pretty(),
-	// 	Decimals: 8,
-	// 	Name:     "Bitcoin",
-	// 	Symbol:   "BSV",
-	// }, nil
 	addrBytes := addr.Bytes()
 	calls := &pbsubstreams.RpcCalls{
 		Calls: []*pbsubstreams.RpcCall{
@@ -90,6 +84,7 @@ func (p *PairExtractor) getToken(addr eth.Address) (*ERC20Token, error) {
 				ToAddr:          addrBytes,
 				MethodSignature: symbolMethodSig,
 			},
+		},
 	}
 
 	resps := p.RPC(calls)
