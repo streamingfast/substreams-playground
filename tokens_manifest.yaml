@@ -1,0 +1,19 @@
+specVersion: 0.1.0
+description: Tokens WASM substream
+codeType: wasm/rust-v1
+
+startBlock: 1
+
+protoFiles:
+- ./proto/tokens.proto
+
+- name: block_to_tokens
+  kind: store
+  code:
+    file: ./tokens-rust/pkg/tokens_substream.wasm
+    entrypoint: build_tokens_state
+  inputs:
+    - source: sf.ethereum.type.v1.Block
+  output:
+    updatePolicy: replace
+    valueType: proto:sf.substreams.tokens.v1
