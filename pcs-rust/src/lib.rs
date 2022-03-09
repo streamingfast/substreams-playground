@@ -19,7 +19,7 @@ pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
         block_len
     );
 
-    log::info(msg.to_string());
+    log::println(msg.to_string());
 
     for trx in blk.transaction_traces {
         /* PCS Factory address */
@@ -104,4 +104,20 @@ pub extern "C" fn map_reserves(block_ptr: *mut u8, block_len: usize, pairs_store
     }
 
     substreams::output(&reserves)
+}
+
+
+#[no_mangle]
+pub extern "C" fn map_to_database(reserves_ptr: *mut u8, reserves_len: usize, pairs_deltas_ptr: *mut u8, pairs_deltas_len: usize, pairs_store_idx: u32) {
+    substreams::register_panic_hook();
+
+    let reserves: pb::pcs::Reserves = proto::decode_ptr(reserves_ptr, reserves_len).unwrap();
+    let pair_deltas: pb::substreams::StoreDeltas = proto::decode_ptr(pairs_deltas_ptr, pairs_deltas_len).unwrap();
+
+    for reserve in reserves.reserves {
+	log::println(format!("Reserve: {} {} {} {}", reserve.pair_address, reserve.log_ordinal, reserve.reserve0, reserve.reserve1));
+    }
+    for delta in pair_deltas.deltas {
+	log::println(format!("Delta: {} {} {}", delta.operation, delta.key, delta.ordinal));	
+    }
 }
