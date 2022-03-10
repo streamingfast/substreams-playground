@@ -170,11 +170,31 @@ pub extern "C" fn build_tokens_state(block_ptr: *mut u8, block_len: usize) {
                     substreams::proto::decode(rpc_responses_marshalled).unwrap();
 
                 if rpc_responses_unmarshalled.responses[0].failed
-                    || rpc_responses_unmarshalled.responses[0].failed
-                    || rpc_responses_unmarshalled.responses[0].failed
+                    || rpc_responses_unmarshalled.responses[1].failed
+                    || rpc_responses_unmarshalled.responses[2].failed
                 {
                     continue;
                 };
+
+                if !(rpc_responses_unmarshalled.responses[1].raw.len() >= 96)
+                    || rpc_responses_unmarshalled.responses[0].raw.len() != 32
+                    || !(rpc_responses_unmarshalled.responses[2].raw.len() >= 96)
+                {
+                    continue;
+                    //log::println(format!(
+                    //    "Wrong size: {} {} {}",
+                    //    rpc_responses_unmarshalled.responses[0].raw.len(),
+                    //    rpc_responses_unmarshalled.responses[1].raw.len(),
+                    //    rpc_responses_unmarshalled.responses[2].raw.len()
+                    //));
+                };
+
+                // TODO:
+                // * helper func to convert 32-chars chunks to uints,
+                // * make sure that the first one is "32" on name / symbol or skip
+                // * read the bytes from that 3rd 32-chars-chunk up to the number of bytes mentionned in the second 32char chunk to extract the name or symbol
+                // * write a ERC20Token object in the store with those three responses
+
                 log::println(format!(
                     "address is {:?}\n name: {:?}\ndecimals: {:?}\n symbol: {:?}",
                     call.address.clone(),
