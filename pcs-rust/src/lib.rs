@@ -191,7 +191,7 @@ pub extern "C" fn build_tokens_state(block_ptr: *mut u8, block_len: usize) {
                 let decoded_symbol = decode_string(rpc_responses_unmarshalled.responses[2].raw.as_ref());
 
                 let erc20_token = pb::tokens::Erc20Token{
-                    address: decoded_address,
+                    address: decoded_address.clone(),
                     name: decoded_name,
                     symbol: decoded_symbol,
                     decimals: decoded_decimals as u64,
