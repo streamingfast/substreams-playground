@@ -133,3 +133,47 @@ pub extern "C" fn map_to_database(
         ));
     }
 }
+
+#[no_mangle]
+pub extern "C" fn build_tokens_state (block_ptr: *mut u8, block_len: usize) {
+    substreams::register_panic_hook();
+
+    let decimals = hex::encode("313ce567");
+    let name = hex::encode("06fdde03");
+    let symbol = hex::encode("95d89b41");
+
+    let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
+
+    for trx in blk.transaction_traces {
+        for call in trx.calls {
+            let addr = hex::encode(call.address);
+
+            if call.call_type == pb::eth::CallType::Create as i32 && !call.state_reverted {
+                let rpc_calls = pb::substreams_eth::RpcCalls{
+                    calls: vec![
+                        pb::substreams_eth::RpcCall{
+                            to_addr: Vec::from(addr.as_ref()),
+                            method_signature: Vec::from(decimals.as_ref())
+                        },
+                        pb::substreams_eth::RpcCall{
+                            to_addr: Vec::from(addr.as_ref()),
+                            method_signature: Vec::from(name.as_ref())
+                        },
+                        pb::substreams_eth::RpcCall{
+                            to_addr: Vec::from(addr.as_ref()),
+                            method_signature: Vec::from(symbol.as_ref())
+                        }
+                    ]
+                };
+
+                let rpc_responses_marshalled = substreams::rpc::eth_call(substreams::proto::encode(&rpc_calls).unwrap());
+                unsafe {
+                    let rpc_responses_unmarshalled = substreams::proto::decode(Vec::from_raw_parts(rpc_responses_marshalled, 8, 8));
+                }
+
+
+
+            }
+        }
+    }
+}

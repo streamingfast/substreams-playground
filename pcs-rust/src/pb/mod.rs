@@ -6,3 +6,6 @@ pub mod pcs;
 
 #[path = "./sf.substreams.v1.rs"]
 pub mod substreams;
+
+#[path = "./sf.ethereum.substreams.v1.rs"]
+pub mod substreams_eth;

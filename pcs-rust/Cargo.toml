@@ -13,7 +13,6 @@ prost = { version = "0.6" }
 prost-types = "0.6"
 hex = "0.4.3"
 substreams={ git = "https://github.com/streamingfast/substreams", module="rust/substreams", branch="develop"}
-#substreams={ path = "/Users/abourget/sf/substreams-rust" }
 num-bigint = "0.4"
 
 [build-dependencies]
