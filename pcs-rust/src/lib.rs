@@ -135,41 +135,53 @@ pub extern "C" fn map_to_database(
 }
 
 #[no_mangle]
-pub extern "C" fn build_tokens_state (block_ptr: *mut u8, block_len: usize) {
+pub extern "C" fn build_tokens_state(block_ptr: *mut u8, block_len: usize) {
     substreams::register_panic_hook();
 
-    let decimals = hex::encode("313ce567");
-    let name = hex::encode("06fdde03");
-    let symbol = hex::encode("95d89b41");
+    let decimals = hex::decode("313ce567").unwrap();
+    let name = hex::decode("06fdde03").unwrap();
+    let symbol = hex::decode("95d89b41").unwrap();
 
     let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
 
     for trx in blk.transaction_traces {
         for call in trx.calls {
-
             if call.call_type == pb::eth::CallType::Create as i32 && !call.state_reverted {
-                let rpc_calls = pb::substreams_eth::RpcCalls{
+                let rpc_calls = pb::substreams_eth::RpcCalls {
                     calls: vec![
-                        pb::substreams_eth::RpcCall{
+                        pb::substreams_eth::RpcCall {
                             to_addr: Vec::from(call.address.clone()),
-                            method_signature: Vec::from(decimals.clone())
+                            method_signature: decimals.clone(),
                         },
-                        pb::substreams_eth::RpcCall{
+                        pb::substreams_eth::RpcCall {
                             to_addr: Vec::from(call.address.clone()),
-                            method_signature: Vec::from(name.clone())
+                            method_signature: name.clone(),
                         },
-                        pb::substreams_eth::RpcCall{
+                        pb::substreams_eth::RpcCall {
                             to_addr: Vec::from(call.address.clone()),
-                            method_signature: Vec::from(symbol.clone())
-                        }
-                    ]
+                            method_signature: symbol.clone(),
+                        },
+                    ],
                 };
 
-                let rpc_responses_marshalled: *mut u8 = substreams::rpc::eth_call(substreams::proto::encode(&rpc_calls).unwrap());
-                unsafe {
-                    let rpc_responses_unmarshalled: pb::substreams_eth::RpcResponses = substreams::proto::decode(Vec::from_raw_parts(rpc_responses_marshalled, 8, 8)).unwrap();
-                    log::println(format!("something something unmarshalled responses: {:?}", rpc_responses_unmarshalled));
-                }
+                let rpc_responses_marshalled: Vec<u8> =
+                    substreams::rpc::eth_call(substreams::proto::encode(&rpc_calls).unwrap());
+                let rpc_responses_unmarshalled: pb::substreams_eth::RpcResponses =
+                    substreams::proto::decode(rpc_responses_marshalled).unwrap();
+
+                if rpc_responses_unmarshalled.responses[0].failed
+                    || rpc_responses_unmarshalled.responses[0].failed
+                    || rpc_responses_unmarshalled.responses[0].failed
+                {
+                    continue;
+                };
+                log::println(format!(
+                    "address is {:?}\n name: {:?}\ndecimals: {:?}\n symbol: {:?}",
+                    call.address.clone(),
+                    hex::encode(rpc_responses_unmarshalled.responses[1].raw.clone()),
+                    hex::encode(rpc_responses_unmarshalled.responses[0].raw.clone()),
+                    hex::encode(rpc_responses_unmarshalled.responses[2].raw.clone()),
+                ));
             }
         }
     }
