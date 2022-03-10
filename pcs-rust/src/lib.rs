@@ -181,23 +181,23 @@ pub extern "C" fn build_tokens_state(block_ptr: *mut u8, block_len: usize) {
                     || !(rpc_responses_unmarshalled.responses[2].raw.len() >= 96)
                 {
                     continue;
-                    //log::println(format!(
-                    //    "Wrong size: {} {} {}",
-                    //    rpc_responses_unmarshalled.responses[0].raw.len(),
-                    //    rpc_responses_unmarshalled.responses[1].raw.len(),
-                    //    rpc_responses_unmarshalled.responses[2].raw.len()
-                    //));
                 };
                 // TODO:
                 // * write a ERC20Token object in the store with those three responses
 
-                log::println(format!(
-                    "address is {:?}\n name: {:?}\ndecimals: {:?}\n symbol: {:?}",
-                    call.address.clone(),
-                    decode_string(rpc_responses_unmarshalled.responses[1].raw.as_ref()),
-                    decode_uint32(rpc_responses_unmarshalled.responses[0].raw.as_ref()),
-                    decode_string(rpc_responses_unmarshalled.responses[2].raw.as_ref()),
-                ));
+                let decoded_address = decode_address(&call.address);
+                let decoded_decimals = decode_uint32(rpc_responses_unmarshalled.responses[0].raw.as_ref());
+                let decoded_name = decode_string(rpc_responses_unmarshalled.responses[1].raw.as_ref());
+                let decoded_symbol = decode_string(rpc_responses_unmarshalled.responses[2].raw.as_ref());
+
+                let erc20_token = pb::tokens::Erc20Token{
+                    address: decoded_address,
+                    name: decoded_name,
+                    symbol: decoded_symbol,
+                    decimals: decoded_decimals as u64,
+                };
+
+                state::set(1, decoded_address.clone(), proto::encode(&erc20_token).unwrap());
             }
         }
     }
