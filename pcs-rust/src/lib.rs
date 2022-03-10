@@ -1,7 +1,7 @@
 mod eth;
 mod pb;
 
-use eth::decode_address;
+use eth::{decode_address, decode_string, decode_uint32};
 use hex;
 
 use substreams::{log, proto, state};
@@ -188,19 +188,15 @@ pub extern "C" fn build_tokens_state(block_ptr: *mut u8, block_len: usize) {
                     //    rpc_responses_unmarshalled.responses[2].raw.len()
                     //));
                 };
-
                 // TODO:
-                // * helper func to convert 32-chars chunks to uints,
-                // * make sure that the first one is "32" on name / symbol or skip
-                // * read the bytes from that 3rd 32-chars-chunk up to the number of bytes mentionned in the second 32char chunk to extract the name or symbol
                 // * write a ERC20Token object in the store with those three responses
 
                 log::println(format!(
                     "address is {:?}\n name: {:?}\ndecimals: {:?}\n symbol: {:?}",
                     call.address.clone(),
-                    hex::encode(rpc_responses_unmarshalled.responses[1].raw.clone()),
-                    hex::encode(rpc_responses_unmarshalled.responses[0].raw.clone()),
-                    hex::encode(rpc_responses_unmarshalled.responses[2].raw.clone()),
+                    decode_string(rpc_responses_unmarshalled.responses[1].raw.as_ref()),
+                    decode_uint32(rpc_responses_unmarshalled.responses[0].raw.as_ref()),
+                    decode_string(rpc_responses_unmarshalled.responses[2].raw.as_ref()),
                 ));
             }
         }
