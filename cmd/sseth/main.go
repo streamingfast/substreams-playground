@@ -4,7 +4,6 @@ import (
 	"reflect"
 
 	_ "github.com/streamingfast/substream-pancakeswap/codec"
-
 	pcs "github.com/streamingfast/substream-pancakeswap/pcs-go"
 	"github.com/streamingfast/substreams/cli"
 	imports "github.com/streamingfast/substreams/native-imports"
