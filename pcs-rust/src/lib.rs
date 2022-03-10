@@ -146,21 +146,20 @@ pub extern "C" fn build_tokens_state (block_ptr: *mut u8, block_len: usize) {
 
     for trx in blk.transaction_traces {
         for call in trx.calls {
-            let addr = hex::encode(call.address);
 
             if call.call_type == pb::eth::CallType::Create as i32 && !call.state_reverted {
                 let rpc_calls = pb::substreams_eth::RpcCalls{
                     calls: vec![
                         pb::substreams_eth::RpcCall{
-                            to_addr: Vec::from(addr.clone()),
+                            to_addr: Vec::from(call.address.clone()),
                             method_signature: Vec::from(decimals.clone())
                         },
                         pb::substreams_eth::RpcCall{
-                            to_addr: Vec::from(addr.clone()),
+                            to_addr: Vec::from(call.address.clone()),
                             method_signature: Vec::from(name.clone())
                         },
                         pb::substreams_eth::RpcCall{
-                            to_addr: Vec::from(addr),
+                            to_addr: Vec::from(call.address.clone()),
                             method_signature: Vec::from(symbol.clone())
                         }
                     ]
