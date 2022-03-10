@@ -169,10 +169,8 @@ pub extern "C" fn build_tokens_state (block_ptr: *mut u8, block_len: usize) {
                 let rpc_responses_marshalled: *mut u8 = substreams::rpc::eth_call(substreams::proto::encode(&rpc_calls).unwrap());
                 unsafe {
                     let rpc_responses_unmarshalled: pb::substreams_eth::RpcResponses = substreams::proto::decode(Vec::from_raw_parts(rpc_responses_marshalled, 8, 8)).unwrap();
+                    log::println(format!("something something unmarshalled responses: {:?}", rpc_responses_unmarshalled));
                 }
-
-
-
             }
         }
     }
