@@ -9,3 +9,6 @@ pub mod substreams;
 
 #[path = "./sf.ethereum.substreams.v1.rs"]
 pub mod substreams_eth;
+
+#[path = "./sf.substreams.tokens.v1.rs"]
+pub mod tokens;

@@ -7,6 +7,7 @@ fn main() -> Result<()> {
             "proto/codec_eth.proto",
             "proto/pcs.proto",
             "proto/substreams.proto",
+            "proto/tokens.proto"
         ],
         &["src/"],
     )
