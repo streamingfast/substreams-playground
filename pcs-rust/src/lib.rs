@@ -152,23 +152,23 @@ pub extern "C" fn build_tokens_state (block_ptr: *mut u8, block_len: usize) {
                 let rpc_calls = pb::substreams_eth::RpcCalls{
                     calls: vec![
                         pb::substreams_eth::RpcCall{
-                            to_addr: Vec::from(addr.as_ref()),
-                            method_signature: Vec::from(decimals.as_ref())
+                            to_addr: Vec::from(addr.clone()),
+                            method_signature: Vec::from(decimals.clone())
                         },
                         pb::substreams_eth::RpcCall{
-                            to_addr: Vec::from(addr.as_ref()),
-                            method_signature: Vec::from(name.as_ref())
+                            to_addr: Vec::from(addr.clone()),
+                            method_signature: Vec::from(name.clone())
                         },
                         pb::substreams_eth::RpcCall{
-                            to_addr: Vec::from(addr.as_ref()),
-                            method_signature: Vec::from(symbol.as_ref())
+                            to_addr: Vec::from(addr),
+                            method_signature: Vec::from(symbol.clone())
                         }
                     ]
                 };
 
-                let rpc_responses_marshalled = substreams::rpc::eth_call(substreams::proto::encode(&rpc_calls).unwrap());
+                let rpc_responses_marshalled: *mut u8 = substreams::rpc::eth_call(substreams::proto::encode(&rpc_calls).unwrap());
                 unsafe {
-                    let rpc_responses_unmarshalled = substreams::proto::decode(Vec::from_raw_parts(rpc_responses_marshalled, 8, 8));
+                    let rpc_responses_unmarshalled: pb::substreams_eth::RpcResponses = substreams::proto::decode(Vec::from_raw_parts(rpc_responses_marshalled, 8, 8)).unwrap();
                 }
 
 
