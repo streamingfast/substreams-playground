@@ -5,17 +5,15 @@ codeType: wasm/rust-v1
 startBlock: 6811600
 
 protoFiles:
-  - ./proto/erc20transfer.proto
+- ./proto/erc20transfer.proto
 
 modules:
-  - name: erc_20_tokens
-    kind: store
-    code:
-      file: ./erc20-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
-      entrypoint: create_erc_20_tokens
-    inputs:
-      - source: sf.ethereum.type.v1.Block
-    output:
-      updatePolicy: ignore
-      valueType: proto
-      protoType: sf.substreams.erc20transfer.v1
+- name: erc_20_transfer
+  kind: map
+  code:
+    file: ./erc20-rust/target/wasm32-unknown-unknown/release/erc20_substreams.wasm
+    entrypoint: map_erc_20_transfer
+  inputs:
+    - source: sf.ethereum.type.v1.Block
+  output:
+    type: proto:eth.erc20.v1.Transfers

@@ -1,17 +1,21 @@
 syntax = "proto3";
 
-package sf.substreams.erc20transfer.v1;
+package eth.erc20.v1;
 
-message ERC20Transfer {
+message Transfers {
+  repeated Transfer transfers = 1;
+}
+
+message Transfer {
   string from = 1;
   string to = 2;
   string amount = 3;
-  repeated ERC20BalanceChange balanceChangeFrom = 4;
-  repeated ERC20BalanceChange balanceChangeTo = 5;
+  repeated BalanceChange balanceChangeFrom = 4;
+  repeated BalanceChange balanceChangeTo = 5;
   uint64 LogOrdinal = 6;
 }
 
-message ERC20BalanceChange {
+message BalanceChange {
   string oldBalance = 1;
   string newBalance = 2;
 }
