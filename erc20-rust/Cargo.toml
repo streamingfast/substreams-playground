@@ -1,0 +1,19 @@
+[package]
+name = "erc20-substreams"
+version = "0.1.0"
+description = "Erc20 Token Substreams"
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wasm-bindgen = "0.2.79"
+prost = { version = "0.6" }
+prost-types = "0.6"
+hex = "0.4.3"
+substreams={ git = "https://github.com/streamingfast/substreams", module="rust/substreams", branch="develop"}
+num-bigint = "0.4"
+
+[build-dependencies]
+prost-build = "0.6"
