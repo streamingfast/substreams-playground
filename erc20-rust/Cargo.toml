@@ -1,7 +1,7 @@
 [package]
-name = "pcs-substreams"
+name = "erc20-substreams"
 version = "0.1.0"
-description = "PancakeSwap Substreams"
+description = "Erc20 Token Substreams"
 edition = "2018"
 
 [lib]
@@ -13,7 +13,7 @@ prost = { version = "0.6" }
 prost-types = "0.6"
 hex = "0.4.3"
 #substreams={ git = "https://github.com/streamingfast/substreams", module="rust/substreams", branch="develop"}
-substreams={ path = "/Users/eduardvoiculescu/git/streamingFast/substreams/rust/substreams" }
+substreams={ path="/Users/eduardvoiculescu/git/streamingFast/substreams/rust/substreams" }
 num-bigint = "0.4"
 
 [build-dependencies]

@@ -23,3 +23,5 @@ secrets.go
 rpc-cache
 localblocks
 dist/
+/erc20-rust/Cargo.lock
+/erc20-rust/target/
