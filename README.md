@@ -21,6 +21,7 @@ go generate ./...
 Copy some blocks locally to speed things up:
 
 ```
+mkdir localblocks  # You no forget thiz :)
 gsutil -m cp gs://dfuseio-global-blocks-us/eth-bsc-mainnet/v1/0006809* ./localblocks/
 gsutil -m cp gs://dfuseio-global-blocks-us/eth-bsc-mainnet/v1/000681* ./localblocks/
 gsutil -m cp gs://dfuseio-global-blocks-us/eth-bsc-mainnet/v1/000682* ./localblocks/
