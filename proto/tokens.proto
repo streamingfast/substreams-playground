@@ -2,7 +2,11 @@ syntax = "proto3";
 
 package sf.substreams.tokens.v1;
 
-message ERC20Token {
+message Tokens {
+  repeated Token tokens = 1;
+}
+
+message Token {
   string address = 1;
   string name = 2;
   string symbol = 3;

@@ -135,7 +135,7 @@ pub extern "C" fn map_to_database(
 }
 
 #[no_mangle]
-pub extern "C" fn build_tokens_state(block_ptr: *mut u8, block_len: usize) {
+pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
     substreams::register_panic_hook();
 
     let decimals = hex::decode("313ce567").unwrap();
@@ -190,7 +190,7 @@ pub extern "C" fn build_tokens_state(block_ptr: *mut u8, block_len: usize) {
                 let decoded_name = decode_string(rpc_responses_unmarshalled.responses[1].raw.as_ref());
                 let decoded_symbol = decode_string(rpc_responses_unmarshalled.responses[2].raw.as_ref());
 
-                let erc20_token = pb::tokens::Erc20Token{
+                let erc20_token = pb::tokens::Token{
                     address: decoded_address.clone(),
                     name: decoded_name,
                     symbol: decoded_symbol,
@@ -200,5 +200,17 @@ pub extern "C" fn build_tokens_state(block_ptr: *mut u8, block_len: usize) {
                 state::set(1, decoded_address.clone(), proto::encode(&erc20_token).unwrap());
             }
         }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn build_tokens_state(tokens_ptr: *mut u8, tokens_len: usize) {
+    substreams::register_panic_hook();
+
+    let tokens: pb::tokens::Tokens = proto::decode_ptr(tokens_ptr, tokens_len).unwrap();
+
+    for token in tokens.tokens {
+        let key = format!("token:{}", token.address);
+        state::set(1, key, proto::encode(&token).unwrap()); //todo: what about the log ordinal
     }
 }

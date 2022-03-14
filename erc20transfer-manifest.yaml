@@ -5,7 +5,7 @@ codeType: wasm/rust-v1
 startBlock: 6811600
 
 protoFiles:
-- ./proto/erc20transfer.proto
+- ./proto/erc20.proto
 
 modules:
 - name: erc_20_transfer
