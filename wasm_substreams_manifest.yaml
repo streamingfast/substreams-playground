@@ -6,6 +6,7 @@ startBlock: 6809737
 
 protoFiles:
 - ./proto/pcs.proto
+- ./proto/tokens.proto
 
 modules:
 - name: block_to_pairs
@@ -40,6 +41,26 @@ modules:
   output:
     type: proto:pcs.types.v1.Reserves
 
+- name: block_to_tokens
+  kind: map
+  code:
+    file: ./pcs-rust/pkg/pcs_substreams_bg.wasm
+    entrypoint: block_to_tokens
+  inputs:
+    - source: sf.ethereum.type.v1.Block
+  output:
+    type: proto:sf.substreams.tokens.v1.Tokens
+
+- name: tokens
+  kind: store
+  code:
+    file: ./pcs-rust/pkg/pcs_substreams_bg.wasm
+    entrypoint: build_tokens_state
+  inputs:
+    - map: block_to_tokens
+  output:
+    updatePolicy: replace
+    valueType: bytes
 # - name: db_out
 #   kind: map
 #   code:
