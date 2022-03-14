@@ -142,6 +142,7 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
     let name = hex::decode("06fdde03").unwrap();
     let symbol = hex::decode("95d89b41").unwrap();
 
+    let mut tokens = pb::tokens::Tokens { tokens: vec![] };
     let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
 
     for trx in blk.transaction_traces {
@@ -190,15 +191,17 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
                 let decoded_name = decode_string(rpc_responses_unmarshalled.responses[1].raw.as_ref());
                 let decoded_symbol = decode_string(rpc_responses_unmarshalled.responses[2].raw.as_ref());
 
-                let erc20_token = pb::tokens::Token{
+                let token = pb::tokens::Token{
                     address: decoded_address.clone(),
                     name: decoded_name,
                     symbol: decoded_symbol,
                     decimals: decoded_decimals as u64,
                 };
 
-                state::set(1, decoded_address.clone(), proto::encode(&erc20_token).unwrap());
+                tokens.tokens.push(token);
             }
+
+            substreams::output(&tokens);
         }
     }
 }
