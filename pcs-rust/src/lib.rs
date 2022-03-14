@@ -50,7 +50,7 @@ pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
         }
     }
 
-    substreams::output(&pairs);
+    substreams::output(pairs);
 }
 
 #[no_mangle]
@@ -102,8 +102,7 @@ pub extern "C" fn map_reserves(block_ptr: *mut u8, block_len: usize, pairs_store
             }
         }
     }
-
-    substreams::output(&reserves)
+    substreams::output(reserves)
 }
 
 #[no_mangle]
@@ -200,10 +199,10 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
 
                 tokens.tokens.push(token);
             }
-
-            substreams::output(&tokens);
         }
     }
+
+    substreams::output(tokens);
 }
 
 #[no_mangle]
