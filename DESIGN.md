@@ -1,31 +1,162 @@
 
-Example `substreams.yaml` declaration:
-
----
----
 
 
+1-6 are segments
+Rows are store dependencies, so stages
+Letters are processes
+
+P is the process producing store output
+D are its dependencies
+X is the segment
+Y is the stage (store dependencies)
+
+   1  2  3  4
+1  P
+2
+3
+4
+
+   1  2  3  4
+1        P
+2
+3
+4
+
+   1  2  3  4
+1  D
+2     P
+3
+4
+
+   1  2  3  4
+1  D  D
+2  D  D
+3        P
+4
+
+   1  2  3  4
+1  D  D  D
+2  D  D  D
+3           P
+4
+
+   1  2  3  4
+1  D
+2  D
+3  D
+4     P
 
 
+   1  2  3  4
+1  D
+2  D
+3  D
+4     P'
+
+   1  2  3  4  5
+1  D  D  D  D
+2  D  D  D  D
+3  D  D  D  D
+4              P
+
+    END-OF-PARALLEL   LIVE
+1   D
+2                     P-stream
+3
+4
+
+    END-OF-PARALLEL   LIVE
+1   D
+2   D
+3   D
+4   D
+5                     P-stream
 
 
+--- Segment 1:
+
+#1-1
+
+sseth manifest.yaml pairs 1000 -s 0
+* IN: NONE
+* OUT: pairs-1000.kv
+
+#1-5
+sseth manifest.yaml database_output 1000 -s STARTBLOCK
+* IN: NONE
+* OUT: pairs-1000.kv
+* OUT: reserves-1000.kv
+* OUT: prices-1000.kv
+* OUT: volumes-1000.kv
+* OUT: database_output-1000.kv
 
 
+--- Segment 2:
+
+#2-1
+sseth manifest.yaml pairs 1000 -s 1000 --partial
+* IN: NONE
+* OUT: pairs-1000-2000.partial
+
+#2-2
+sseth manifest.yaml reserves 1000 -s 1000 --partial
+* IN: pairs-1000.kv
+* OUT: reserves-1000-2000.partial
+
+#2-3, depends on: #1-1, #1-2 (or #1-5, includes them all)
+sseth manifest.yaml prices 1000 -s 1000 --partial
+* IN: pairs-1000.kv
+* IN: reserves-1000.kv
+* OUT: prices-1000-2000.partial
+
+#2-4
+sseth manifest.yaml volumes 1000 -s 1000 --partial
+* IN: pairs-1000.kv
+* IN: reserves-1000.kv
+* IN: prices-1000.kv
+* OUT: volumes-1000-2000.partial
+
+#2-5
+sseth manifest.yaml database_output 1000 -s 1000 --partial
+* IN: pairs-1000.kv
+* IN: reserves-1000.kv
+* IN: prices-1000.kv
+* IN: volumes-1000.kv
+* OUT: database_output-1000-2000.partial
 
 
+--- Segment 3:
 
+#3-1
+sseth manifest.yaml pairs 1000 -s 2000 --partial
+* IN: NONE
+* OUT: pairs-2000-3000.partial
 
+#3-2
+sseth manifest.yaml reserves 1000 -s 2000 --partial
+* IN: pairs-0-1000.kv + pairs-1000-2000.partial
+* OUT: reserves-2000-3000.partial
 
+#3-3
+sseth manifest.yaml prices 1000 -s 2000 --partial
+* IN: pairs-1000.kv + pairs-1000-2000.partial
+* IN: reserves-1000.kv + reserves-1000-2000.partial
+* OUT: prices-2000-3000.partial
 
+#3-4, depends on: #1-1, #1-2, #1-3 (OR #1-5 which includes them all), #2-1, #2-2, #2-3
+sseth manifest.yaml volumes 1000 -s 2000 --partial
+* IN: pairs-1000.kv + pairs-1000-2000.partial
+* IN: reserves-1000.kv + reserves-1000-2000.partial
+* IN: prices-1000.kv + prices-1000-2000.partial
+* OUT: volumes-2000-3000.partial
 
-
-
-
-
-
-
-
-
+#3-5, depends on: #1-1, #1-2, #1-3, #1-4 (or #1-5 which produces them all), #2-1, #2-2, #2-3, #2-4
+sseth manifest.yaml database_output 1000 -s 2000 --partial
+* IN: pairs-1000.kv + pairs-1000-2000.partial
+* IN: reserves-1000.kv + reserves-1000-2000.partial
+* IN: prices-1000.kv + prices-1000-2000.partial
+* IN: volumes-1000.kv + volumes-1000-2000.partial
+* OUT: database_output-2000-3000.partial
 
 
 
