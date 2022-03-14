@@ -5,15 +5,27 @@
 This repo holds the `exchange` substream-based "pseudo-subgraph" from PancakeSwap.
 
 ## Build and install wasm-pack
+
+Install [from here](https://rustwasm.github.io/wasm-pack/installer/) with:
+
+```
+curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+```
+
+or:
+
 ```bash
 git clone https://github.com/rustwasm/wasm-pack.git $somedir
 cd $somedir && cargo build --release
 export PATH=$PATH:$somedir/target/release
 ```
 
+
 ## Build wasm
+
 ```bash
-go generate ./...
+cd pcs-rust
+./build.sh
 ```
 
 ## Usage
@@ -28,11 +40,13 @@ gsutil -m cp 'gs://dfuseio-global-blocks-us/eth-bsc-mainnet/v1/000682*' ./localb
 gsutil -m cp 'gs://dfuseio-global-blocks-us/eth-bsc-mainnet/v1/000683*' ./localblocks/
 ```
 
-Compile:
+Compile (outputs to `~/go/bin`):
 
 ```bash
 go install -v ./cmd/sseth
 ```
+
+Alternatively, you can use `go run ./cmd/sseth` instead of compiling with `go install` and running `sseth` below.
 
 Run the native version:
 
