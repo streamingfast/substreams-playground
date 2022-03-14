@@ -10,10 +10,8 @@ pub extern "C" fn map_erc_20_transfer(block_ptr: *mut u8, block_len: usize) {
     substreams::register_panic_hook();
 
     let block: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
-
     let mut transfers = pb::erc20::Transfers { transfers: vec![] };
-    let mut b = false;
-    let mut i = 0;
+
     for trx in block.transaction_traces {
         for call in trx.calls {
             for log in call.clone().logs {
@@ -35,25 +33,10 @@ pub extern "C" fn map_erc_20_transfer(block_ptr: *mut u8, block_len: usize) {
                     log_ordinal
                 };
 
-                i = i + 1;
-
-                if i == 3 {
-                    log::println(format!("{:?}", transfer_event.balance_change_from));
-                    // log::println(format!("{:?}", transfer_event.balance_change_to));
-                    transfers.transfers.push(transfer_event);
-                    b = true;
-                    break;
-                }
-
+                transfers.transfers.push(transfer_event);
             }
-            if b {
-                break;
-            }
-        }
-        if b {
-            break;
         }
     }
 
-    substreams::output(&transfers);
+    substreams::output(transfers);
 }
