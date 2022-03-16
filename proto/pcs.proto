@@ -8,10 +8,8 @@ message Pairs {
 
 message Pair {
   string address = 1;
-  string token0 = 2;
-  string token1 = 3;
-  // ERC20Token token0 = 2;
-  // ERC20Token token1 = 3;
+  ERC20Token erc20_token0 = 2;
+  ERC20Token erc20_token1 = 3;
   string creation_transaction_id = 4;
   uint64 block_num = 5;
   uint64 log_ordinal = 6;
@@ -33,4 +31,6 @@ message Reserve {
   string pair_address = 2;
   string reserve0 = 3;
   string reserve1 = 4;
+//  string token0Price = 5;
+//  string token1Price = 6;
 }
