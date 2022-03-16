@@ -7,12 +7,10 @@ pub struct Pairs {
 pub struct Pair {
     #[prost(string, tag="1")]
     pub address: std::string::String,
-    #[prost(string, tag="2")]
-    pub token0: std::string::String,
-    #[prost(string, tag="3")]
-    pub token1: std::string::String,
-    /// ERC20Token token0 = 2;
-    /// ERC20Token token1 = 3;
+    #[prost(message, optional, tag="2")]
+    pub erc20_token0: ::std::option::Option<Erc20Token>,
+    #[prost(message, optional, tag="3")]
+    pub erc20_token1: ::std::option::Option<Erc20Token>,
     #[prost(string, tag="4")]
     pub creation_transaction_id: std::string::String,
     #[prost(uint64, tag="5")]
@@ -44,6 +42,8 @@ pub struct Reserve {
     pub pair_address: std::string::String,
     #[prost(string, tag="3")]
     pub reserve0: std::string::String,
+    ///  string token0Price = 5;
+    ///  string token1Price = 6;
     #[prost(string, tag="4")]
     pub reserve1: std::string::String,
 }
