@@ -40,7 +40,7 @@ func (f *LocalFirehoseFactory) StreamBlocks(ctx context.Context, req *pbfirehose
 func NewLocalFirehoseFactory(store dstore.Store) *LocalFirehoseFactory {
 	stores := []dstore.Store{store}
 	return &LocalFirehoseFactory{
-		blockstreamServer: firehose.NewServer(zlog, stores, nil, false, nil, nil, nil, nil, nil),
+		blockstreamServer: firehose.NewServer(zlog, stores, nil, nil, nil, nil, nil, nil),
 	}
 
 }
