@@ -1,5 +1,4 @@
 use hex;
-use substreams::log;
 
 use crate::{address_pretty, decode_string, decode_uint32, pb};
 
@@ -28,11 +27,9 @@ pub fn create_rpc_calls(addr: Vec<u8>) -> substreams::pb::eth::RpcCalls {
 
 pub fn get_token(addr: Vec<u8>) -> Option<pb::pcs::Erc20Token> {
     let rpc_calls = create_rpc_calls(addr.clone());
-    log::println(format!("addr in get_token {:?}", addr));
 
     let rpc_responses_marshalled: Vec<u8> =
         substreams::rpc::eth_call(substreams::proto::encode(&rpc_calls).unwrap());
-    log::println("Called rpc".to_string());
     let rpc_responses_unmarshalled: substreams::pb::eth::RpcResponses =
         substreams::proto::decode(rpc_responses_marshalled).unwrap();
 
