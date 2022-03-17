@@ -31,6 +31,6 @@ message Reserve {
   string pair_address = 2;
   string reserve0 = 3;
   string reserve1 = 4;
-//  string token0Price = 5;
-//  string token1Price = 6;
+  string token0Price = 5;
+  string token1Price = 6;
 }

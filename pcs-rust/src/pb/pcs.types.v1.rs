@@ -42,8 +42,10 @@ pub struct Reserve {
     pub pair_address: std::string::String,
     #[prost(string, tag="3")]
     pub reserve0: std::string::String,
-    ///  string token0Price = 5;
-    ///  string token1Price = 6;
     #[prost(string, tag="4")]
     pub reserve1: std::string::String,
+    #[prost(string, tag="5")]
+    pub token0_price: std::string::String,
+    #[prost(string, tag="6")]
+    pub token1_price: std::string::String,
 }
