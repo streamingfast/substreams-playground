@@ -32,8 +32,7 @@ pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
         for log in trx.receipt.unwrap().logs {
             let sig = hex::encode(&log.topics[0]);
 
-            /* keccak value for PairCreated(address,address,address,uint256) */
-            if sig != "0d3648bd0f6ba80134a33ba9275ac585d9d315f0ad8355cddefde31afa28d0e9" {
+            if !utils::is_pair_created_event(sig) {
                 continue;
             }
 
@@ -79,29 +78,35 @@ pub extern "C" fn map_reserves(block_ptr: *mut u8, block_len: usize, pairs_store
 
     for trx in blk.transaction_traces {
         for log in trx.receipt.unwrap().logs {
-            let addr = hex::encode(log.address);
+
+            let addr = address_pretty(&log.address);
             match state::get_last(pairs_store_idx, format!("pair:{}", addr)) {
                 None => continue,
                 Some(pair_bytes) => {
                     let sig = hex::encode(&log.topics[0]);
 
-                    /* keccak value for Sync(uint112,uint112) */
-                    if sig != "1c411e9a96e071241c2f21f7726b17ae89e3cab4c78be50e062b03a9fffbbad1" {
+                    if !utils::is_new_pair_sync_event(sig) {
                         continue;
                     }
 
-                    // Continue handling a Pair's Sync event
+                    // Unmarshall pair
                     let pair: pb::pcs::Pair = proto::decode(pair_bytes).unwrap();
 
-                    // TODO: Read the log's Reserve0, and Reserve1
-                    // TODO: take the `pair.token0/1.decimals` and add the decimal point on that Reserve0
-                    // TODO: do floating point calculations
+                    // reserve
+                    let reserve0 = utils::convert_token_to_decimal(&log.data[0..32], pair.erc20_token0.unwrap().decimals);
+                    let reserve1 = utils::convert_token_to_decimal(&log.data[32..64], pair.erc20_token1.unwrap().decimals);
+
+                    // token_price
+                    let token0_price = utils::get_token_price(reserve0.clone(), reserve1.clone());
+                    let token1_price = utils::get_token_price(reserve1.clone(), reserve0.clone());
 
                     reserves.reserves.push(pb::pcs::Reserve {
                         pair_address: pair.address,
-                        reserve0: "123".to_string(),
-                        reserve1: "234".to_string(),
+                        reserve0: reserve0.to_string(),
+                        reserve1: reserve1.to_string(), // need to trim leading zeros
                         log_ordinal: log.block_index as u64,
+                        token0_price: token0_price.to_string(),
+                        token1_price: token1_price.to_string()
                     });
                 }
             }
