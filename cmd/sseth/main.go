@@ -11,20 +11,14 @@ import (
 )
 
 func main() {
-	registry.Register("pcs_pair_extractor", func(imp *imports.Imports) reflect.Value {
-		return reflect.ValueOf(&pcs.PairExtractor{Imports: imp})
-	})
-	registry.Register("pcs_pairs_state_builder", func(imp *imports.Imports) reflect.Value { return reflect.ValueOf(&pcs.PairsStateBuilder{}) })
-	registry.Register("pcs_reserves_extractor", func(imp *imports.Imports) reflect.Value { return reflect.ValueOf(&pcs.ReservesExtractor{}) })
-	registry.Register("pcs_reserves_state_builder", func(imp *imports.Imports) reflect.Value { return reflect.ValueOf(&pcs.ReservesStateBuilder{}) })
-	registry.Register("pcs_derived_prices_state_builder", func(imp *imports.Imports) reflect.Value {
-		return reflect.ValueOf(&pcs.DerivedPricesStateBuilder{})
-	})
-	registry.Register("pcs_mint_burn_swaps_extractor", func(imp *imports.Imports) reflect.Value { return reflect.ValueOf(&pcs.SwapsExtractor{}) })
-	registry.Register("pcs_totals_state_builder", func(imp *imports.Imports) reflect.Value { return reflect.ValueOf(&pcs.TotalsStateBuilder{}) })
-	registry.Register("pcs_volumes_state_builder", func(imp *imports.Imports) reflect.Value {
-		return reflect.ValueOf(&pcs.PCSVolume24hStateBuilder{})
-	})
+	registry.Register("pcs_pair_extractor", func(imp *imports.Imports) reflect.Value { return reflect.ValueOf(&pcs.PairExtractor{Imports: imp}) })               // done
+	registry.Register("pcs_pairs_state_builder", func(imp *imports.Imports) reflect.Value { return reflect.ValueOf(&pcs.PairsStateBuilder{}) })                  // done
+	registry.Register("pcs_reserves_extractor", func(imp *imports.Imports) reflect.Value { return reflect.ValueOf(&pcs.ReservesExtractor{}) })                   // todo
+	registry.Register("pcs_reserves_state_builder", func(imp *imports.Imports) reflect.Value { return reflect.ValueOf(&pcs.ReservesStateBuilder{}) })            // todo
+	registry.Register("pcs_derived_prices_state_builder", func(imp *imports.Imports) reflect.Value { return reflect.ValueOf(&pcs.DerivedPricesStateBuilder{}) }) // todo
+	registry.Register("pcs_mint_burn_swaps_extractor", func(imp *imports.Imports) reflect.Value { return reflect.ValueOf(&pcs.SwapsExtractor{}) })               // todo
+	registry.Register("pcs_totals_state_builder", func(imp *imports.Imports) reflect.Value { return reflect.ValueOf(&pcs.TotalsStateBuilder{}) })                // todo
+	registry.Register("pcs_volumes_state_builder", func(imp *imports.Imports) reflect.Value { return reflect.ValueOf(&pcs.PCSVolume24hStateBuilder{}) })         // todo
 
 	cli.ProtobufBlockType = "sf.ethereum.type.v1.Block"
 
