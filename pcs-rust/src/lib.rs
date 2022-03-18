@@ -116,12 +116,45 @@ pub extern "C" fn map_reserves(block_ptr: *mut u8, block_len: usize, pairs_store
 }
 
 #[no_mangle]
+pub extern "C" fn build_reserves_state(reserves_ptr: *mut u8, reserves_len: usize, pairs_store_idx: u32) {
+    substreams::register_panic_hook();
+
+    let reserves: pb::pcs::Reserves = proto::decode_ptr(reserves_ptr, reserves_len).unwrap();
+
+    for reserve in reserves.reserves {
+        match state::get_last(pairs_store_idx, format!("pair:{}", reserve.pair_address)) {
+            None => continue,
+            Some(mut pair_bytes) => {
+                let pair: pb::pcs::Pair = proto::decode_ptr(pair_bytes.as_mut_ptr(), pair_bytes.len()).unwrap();
+
+                state::set(reserve.log_ordinal as i64,
+                           format!("price:{}:{}", pair.erc20_token0.as_ref().unwrap().address, pair.erc20_token1.as_ref().unwrap().address),
+                           Vec::from(reserve.token0_price)
+                );
+                state::set(reserve.log_ordinal as i64,
+                           format!("price:{}:{}", pair.erc20_token1.as_ref().unwrap().address, pair.erc20_token0.as_ref().unwrap().address),
+                           Vec::from(reserve.token1_price)
+                );
+                state::set(reserve.log_ordinal as i64,
+                           format!("reserve:{}:{}", reserve.pair_address, pair.erc20_token0.as_ref().unwrap().address),
+                           Vec::from(reserve.reserve0)
+                );
+                state::set(reserve.log_ordinal as i64,
+                           format!("reserve:{}:{}", reserve.pair_address, pair.erc20_token1.as_ref().unwrap().address),
+                           Vec::from(reserve.reserve1)
+                );
+            }
+        }
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn map_to_database(
     reserves_ptr: *mut u8,
     reserves_len: usize,
     pairs_deltas_ptr: *mut u8,
     pairs_deltas_len: usize,
-    pairs_store_idx: u32,
+    _pairs_store_idx: u32,
 ) {
     substreams::register_panic_hook();
 
