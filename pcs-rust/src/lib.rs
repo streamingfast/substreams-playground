@@ -62,12 +62,10 @@ pub extern "C" fn build_pairs_state(pairs_ptr: *mut u8, pairs_len: usize) {
     for pair in pairs.pairs {
         state::set(pair.log_ordinal as i64,
                    format!("pair:{}", pair.address),
-                   proto::encode(&pair).unwrap()
-        );
+                   proto::encode(&pair).unwrap());
         state::set(pair.log_ordinal as i64,
                    format!("tokens:{}", utils::generate_tokens_key(pair.erc20_token0.unwrap().address, pair.erc20_token1.unwrap().address)),
-                    Vec::from(pair.address)
-        )
+                    Vec::from(pair.address))
     }
 }
 
@@ -127,8 +125,8 @@ pub extern "C" fn build_reserves_state(reserves_ptr: *mut u8, reserves_len: usiz
     for reserve in reserves.reserves {
         match state::get_last(pairs_store_idx, format!("pair:{}", reserve.pair_address)) {
             None => continue,
-            Some(mut pair_bytes) => {
-                let pair: pb::pcs::Pair = proto::decode_ptr(pair_bytes.as_mut_ptr(), pair_bytes.len()).unwrap();
+            Some(pair_bytes) => {
+                let pair: pb::pcs::Pair = proto::decode(pair_bytes).unwrap();
 
                 state::set(reserve.log_ordinal as i64,
                            format!("price:{}:{}", pair.erc20_token0.as_ref().unwrap().address, pair.erc20_token1.as_ref().unwrap().address),
@@ -160,12 +158,10 @@ pub extern "C" fn build_prices_state(reserves_ptr: *mut u8, reserves_len: usize,
     for reserve in reserves.reserves {
         match state::get_last(pairs_store_idx, format!("pair:{}", reserve.pair_address)) {
             None => continue,
-            Some(mut pair_bytes) => {
-                let pair: pb::pcs::Pair = proto::decode_ptr(pair_bytes.as_mut_ptr(), pair_bytes.len()).unwrap();
-                log::println("pairs decode ok".to_string());
+            Some(pair_bytes) => {
+                let pair: pb::pcs::Pair = proto::decode(pair_bytes).unwrap();
 
                 let latest_usd_price: BigDecimal = utils::compute_usd_price(&reserve, reserves_store_idx);
-                log::println("latest_usd_price ok".to_string());
 
                 if reserve.pair_address.eq(&utils::USDT_WBNB_PAIR) || reserve.pair_address.eq(&utils::BUSD_WBNB_PAIR) {
                     state::set(reserve.log_ordinal as i64, format!("dprice:usd:bnb"), Vec::from(latest_usd_price.to_string()))
@@ -180,37 +176,44 @@ pub extern "C" fn build_prices_state(reserves_ptr: *mut u8, reserves_len: usize,
                 // derived from:
                 // * price:%s:%s (tokenA, tokenB)
                 // * reserve:%s:%s (pair, tokenA)
-                let usd_price_valid: bool = latest_usd_price.eq(&utils::zero_big_decimal());
+                let usd_price_valid: bool = latest_usd_price.ne(&utils::zero_big_decimal());
 
-                let t0_derived_bnb_price = utils::find_bnb_price_per_token(&reserve.log_ordinal, pair.erc20_token0.clone().unwrap().address, pairs_store_idx, reserves_store_idx);
-                log::println(format!("t0_derived_bnb_price ok"));
-                let t1_derived_bnb_price = utils::find_bnb_price_per_token(&reserve.log_ordinal, pair.erc20_token1.clone().unwrap().address, pairs_store_idx, reserves_store_idx);
-                log::println(format!("t1_derived_bnb_price ok"));
+                let t0_derived_bnb_price = utils::find_bnb_price_per_token(
+                    &reserve.log_ordinal,
+                    pair.erc20_token0.clone().unwrap().address,
+                    pairs_store_idx,
+                    reserves_store_idx);
+
+                let t1_derived_bnb_price = utils::find_bnb_price_per_token(
+                    &reserve.log_ordinal,
+                    pair.erc20_token1.clone().unwrap().address,
+                    pairs_store_idx,
+                    reserves_store_idx);
 
                 let apply = | token_derived_bnb_price: Option<BigDecimal>, token_addr: String, reserve_amount: String | -> BigDecimal {
                     if token_derived_bnb_price.is_none() {
                         return utils::zero_big_decimal()
                     }
 
-                    state::set(reserve.clone().log_ordinal as i64, format!("dprice:{}:bnb", token_addr), Vec::from(token_derived_bnb_price.clone().unwrap().to_string()));
+                    state::set(reserve.log_ordinal.clone() as i64, format!("dprice:{}:bnb", token_addr), Vec::from(token_derived_bnb_price.clone().unwrap().to_string()));
                     let reserve_in_bnb = BigDecimal::from_str(reserve_amount.as_str()).unwrap().mul(token_derived_bnb_price.clone().unwrap());
-                    state::set(reserve.clone().log_ordinal as i64, format!("dreserve:{}:{}:bnb", reserve.pair_address, token_addr), Vec::from(reserve_in_bnb.clone().to_string()));
+                    state::set(reserve.log_ordinal.clone() as i64, format!("dreserve:{}:{}:bnb", reserve.pair_address, token_addr), Vec::from(reserve_in_bnb.clone().to_string()));
 
                     if usd_price_valid {
                         let derived_usd_price = token_derived_bnb_price.unwrap().mul(latest_usd_price.clone());
-                        state::set(reserve.clone().log_ordinal as i64, format!("dprice:{}:use", token_addr), Vec::from(derived_usd_price.to_string()));
+                        state::set(reserve.log_ordinal.clone() as i64, format!("dprice:{}:usd", token_addr), Vec::from(derived_usd_price.to_string()));
                         let reserve_in_usd = reserve_in_bnb.clone().mul(latest_usd_price.clone());
-                        state::set(reserve.clone().log_ordinal as i64, format!("dreserve:{}:{}:usd", reserve.pair_address, token_addr), Vec::from(reserve_in_usd.to_string()));
+                        state::set(reserve.log_ordinal.clone() as i64, format!("dreserve:{}:{}:usd", reserve.pair_address, token_addr), Vec::from(reserve_in_usd.to_string()));
                     }
 
                     return reserve_in_bnb;
                 };
 
-                let reserve0_bnb = apply(t0_derived_bnb_price, pair.clone().erc20_token0.unwrap().address, reserve.clone().reserve0);
-                let reserve1_bnb = apply(t1_derived_bnb_price, pair.clone().erc20_token1.unwrap().address, reserve.clone().reserve1);
+                let reserve0_bnb = apply(t0_derived_bnb_price, pair.erc20_token0.unwrap().address.clone(), reserve.reserve0.clone());
+                let reserve1_bnb = apply(t1_derived_bnb_price, pair.erc20_token1.unwrap().address.clone(), reserve.reserve1.clone());
 
                 let reserves_bnb_sum = reserve0_bnb.mul(reserve1_bnb);
-                if reserves_bnb_sum.ne(&reserves_bnb_sum) {
+                if reserves_bnb_sum.ne(&utils::zero_big_decimal()) {
                     state::set(reserve.log_ordinal as i64, format!("dreserves:{}:bnb", reserve.pair_address), Vec::from(reserves_bnb_sum.to_string()));
                 }
             }

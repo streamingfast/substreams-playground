@@ -1,10 +1,10 @@
 use std::ops::{Add, Div, Mul};
 use std::str::FromStr;
+use std::str;
 use bigdecimal::{BigDecimal, One, Zero};
 use num_bigint::BigUint;
 use pad::PadStr;
-use prost::DecodeError;
-use substreams::{log, proto, state};
+use substreams::state;
 use crate::pb;
 
 pub const WBNB_ADDRESS: &str = "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c";
@@ -57,19 +57,13 @@ pub fn compute_usd_price(reserve: &pb::pcs::Reserve, reserves_store_idx: u32) ->
 
     match state::get_at(reserves_store_idx, reserve.log_ordinal as i64, format!("reserve:{}:{}", BUSD_WBNB_PAIR, WBNB_ADDRESS)) {
         None => busd_bnb_reserve_big_decimal = zero_big_decimal(),
-        Some(reserve_bytes) =>  {
-            // return zero_big_decimal(); // was this breaking ?
-            busd_bnb_reserve_big_decimal = decode_reserve_bytes_to_big_decimal(reserve_bytes);
-            log::println(format!("busd_bnb_reserve_big_decimal: {:?}", busd_bnb_reserve_big_decimal));
-        }
+        Some(reserve_bytes) => busd_bnb_reserve_big_decimal = decode_reserve_bytes_to_big_decimal(reserve_bytes)
+
     }
 
     match state::get_at(reserves_store_idx, reserve.log_ordinal as i64, format!("reserve:{}:{}", USDT_WBNB_PAIR, WBNB_ADDRESS)) {
         None => usdt_bnb_reserve_big_decimal = zero_big_decimal(),
-        Some(reserve_bytes) => {
-            usdt_bnb_reserve_big_decimal = decode_reserve_bytes_to_big_decimal(reserve_bytes);
-            log::println(format!("usdt_bnb_reserve_big_decimal: {:?}", usdt_bnb_reserve_big_decimal));
-        }
+        Some(reserve_bytes) => usdt_bnb_reserve_big_decimal = decode_reserve_bytes_to_big_decimal(reserve_bytes)
     }
 
     let mut total_liquidity_bnb = zero_big_decimal();
@@ -82,21 +76,15 @@ pub fn compute_usd_price(reserve: &pb::pcs::Reserve, reserves_store_idx: u32) ->
         return zero
     }
 
-    if busd_bnb_reserve_big_decimal.clone().eq(&zero) {
+    if busd_bnb_reserve_big_decimal.eq(&zero) {
         return match state::get_at(reserves_store_idx, reserve.log_ordinal as i64, USDT_PRICE_KEY.to_string()) {
             None => zero,
-            Some(reserve_bytes) => {
-                log::println(format!("decode_reserve_bytes_to_big_decimal busd_bnb_reserve_big_decimal: {:?}", busd_bnb_reserve_big_decimal));
-                decode_reserve_bytes_to_big_decimal(reserve_bytes)
-            }
+            Some(reserve_bytes) => decode_reserve_bytes_to_big_decimal(reserve_bytes)
         }
-    } else if usdt_bnb_reserve_big_decimal.clone().eq(&zero) {
+    } else if usdt_bnb_reserve_big_decimal.eq(&zero) {
         return match state::get_at(reserves_store_idx, reserve.log_ordinal as i64, BUSD_PRICE_KEY.to_string()) {
             None => zero,
-            Some(reserve_bytes) => {
-                log::println(format!("decode_reserve_bytes_to_big_decimal usdt_bnb_reserve_big_decimal: {:?}", usdt_bnb_reserve_big_decimal));
-                decode_reserve_bytes_to_big_decimal(reserve_bytes)
-            }
+            Some(reserve_bytes) => decode_reserve_bytes_to_big_decimal(reserve_bytes)
         }
     }
 
@@ -106,18 +94,13 @@ pub fn compute_usd_price(reserve: &pb::pcs::Reserve, reserves_store_idx: u32) ->
 
     let busd_price = match state::get_at(reserves_store_idx, reserve.log_ordinal as i64, USDT_PRICE_KEY.to_string()) {
         None => zero_big_decimal(),
-        Some(reserve_bytes) => {
-            log::println(format!("decode_reserve_bytes_to_big_decimal busd_price"));
-            decode_reserve_bytes_to_big_decimal(reserve_bytes)
-        }
+        Some(reserve_bytes) => decode_reserve_bytes_to_big_decimal(reserve_bytes)
     };
 
     let usdt_price = match state::get_at(reserves_store_idx, reserve.log_ordinal as i64, BUSD_PRICE_KEY.to_string()) {
         None => zero_big_decimal(),
-        Some(reserve_bytes) => {
-            log::println(format!("decode_reserve_bytes_to_big_decimal usdt_price"));
-            decode_reserve_bytes_to_big_decimal(reserve_bytes)
-        }
+        Some(reserve_bytes) => decode_reserve_bytes_to_big_decimal(reserve_bytes)
+
     };
 
     let busd_price_over_weight = busd_price.mul(busd_weight).with_prec(100);
@@ -140,14 +123,10 @@ pub fn find_bnb_price_per_token(log_ordinal: &u64,
 
     let direct_to_bnb_price = match state::get_last(reserves_store_idx, format!("price:{}:{}", WBNB_ADDRESS, erc20_token_address)) {
         None => zero_big_decimal(),
-        Some(reserve_bytes) => {
-            zero_big_decimal()
-            // log::println(format!("decode_reserve_bytes_to_big_decimal direct_to_bnb_price"));
-            // decode_reserve_bytes_to_big_decimal(reserve_bytes)
-        }
+        Some(reserve_bytes) => decode_reserve_bytes_to_big_decimal(reserve_bytes)
     };
 
-    if !direct_to_bnb_price.eq(&zero_big_decimal()) {
+    if direct_to_bnb_price.ne(&zero_big_decimal()) {
         return Option::Some(direct_to_bnb_price)
     }
 
@@ -157,39 +136,34 @@ pub fn find_bnb_price_per_token(log_ordinal: &u64,
             match state::get_at(pairs_store_idx, *log_ordinal as i64, format!("tokens:{}", generate_tokens_key(erc20_token_address.clone(), major_token.to_string()))) {
                 None => continue,
                 Some(pair_bytes) => decode_pair_bytes(pair_bytes)
+
             };
 
         let major_to_bnb_price =
             match state::get_at(reserves_store_idx, *log_ordinal as i64, format!("price:{}:{}", major_token, WBNB_ADDRESS)) {
                 None => continue,
-                Some(reserve_bytes) => {
-                    log::println(format!("decode_reserve_bytes_to_big_decimal major_to_bnb_price"));
-                    decode_reserve_bytes_to_big_decimal(reserve_bytes)
-                }
+                Some(reserve_bytes) => decode_reserve_bytes_to_big_decimal(reserve_bytes)
             };
 
         let tiny_to_major_price =
             match state::get_at(reserves_store_idx, *log_ordinal as i64, format!("price:{}:{}", erc20_token_address, major_token)) {
                 None => continue,
-                Some(reserve_bytes) => {
-                    log::println(format!("decode_reserve_bytes_to_big_decimal tiny_to_major_price"));
-                    decode_reserve_bytes_to_big_decimal(reserve_bytes)
-                }
+                Some(reserve_bytes) => decode_reserve_bytes_to_big_decimal(reserve_bytes)
+
             };
 
         let major_reserve =
-            match state::get_at(reserves_store_idx, *log_ordinal as i64, format!("reserve:{}:{}", tiny_to_major_pair.erc20_token0.unwrap().address, major_token)) {
+            //todo: not sure about tiny_to_major_pair.erc20_token0.addr, maybe its the token1 ?
+            match state::get_at(reserves_store_idx, *log_ordinal as i64, format!("reserve:{}:{}", tiny_to_major_pair, major_token)) {
                 None => continue,
-                Some(reserve_bytes) => {
-                    log::println(format!("decode_reserve_bytes_to_big_decimal major_reserve"));
-                    decode_reserve_bytes_to_big_decimal(reserve_bytes)
-                }
+                Some(reserve_bytes) => decode_reserve_bytes_to_big_decimal(reserve_bytes)
+
             };
 
         let bnb_reserve_in_major_pair = major_to_bnb_price.clone().mul(major_reserve);
         // We're checking for half of it, because `reserves_bnb` would have both sides in it.
         // We could very well check the other reserve's BNB value, would be a bit more heavy, but we can do it.
-        if bnb_reserve_in_major_pair.le(&BigDecimal::from_str("5").unwrap()) {
+        if bnb_reserve_in_major_pair.le(&BigDecimal::from_str("5").unwrap()) { // todo: little or big ?
             continue; // Not enough liquidity
         }
 
@@ -212,31 +186,12 @@ fn divide_by_decimals(big_float_amount: BigDecimal, decimals: u64) -> BigDecimal
     return big_float_amount.div(bd).with_prec(100)
 }
 
-fn decode_pair_bytes(mut pair_bytes: Vec<u8>) -> pb::pcs::Pair {
-    log::println(format!("byte array: {:?}", pair_bytes));
-    let pair_from_store_decoded_result: Result<pb::pcs::Pair, DecodeError> = proto::decode_ptr(pair_bytes.as_mut_ptr(), pair_bytes.len());
-    // need to take care of the use case if the data doesnt exist. ie we will be getting a decode error
-    if pair_from_store_decoded_result.is_err() {
-        log::println(format!("error occurred when decoding pair"));
-        return pb::pcs::Pair { // fixme: this is temporary, we are gonna need to fix this...
-            address: "".to_string(),
-            erc20_token0: None,
-            erc20_token1: None,
-            creation_transaction_id: "".to_string(),
-            block_num: 0,
-            log_ordinal: 0
-        }
-    }
-    return pair_from_store_decoded_result.unwrap();
+fn decode_pair_bytes(pair_bytes: Vec<u8>) -> String {
+    let pair_from_store_decoded = str::from_utf8(pair_bytes.as_slice()).unwrap();
+    return pair_from_store_decoded.to_string();
 }
 
-fn decode_reserve_bytes_to_big_decimal(mut reserve_bytes: Vec<u8>) -> BigDecimal {
-    log::println(format!("reserve_bytes: {:?}", reserve_bytes));
-    log::println(format!("reserve_bytes.as_mut_ptr(): {:?}", reserve_bytes.as_mut_ptr()));
-    log::println(format!("reserve_bytes.len(): {:?}", reserve_bytes.len()));
-
-    let reserve_from_store_decoded: pb::pcs::Reserve = proto::decode_ptr(reserve_bytes.as_mut_ptr(), reserve_bytes.len()).unwrap();
-    log::println(format!("reserve_from_store_decoded reserve0 ok: {:?}", reserve_from_store_decoded.reserve0));
-
-    return BigDecimal::from_str(reserve_from_store_decoded.reserve0.as_str()).unwrap().with_prec(100);
+fn decode_reserve_bytes_to_big_decimal(reserve_bytes: Vec<u8>) -> BigDecimal {
+    let reserve_from_store_decoded = str::from_utf8(reserve_bytes.as_slice()).unwrap();
+    return BigDecimal::from_str(reserve_from_store_decoded).unwrap().with_prec(100);
 }
