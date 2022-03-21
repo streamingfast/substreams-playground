@@ -16,7 +16,7 @@ type TokenExtractor struct {
 
 // Map takes inputs, and produces outputs. Many calls to these can be run in parallel, for different
 // blocks, as they are stateless.
-func (p *TokenExtractor) Map(block *pbcodec.Block) (tokens *ERC20Tokens, err error) {
+func (p *TokenExtractor) Map(block *pbcodec.Block) (tokens *ERC20Token, err error) {
 	for _, trx := range block.TransactionTraces {
 		if trx.Status != pbcodec.TransactionTraceStatus_SUCCEEDED {
 			// WARN: check that this is the RIGHT thing to do

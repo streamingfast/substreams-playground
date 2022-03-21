@@ -1,28 +1,28 @@
 package pcs
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 
 	"github.com/streamingfast/substreams/state"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/proto"
 )
 
 type DerivedPricesStateBuilder struct{}
 
-func (p *DerivedPricesStateBuilder) Store(reserveUpdates PCSReserveUpdates, pairs state.Reader, reserves state.Reader, derivedPrices *state.Builder) error {
+func (p *DerivedPricesStateBuilder) Store(reserveUpdates Reserves, pairs state.Reader, reserves state.Reader, derivedPrices *state.Builder) error {
 	// TODO: could we get rid of `pairs` as a dependency, by packaging `Token0.Address` directly in the `ReserveUpdate` ?
 
-	for _, update := range reserveUpdates {
+	for _, update := range reserveUpdates.Reserves {
 		// TODO: cache those pairs we've already decoded in this `Store` run
-		var pair *PCSPair
 		pairData, found := pairs.GetLast("pair:" + update.PairAddress)
 		if !found {
 			zlog.Warn("pair not found for a reserve update!", zap.String("pair", update.PairAddress))
 			continue
 		}
-		if err := json.Unmarshal(pairData, &pair); err != nil {
+		pair := &Pair{}
+		if err := proto.Unmarshal(pairData, pair); err != nil {
 			return fmt.Errorf("decoding pair: %w", err)
 		}
 
@@ -48,8 +48,8 @@ func (p *DerivedPricesStateBuilder) Store(reserveUpdates PCSReserveUpdates, pair
 		// * reserve:%s:%s (pair, tokenA)
 		usdPriceValid := latestUSDPrice.Cmp(bf()) != 0
 
-		t0DerivedBNBPrice := p.findBnbPricePerToken(update.LogOrdinal, pair.Token0.Address, pairs, reserves)
-		t1DerivedBNBPrice := p.findBnbPricePerToken(update.LogOrdinal, pair.Token1.Address, pairs, reserves)
+		t0DerivedBNBPrice := p.findBnbPricePerToken(update.LogOrdinal, pair.Erc20Token0.Address, pairs, reserves)
+		t1DerivedBNBPrice := p.findBnbPricePerToken(update.LogOrdinal, pair.Erc20Token1.Address, pairs, reserves)
 
 		apply := func(derivedBNBPrice *big.Float, tokenAddr string, reserveAmount string) *big.Float {
 			if derivedBNBPrice != nil {
@@ -66,8 +66,8 @@ func (p *DerivedPricesStateBuilder) Store(reserveUpdates PCSReserveUpdates, pair
 			}
 			return bf()
 		}
-		reserve0BNB := apply(t0DerivedBNBPrice, pair.Token0.Address, update.Reserve0)
-		reserve1BNB := apply(t1DerivedBNBPrice, pair.Token1.Address, update.Reserve1)
+		reserve0BNB := apply(t0DerivedBNBPrice, pair.Erc20Token0.Address, update.Reserve0)
+		reserve1BNB := apply(t1DerivedBNBPrice, pair.Erc20Token1.Address, update.Reserve1)
 		reservesBNBSum := bf().Add(reserve0BNB, reserve1BNB)
 		if reservesBNBSum.Cmp(bf()) != 0 {
 			derivedPrices.Set(update.LogOrdinal, fmt.Sprintf("dreserves:%s:bnb", update.PairAddress), floatToStr(reservesBNBSum))
@@ -81,7 +81,7 @@ const (
 	USDT_PRICE_KEY = "price:0x55d398326f99059ff775485246999027b3197955:0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"
 )
 
-func (p *DerivedPricesStateBuilder) computeUSDPrice(update PCSReserveUpdate, reserves state.Reader) *big.Float {
+func (p *DerivedPricesStateBuilder) computeUSDPrice(update *Reserve, reserves state.Reader) *big.Float {
 	// SAME PROBLEM of READING from the state store you're building.
 	busdBNBReserve := foundOrZeroFloat(reserves.GetAt(update.LogOrdinal, fmt.Sprintf("reserve:%s:%s", BUSD_WBNB_PAIR, WBNB_ADDRESS)))
 	usdtBNBReserve := foundOrZeroFloat(reserves.GetAt(update.LogOrdinal, fmt.Sprintf("reserve:%s:%s", USDT_WBNB_PAIR, WBNB_ADDRESS)))

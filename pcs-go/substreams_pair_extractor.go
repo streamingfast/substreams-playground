@@ -16,7 +16,8 @@ type PairExtractor struct {
 }
 
 // Map function can take one or more input objects, sync'd by the `Block` clock.
-func (p *PairExtractor) Map(block *pbcodec.Block) (pairs PCSPairs, err error) {
+func (p *PairExtractor) Map(block *pbcodec.Block) (pairs *Pairs, err error) {
+	pairs = &Pairs{}
 	for _, trx := range block.TransactionTraces {
 		// WARN: this wouldn't catch those contract calls that are nested in sub-Calls
 		if !bytes.Equal(trx.To, FactoryAddressBytes) {
@@ -47,16 +48,19 @@ func (p *PairExtractor) Map(block *pbcodec.Block) (pairs PCSPairs, err error) {
 
 			ord := uint64(log.BlockIndex)
 
-			pairs = append(pairs, PCSPair{
+			pairs.Pairs = append(pairs.Pairs, &Pair{
 				Address:               ev.Pair.Pretty(),
-				Token0:                *erc20Token0,
-				Token1:                *erc20Token1,
-				CreationTransactionID: eth.Hash(trx.Hash).Pretty(),
+				Erc20Token0:           erc20Token0,
+				Erc20Token1:           erc20Token1,
+				CreationTransactionId: eth.Hash(trx.Hash).Pretty(),
 				BlockNum:              block.Number,
 
 				LogOrdinal: ord,
 			})
 		}
+	}
+	if len(pairs.Pairs) == 0 {
+		return nil, nil
 	}
 	return
 }
@@ -98,7 +102,7 @@ func (p *PairExtractor) getToken(addr eth.Address) (*ERC20Token, error) {
 			return nil, fmt.Errorf("decoding token decimals() response: %w", err)
 		}
 
-		token.Decimals = int64(decoded[0].(*big.Int).Uint64())
+		token.Decimals = uint64(decoded[0].(*big.Int).Uint64())
 	}
 
 	nameResponse := resps.Responses[1]
