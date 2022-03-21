@@ -1,5 +1,30 @@
+## orchestrating different modules from entrypoint (module-layer dimension to parallelization of substreams)
 
+```
+    [a]
 
+[b]     [c]
+
+    [d*] (d module is entrypoint, becomes the orchestrator)
+```
+
+Could be spread across different instances like so:
+
+* [d] --grpc--> run a cascade=false
+   * [a] runs... !!
+* [d] --grpc--> run b cascade=false
+   * [b] waits because it requires a to complete...
+* [d] --grpc--> run c cascade=false
+   * [c] waits becuase it requires a to complete...
+* [d] waits for [b] and [c] to complete
+* [d] starts processing...
+
+However, 
+* until it is implemented in firehose through GRPC, 
+* or if we want to keep it on a single instance
+those `--grpc-->` arrows could signify simply a `sseth` command
+
+# sharding dimension to parallelization of substreams
 
 1-6 are segments
 Rows are store dependencies, so stages
