@@ -93,13 +93,13 @@ func floatToBytes(f *big.Float) []byte {
 	return []byte(floatToStr(f))
 }
 
-func ConvertTokenToDecimal(amount *big.Int, decimals int64) *big.Float {
+func ConvertTokenToDecimal(amount *big.Int, decimals uint64) *big.Float {
 	a := new(big.Float).SetInt(amount).SetPrec(100)
 	if decimals == 0 {
 		return a
 	}
 
-	return a.Quo(a, ExponentToBigFloat(decimals).SetPrec(100)).SetPrec(100)
+	return a.Quo(a, ExponentToBigFloat(int64(decimals)).SetPrec(100)).SetPrec(100)
 }
 
 func ExponentToBigFloat(decimals int64) *big.Float {

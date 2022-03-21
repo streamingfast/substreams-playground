@@ -1,10 +1,9 @@
 package pcs
 
 import (
-	"encoding/json"
-
 	imports "github.com/streamingfast/substreams/native-imports"
 	"github.com/streamingfast/substreams/state"
+	"google.golang.org/protobuf/proto"
 )
 
 type PairsStateBuilder struct {
@@ -22,15 +21,15 @@ func NewPairsStateBuilder(imp *imports.Imports) *PairsStateBuilder { return &Pai
 
 // input: pbcodec.Block
 // output: STATE (path-to-storage, unique ID for storage)
-func (p *PairsStateBuilder) Store(pairs PCSPairs, pairsStore *state.Builder) error {
-	for _, pair := range pairs {
-		jsonContent, err := json.Marshal(pair)
+func (p *PairsStateBuilder) Store(pairs Pairs, pairsStore *state.Builder) error {
+	for _, pair := range pairs.Pairs {
+		cnt, err := proto.Marshal(pair)
 		if err != nil {
 			return err
 		}
 
-		pairsStore.SetBytes(pair.LogOrdinal, "pair:"+pair.Address, jsonContent)
-		pairsStore.Set(pair.LogOrdinal, "tokens:"+generateTokensKey(pair.Token0.Address, pair.Token1.Address), pair.Address)
+		pairsStore.SetBytes(pair.LogOrdinal, "pair:"+pair.Address, cnt)
+		pairsStore.Set(pair.LogOrdinal, "tokens:"+generateTokensKey(pair.Erc20Token0.Address, pair.Erc20Token1.Address), pair.Address)
 	}
 	return nil
 }

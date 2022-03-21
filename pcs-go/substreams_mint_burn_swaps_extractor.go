@@ -1,7 +1,6 @@
 package pcs
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
@@ -9,11 +8,13 @@ import (
 	eth "github.com/streamingfast/eth-go"
 	pbcodec "github.com/streamingfast/substream-pancakeswap/pb/sf/ethereum/codec/v1"
 	"github.com/streamingfast/substreams/state"
+	"google.golang.org/protobuf/proto"
 )
 
 type SwapsExtractor struct{}
 
-func (p *SwapsExtractor) Map(block *pbcodec.Block, pairs state.Reader, prices state.Reader) (out PCSEvents, err error) {
+func (p *SwapsExtractor) Map(block *pbcodec.Block, pairs state.Reader, prices state.Reader) (out *Events, err error) {
+	out = &Events{}
 	for _, trx := range block.TransactionTraces {
 		trxID := eth.Hash(trx.Hash).Pretty()
 		for _, call := range trx.Calls {
@@ -30,8 +31,8 @@ func (p *SwapsExtractor) Map(block *pbcodec.Block, pairs state.Reader, prices st
 				continue
 			}
 
-			var pair *PCSPair
-			if err := json.Unmarshal(pairCnt, &pair); err != nil {
+			pair := &Pair{}
+			if err := proto.Unmarshal(pairCnt, pair); err != nil {
 				return nil, err
 			}
 
@@ -60,7 +61,7 @@ func (p *SwapsExtractor) Map(block *pbcodec.Block, pairs state.Reader, prices st
 			// First pattern:
 			// last = Mint, 4 logs (includes the handling of the first optional Transfer)
 			// implies: Transfer Transfer Sync Mint
-			var newOutput PCSEvent
+			baseEvent := &Event{PairAddress: pairAddr, Token0: pair.Erc20Token0.Address, Token1: pair.Erc20Token1.Address, TransactionId: trxID, Timestamp: uint64(block.MustTime().Unix())}
 			var err error
 			if len(events) == 4 {
 				evMint, okMint := events[3].(*PairMintEvent)
@@ -69,32 +70,35 @@ func (p *SwapsExtractor) Map(block *pbcodec.Block, pairs state.Reader, prices st
 				evTr2 := events[1].(*PairTransferEvent)
 				evTr1 := events[0].(*PairTransferEvent)
 				if okMint {
-					newOutput, err = p.processMint(prices, pair, evTr1, evTr2, evSync, evMint)
+					err = p.processMint(baseEvent, prices, pair, evTr1, evTr2, evSync, evMint)
 				} else {
-					newOutput, err = p.processBurn(prices, pair, evTr1, evTr2, evSync, evBurn)
+					err = p.processBurn(baseEvent, prices, pair, evTr1, evTr2, evSync, evBurn)
 				}
+
 			} else if len(events) == 3 {
 				evMint, okMint := events[2].(*PairMintEvent)
 				evBurn, _ := events[2].(*PairBurnEvent)
 				evSync := events[1].(*PairSyncEvent)
 				evTr2 := events[0].(*PairTransferEvent)
 				if okMint {
-					newOutput, err = p.processMint(prices, pair, nil, evTr2, evSync, evMint)
+					err = p.processMint(baseEvent, prices, pair, nil, evTr2, evSync, evMint)
 				} else {
-					newOutput, err = p.processBurn(prices, pair, nil, evTr2, evSync, evBurn)
+					err = p.processBurn(baseEvent, prices, pair, nil, evTr2, evSync, evBurn)
 				}
 			} else if len(events) == 2 {
 				evSwap, okSwap := events[1].(*PairSwapEvent)
 				if okSwap {
 					evSync := events[0].(*PairSyncEvent)
-					newOutput, err = p.processSwap(prices, pair, evSync, evSwap, eth.Address(trx.From).Pretty())
+					err = p.processSwap(baseEvent, prices, pair, evSync, evSwap, eth.Address(trx.From).Pretty())
 				} else {
 					fmt.Println("HUh? what's that?")
 				}
 			} else if len(events) == 1 {
 				if _, ok := events[0].(*PairTransferEvent); ok {
+					continue
 					//newOutput = p.processTransfer(prices, evTransfer)
 				} else if _, ok := events[0].(*PairApprovalEvent); ok {
+					continue
 					//newOutput = p.processApproval(prices, evApproval)
 				} else {
 					panic("unhandled event pattern, with 1 event")
@@ -105,66 +109,63 @@ func (p *SwapsExtractor) Map(block *pbcodec.Block, pairs state.Reader, prices st
 			if err != nil {
 				return nil, fmt.Errorf("process pair call: %w", err)
 			}
-			if newOutput != nil {
-				baseEvent := PCSBaseEvent{pairAddr, pair.Token0.Address, pair.Token1.Address, trxID, uint64(block.MustTime().Unix())}
-				newOutput.SetBase(baseEvent)
-				out = append(out, newOutput)
-			}
+
+			out.Events = append(out.Events, baseEvent)
 		}
 	}
 	return
 }
 
-func (p *SwapsExtractor) processMint(prices state.Reader, pair *PCSPair, tr1 *PairTransferEvent, tr2 *PairTransferEvent, sync *PairSyncEvent, mint *PairMintEvent) (out *PCSMint, err error) {
+func (p *SwapsExtractor) processMint(ev *Event, prices state.Reader, pair *Pair, tr1 *PairTransferEvent, tr2 *PairTransferEvent, sync *PairSyncEvent, mint *PairMintEvent) (err error) {
 	logOrdinal := uint64(mint.LogIndex)
 
 	amount0, amount1, amountUSD := convertPrices(prices, logOrdinal, mint.Amount0, mint.Amount1, pair)
 
-	out = &PCSMint{
-		Type:       "Mint",
-		To:         tr2.To.Pretty(),
-		Sender:     mint.Sender.Pretty(),
-		LogOrdinal: logOrdinal,
-		Liquidity:  floatToStr(ConvertTokenToDecimal(tr2.Value, 18)),
-		Amount0:    floatToStr(amount0),
-		Amount1:    floatToStr(amount1),
-		AmountUSD:  floatToStr(amountUSD),
+	ev.LogOrdinal = logOrdinal
+	m := &Mint{
+		To:        tr2.To.Pretty(),
+		Sender:    mint.Sender.Pretty(),
+		Liquidity: floatToStr(ConvertTokenToDecimal(tr2.Value, 18)),
+		Amount0:   floatToStr(amount0),
+		Amount1:   floatToStr(amount1),
+		AmountUsd: floatToStr(amountUSD),
 	}
 	if tr1 != nil {
 		if tr1.Value.Cmp(big.NewInt(10000)) != 0 {
-			out.FeeTo = tr1.To.Pretty()
-			out.FeeLiquidity = floatToStr(ConvertTokenToDecimal(tr1.Value, 18))
+			m.FeeTo = tr1.To.Pretty()
+			m.FeeLiquidity = floatToStr(ConvertTokenToDecimal(tr1.Value, 18))
 		}
 	}
+	ev.Type = &Event_Mint{Mint: m}
 	return
 }
 
-func (p *SwapsExtractor) processBurn(prices state.Reader, pair *PCSPair, tr1 *PairTransferEvent, tr2 *PairTransferEvent, sync *PairSyncEvent, burn *PairBurnEvent) (out *PCSBurn, err error) {
+func (p *SwapsExtractor) processBurn(ev *Event, prices state.Reader, pair *Pair, tr1 *PairTransferEvent, tr2 *PairTransferEvent, sync *PairSyncEvent, burn *PairBurnEvent) (err error) {
 	logOrdinal := uint64(burn.LogIndex)
 	amount0, amount1, amountUSD := convertPrices(prices, logOrdinal, burn.Amount0, burn.Amount1, pair)
-	out = &PCSBurn{
-		Type:       "Burn",
-		LogOrdinal: logOrdinal,
-		Liquidity:  floatToStr(ConvertTokenToDecimal(tr2.Value, 18)),
-		Amount0:    floatToStr(amount0),
-		Amount1:    floatToStr(amount1),
-		AmountUSD:  floatToStr(amountUSD),
-		To:         tr2.To.Pretty(),   // WARN: this might be off, didn't check completely, the code is crazy convoluated in their previous implementation.
-		Sender:     tr2.From.Pretty(), // WARN: ok those sender things aren't necessarily right, but not really useful for computations anyway
+	ev.LogOrdinal = logOrdinal
+	b := &Burn{
+		Liquidity: floatToStr(ConvertTokenToDecimal(tr2.Value, 18)),
+		Amount0:   floatToStr(amount0),
+		Amount1:   floatToStr(amount1),
+		AmountUsd: floatToStr(amountUSD),
+		To:        tr2.To.Pretty(),   // WARN: this might be off, didn't check completely, the code is crazy convoluated in their previous implementation.
+		Sender:    tr2.From.Pretty(), // WARN: ok those sender things aren't necessarily right, but not really useful for computations anyway
 	}
 	if tr1 != nil {
-		out.FeeTo = tr1.To.Pretty()
-		out.FeeLiquidity = floatToStr(ConvertTokenToDecimal(tr1.Value, 18))
+		b.FeeTo = tr1.To.Pretty()
+		b.FeeLiquidity = floatToStr(ConvertTokenToDecimal(tr1.Value, 18))
 	}
+	ev.Type = &Event_Burn{Burn: b}
 	return
 }
 
-func convertPrices(prices state.Reader, logOrdinal uint64, amount0, amount1 *big.Int, pair *PCSPair) (*big.Float, *big.Float, *big.Float) {
-	token0Amount := ConvertTokenToDecimal(amount0, pair.Token0.Decimals)
-	token1Amount := ConvertTokenToDecimal(amount1, pair.Token1.Decimals)
+func convertPrices(prices state.Reader, logOrdinal uint64, amount0, amount1 *big.Int, pair *Pair) (*big.Float, *big.Float, *big.Float) {
+	token0Amount := ConvertTokenToDecimal(amount0, pair.Erc20Token0.Decimals)
+	token1Amount := ConvertTokenToDecimal(amount1, pair.Erc20Token1.Decimals)
 
-	derivedBNB0 := foundOrZeroFloat(prices.GetAt(logOrdinal, fmt.Sprintf("dprice:%s:bnb", pair.Token0.Address)))
-	derivedBNB1 := foundOrZeroFloat(prices.GetAt(logOrdinal, fmt.Sprintf("dprice:%s:bnb", pair.Token1.Address)))
+	derivedBNB0 := foundOrZeroFloat(prices.GetAt(logOrdinal, fmt.Sprintf("dprice:%s:bnb", pair.Erc20Token0.Address)))
+	derivedBNB1 := foundOrZeroFloat(prices.GetAt(logOrdinal, fmt.Sprintf("dprice:%s:bnb", pair.Erc20Token1.Address)))
 	usdPrice := foundOrZeroFloat(prices.GetAt(logOrdinal, fmt.Sprintf("dprice:usd:bnb")))
 
 	amountTotalUSD := bf().Mul(
@@ -178,42 +179,40 @@ func convertPrices(prices state.Reader, logOrdinal uint64, amount0, amount1 *big
 	return token0Amount, token1Amount, amountTotalUSD
 }
 
-func (p *SwapsExtractor) processSwap(prices state.Reader, pair *PCSPair, sync *PairSyncEvent, swap *PairSwapEvent, fromAddr string) (out *PCSSwap, err error) {
+func (p *SwapsExtractor) processSwap(ev *Event, prices state.Reader, pair *Pair, sync *PairSyncEvent, swap *PairSwapEvent, fromAddr string) (err error) {
 	logOrdinal := uint64(swap.LogIndex)
 
-	amount0In := ConvertTokenToDecimal(swap.Amount0In, pair.Token0.Decimals)
-	amount1In := ConvertTokenToDecimal(swap.Amount1In, pair.Token1.Decimals)
-	amount0Out := ConvertTokenToDecimal(swap.Amount0Out, pair.Token0.Decimals)
-	amount1Out := ConvertTokenToDecimal(swap.Amount1Out, pair.Token1.Decimals)
+	amount0In := ConvertTokenToDecimal(swap.Amount0In, pair.Erc20Token0.Decimals)
+	amount1In := ConvertTokenToDecimal(swap.Amount1In, pair.Erc20Token1.Decimals)
+	amount0Out := ConvertTokenToDecimal(swap.Amount0Out, pair.Erc20Token0.Decimals)
+	amount1Out := ConvertTokenToDecimal(swap.Amount1Out, pair.Erc20Token1.Decimals)
 
 	amount0Total := bf().Add(amount0Out, amount0In)
 	amount1Total := bf().Add(amount1Out, amount1In)
 
 	derivedAmountBNB := avgFloats(
-		getDerivedPrice(logOrdinal, prices, "bnb", amount0Total, pair.Token0.Address),
-		getDerivedPrice(logOrdinal, prices, "bnb", amount1Total, pair.Token1.Address),
+		getDerivedPrice(logOrdinal, prices, "bnb", amount0Total, pair.Erc20Token0.Address),
+		getDerivedPrice(logOrdinal, prices, "bnb", amount1Total, pair.Erc20Token1.Address),
 	)
 
 	trackedAmountUSD := avgFloats(
-		getDerivedPrice(logOrdinal, prices, "usd", amount0Total, pair.Token0.Address),
-		getDerivedPrice(logOrdinal, prices, "usd", amount1Total, pair.Token0.Address),
+		getDerivedPrice(logOrdinal, prices, "usd", amount0Total, pair.Erc20Token0.Address),
+		getDerivedPrice(logOrdinal, prices, "usd", amount1Total, pair.Erc20Token0.Address),
 	)
 
-	out = &PCSSwap{
-		Type:       "Swap",
-		LogOrdinal: logOrdinal,
-
+	ev.LogOrdinal = logOrdinal
+	ev.Type = &Event_Swap{Swap: &Swap{
 		Amount0In:  floatToStr(amount0In),
 		Amount1In:  floatToStr(amount1In),
 		Amount0Out: floatToStr(amount0Out),
 		Amount1Out: floatToStr(amount1Out),
 
-		AmountBNB: floatToStr(derivedAmountBNB),
-		AmountUSD: floatToStr(trackedAmountUSD),
+		AmountBnb: floatToStr(derivedAmountBNB),
+		AmountUsd: floatToStr(trackedAmountUSD),
 		From:      fromAddr,
 		To:        swap.To.Pretty(),
 		Sender:    swap.Sender.Pretty(),
-	}
+	}}
 	return
 }
 

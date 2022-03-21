@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package pcs.types.v1;
 
+option go_package = "github.com/streamingfast/substream-pancakeswap/pcs-go;pcs";
+
 message Pairs {
   repeated Pair pairs = 1;
 }
@@ -31,8 +33,65 @@ message Reserve {
   string pair_address = 2;
   string reserve0 = 3;
   string reserve1 = 4;
-  string token0Price = 5;
-  string token1Price = 6;
+  string token0_price = 5;
+  string token1_price = 6;
+}
+
+message Events {
+  repeated Event events = 1;
+}
+
+message Event {
+  oneof type {
+    Swap swap = 1;
+    Burn burn = 2;
+    Mint mint = 3;
+  }
+  uint64 log_ordinal = 10;
+  string pair_address = 11;
+  string token0 = 12;
+  string token1 = 13;
+  string transaction_id = 14;
+  uint64 timestamp = 15;
+}
+
+message Swap {
+  string sender = 1;
+  string to = 2;
+  string from = 3;
+
+  string amount0_in = 4;
+  string amount1_in = 5;
+  string amount0_out = 6;
+  string amount1_out = 7;
+  string amount_bnb = 8;
+  string amount_usd = 9;
+}
+
+message Burn {
+  string sender = 1;
+  string to = 2;
+  string fee_to = 3;
+
+  string amount0 = 4;
+  string amount1 = 5;
+  string amount_usd = 6;
+
+  string liquidity = 7;
+  string fee_liquidity = 8;
+}
+
+message Mint {
+  string sender = 1;
+  string to = 2;
+  string fee_to = 3;
+
+  string amount0 = 4;
+  string amount1 = 5;
+  string amount_usd = 6;
+
+  string liquidity = 7;
+  string fee_liquidity = 8;
 }
 
 message Events {

@@ -9,28 +9,31 @@ import (
 
 type PCSVolume24hStateBuilder struct{}
 
-func (p *PCSVolume24hStateBuilder) Store(block *pbcodec.Block, evs PCSEvents, volumes state.SumBigFloatSetter) error {
+func (p *PCSVolume24hStateBuilder) Store(block *pbcodec.Block, evs *Events, volumes state.SumBigFloatSetter) error {
 	timestamp := block.MustTime().Unix()
 	dayId := timestamp / 86400
 	//prevDayId := dayId - 1
 	//dayStartTimestamp := dayId * 86400, downstream can compute it
 
-	for _, ev := range evs {
-		swap, ok := ev.(*PCSSwap)
+	if evs == nil {
+		return nil
+	}
+	for _, ev := range evs.Events {
+		swap, ok := ev.Type.(*Event_Swap)
 		if !ok {
 			continue
 		}
-		if swap.AmountUSD == "" {
+		if swap.Swap.AmountUsd == "" {
 			continue
 		}
-		amountUSD := strToFloat(swap.AmountUSD)
+		amountUSD := strToFloat(swap.Swap.AmountUsd)
 		if amountUSD.Cmp(bf()) == 0 {
 			continue
 		}
 
-		volumes.SumBigFloat(swap.LogOrdinal, fmt.Sprintf("pairs:%d:%s", dayId, swap.PairAddress), amountUSD)
-		volumes.SumBigFloat(swap.LogOrdinal, fmt.Sprintf("token:%d:%s", dayId, swap.Token0), amountUSD)
-		volumes.SumBigFloat(swap.LogOrdinal, fmt.Sprintf("token:%d:%s", dayId, swap.Token1), amountUSD)
+		volumes.SumBigFloat(ev.LogOrdinal, fmt.Sprintf("pairs:%d:%s", dayId, ev.PairAddress), amountUSD)
+		volumes.SumBigFloat(ev.LogOrdinal, fmt.Sprintf("token:%d:%s", dayId, ev.Token0), amountUSD)
+		volumes.SumBigFloat(ev.LogOrdinal, fmt.Sprintf("token:%d:%s", dayId, ev.Token1), amountUSD)
 	}
 
 	// volumes.DeletePrefix("pairs:%d", dayId-1)

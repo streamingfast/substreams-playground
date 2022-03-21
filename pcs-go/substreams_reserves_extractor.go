@@ -1,12 +1,12 @@
 package pcs
 
 import (
-	"encoding/json"
 	"fmt"
 
 	eth "github.com/streamingfast/eth-go"
 	pbcodec "github.com/streamingfast/substream-pancakeswap/pb/sf/ethereum/codec/v1"
 	"github.com/streamingfast/substreams/state"
+	"google.golang.org/protobuf/proto"
 )
 
 type ReservesExtractor struct{}
@@ -14,7 +14,8 @@ type ReservesExtractor struct{}
 // Map function can take one or more input objects, sync'd by the
 // `Block` clock.  Because it depends on a `PairsState`, it needs to
 // be run in `Process`, linearly.
-func (p *ReservesExtractor) Map(block *pbcodec.Block, pairsState state.Reader) (reserves PCSReserveUpdates, err error) {
+func (p *ReservesExtractor) Map(block *pbcodec.Block, pairsState state.Reader) (reserves *Reserves, err error) {
+	reserves = &Reserves{}
 	for _, trx := range block.TransactionTraces {
 		for _, log := range trx.Receipt.Logs {
 			// perhaps we can optimize in a small local map, if we
@@ -34,15 +35,15 @@ func (p *ReservesExtractor) Map(block *pbcodec.Block, pairsState state.Reader) (
 					return nil, fmt.Errorf("decoding PairSync event: %w", err)
 				}
 
-				var pair PCSPair
-				if err := json.Unmarshal(pairCnt, &pair); err != nil {
+				pair := &Pair{}
+				if err := proto.Unmarshal(pairCnt, pair); err != nil {
 					return nil, err
 				}
 
-				reserve0 := ConvertTokenToDecimal(ev.Reserve0, pair.Token0.Decimals)
-				reserve1 := ConvertTokenToDecimal(ev.Reserve1, pair.Token1.Decimals)
+				reserve0 := ConvertTokenToDecimal(ev.Reserve0, pair.Erc20Token0.Decimals)
+				reserve1 := ConvertTokenToDecimal(ev.Reserve1, pair.Erc20Token1.Decimals)
 
-				update := PCSReserveUpdate{
+				update := &Reserve{
 					PairAddress: eth.Address(log.Address).Pretty(),
 					Reserve0:    floatToStr(reserve0),
 					Reserve1:    floatToStr(reserve1),
@@ -67,9 +68,12 @@ func (p *ReservesExtractor) Map(block *pbcodec.Block, pairsState state.Reader) (
 				}
 				// END OPTIONAL?
 
-				reserves = append(reserves, update)
+				reserves.Reserves = append(reserves.Reserves, update)
 			}
 		}
+	}
+	if len(reserves.Reserves) == 0 {
+		return nil, nil
 	}
 	return
 }
