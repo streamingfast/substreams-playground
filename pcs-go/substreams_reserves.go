@@ -10,7 +10,10 @@ import (
 
 type ReservesStateBuilder struct{}
 
-func (p *ReservesStateBuilder) Store(reserveUpdates Reserves, pairs state.Reader, reserves state.UpdateKeySetter) error {
+func (p *ReservesStateBuilder) Store(reserveUpdates *Reserves, pairs state.Reader, reserves state.UpdateKeySetter) error {
+	if reserveUpdates == nil {
+		return nil
+	}
 	for _, update := range reserveUpdates.Reserves {
 		// TODO: cache those pairs we've already decoded in this `Store` run
 		pairData, found := pairs.GetLast("pair:" + update.PairAddress)

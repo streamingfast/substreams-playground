@@ -21,7 +21,10 @@ func NewPairsStateBuilder(imp *imports.Imports) *PairsStateBuilder { return &Pai
 
 // input: pbcodec.Block
 // output: STATE (path-to-storage, unique ID for storage)
-func (p *PairsStateBuilder) Store(pairs Pairs, pairsStore *state.Builder) error {
+func (p *PairsStateBuilder) Store(pairs *Pairs, pairsStore *state.Builder) error {
+	if pairs == nil {
+		return nil
+	}
 	for _, pair := range pairs.Pairs {
 		cnt, err := proto.Marshal(pair)
 		if err != nil {
