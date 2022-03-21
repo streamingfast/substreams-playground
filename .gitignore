@@ -25,3 +25,5 @@ localblocks
 dist/
 /erc20-rust/Cargo.lock
 /erc20-rust/target/
+
+sseth

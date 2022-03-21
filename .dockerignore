@@ -1,0 +1,7 @@
+localblocks/
+localdata/
+localirr/
+localrpccache/
+rpc-cache/
+
+.git/
