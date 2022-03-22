@@ -22,7 +22,7 @@ const WHITELIST_TOKENS: [&str; 6] = [
     "0x2170ed0880ac9a755fd29b2688956bd959f933f8", // WETH
 ];
 
-pub fn convert_token_to_decimal(amount: &[u8], decimals: u64) -> BigDecimal {
+pub fn convert_token_to_decimal(amount: &[u8], decimals: &u64) -> BigDecimal {
     let big_uint_amount = BigUint::from_bytes_be(amount);
     let big_float_amount = BigDecimal::from_str(big_uint_amount.to_string().as_str()).unwrap().with_prec(100);
 
@@ -171,8 +171,8 @@ fn one_big_decimal() -> BigDecimal {
     BigDecimal::one().with_prec(100)
 }
 
-fn divide_by_decimals(big_float_amount: BigDecimal, decimals: u64) -> BigDecimal{
-    let bd = BigDecimal::from_str("1".pad_to_width_with_char((decimals + 1) as usize, '0').as_str()).unwrap().with_prec(100);
+fn divide_by_decimals(big_float_amount: BigDecimal, decimals: &u64) -> BigDecimal{
+    let bd = BigDecimal::from_str("1".pad_to_width_with_char((*decimals + 1) as usize, '0').as_str()).unwrap().with_prec(100);
     return big_float_amount.div(bd).with_prec(100)
 }
 
