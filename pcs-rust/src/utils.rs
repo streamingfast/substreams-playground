@@ -22,16 +22,6 @@ const WHITELIST_TOKENS: [&str; 6] = [
     "0x2170ed0880ac9a755fd29b2688956bd959f933f8", // WETH
 ];
 
-pub fn is_pair_created_event(sig: String) -> bool {
-    /* keccak value for PairCreated(address,address,address,uint256) */
-    return sig == "0d3648bd0f6ba80134a33ba9275ac585d9d315f0ad8355cddefde31afa28d0e9";
-}
-
-pub fn is_new_pair_sync_event(sig: String) -> bool {
-    /* keccak value for Sync(uint112,uint112) */
-    return sig == "1c411e9a96e071241c2f21f7726b17ae89e3cab4c78be50e062b03a9fffbbad1";
-}
-
 pub fn convert_token_to_decimal(amount: &[u8], decimals: u64) -> BigDecimal {
     let big_uint_amount = BigUint::from_bytes_be(amount);
     let big_float_amount = BigDecimal::from_str(big_uint_amount.to_string().as_str()).unwrap().with_prec(100);
