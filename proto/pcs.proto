@@ -34,3 +34,86 @@ message Reserve {
   string token0Price = 5;
   string token1Price = 6;
 }
+
+message PCSBaseEvents {
+  repeated PCSBaseEvent pcs_base_event = 1;
+}
+
+message PCSBaseEvent {
+  string pair_address = 1;
+  string token0 = 2;
+  string token1 = 3;
+  string transaction_id = 4;
+  uint64 timestamp = 5;
+}
+
+message PCSEvent {
+  oneof event {
+    PairCreatedEvent pair_created_event = 1;
+    PairApprovalEvent pair_approval_event = 2;
+    PairBurnEvent pair_burn_event = 3;
+    PairMintEvent pair_mint_event = 4;
+    PairSwapEvent pair_swap_event = 5;
+    PairSyncEvent pair_sync_event = 6;
+    PairTransferEvent pair_transfer_event = 7;
+  }
+}
+
+message PairCreatedEvent {
+  bytes log_address = 1;
+  uint64 log_index = 2;
+  bytes token0 = 3;
+  bytes token1 = 4;
+  bytes pair = 5;
+}
+
+message PairApprovalEvent {
+  bytes log_address = 1;
+  uint64 log_index = 2;
+  bytes owner = 3;
+  bytes spender = 4;
+  bytes value = 5; // bigInt
+}
+
+message PairBurnEvent {
+  bytes log_address = 1;
+  uint64 log_index = 2;
+  bytes sender = 3;
+  bytes amount0 = 4; // bigInt
+  bytes amount1 = 5; // bigInt
+  bytes to = 6;
+}
+
+message PairMintEvent {
+  bytes log_address = 1;
+  uint64 log_index = 2;
+  bytes sender = 3;
+  bytes amount0 = 4; // bigInt
+  bytes amount1 = 5; // bigInt
+}
+
+message PairSwapEvent {
+  bytes log_address = 1;
+  uint64 log_index = 2;
+  bytes sender = 3;
+  bytes amount0_in = 4;
+  bytes amount1_in = 5;
+  bytes amount0_out = 6;
+  bytes amount1_out = 7;
+  bytes to = 8;
+}
+
+message PairSyncEvent {
+  bytes log_address = 1;
+  uint64 log_index = 2;
+  bytes reserve0 = 3;
+  bytes reserve1 = 4;
+}
+
+message PairTransferEvent {
+  bytes log_address = 1;
+  uint64 log_index = 2;
+  bytes from = 3;
+  bytes to = 4;
+  bytes value = 5;
+}
