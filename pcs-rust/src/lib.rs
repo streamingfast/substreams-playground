@@ -2,7 +2,9 @@ mod eth;
 mod pb;
 mod rpc;
 mod utils;
+mod event;
 
+use std::any::Any;
 use std::ops::Mul;
 use std::str::FromStr;
 use bigdecimal::BigDecimal;
@@ -10,6 +12,9 @@ use eth::{address_pretty, decode_string, decode_uint32};
 use hex;
 
 use substreams::{log, proto, state};
+use crate::pb::pcs;
+use crate::pcs::pcs_event::Event;
+use crate::pcs::PcsEvent;
 
 #[no_mangle]
 pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
@@ -35,7 +40,7 @@ pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
         for log in trx.receipt.unwrap().logs {
             let sig = hex::encode(&log.topics[0]);
 
-            if !utils::is_pair_created_event(sig) {
+            if !event::is_pair_created_event(sig.as_str()) {
                 continue;
             }
 
@@ -86,7 +91,7 @@ pub extern "C" fn map_reserves(block_ptr: *mut u8, block_len: usize, pairs_store
                 Some(pair_bytes) => {
                     let sig = hex::encode(&log.topics[0]);
 
-                    if !utils::is_new_pair_sync_event(sig) {
+                    if !event::is_pair_sync_event(sig.as_str()) {
                         continue;
                     }
 
@@ -216,6 +221,124 @@ pub extern "C" fn build_prices_state(reserves_ptr: *mut u8, reserves_len: usize,
                 if reserves_bnb_sum.ne(&utils::zero_big_decimal()) {
                     state::set(reserve.log_ordinal as i64, format!("dreserves:{}:bnb", reserve.pair_address), Vec::from(reserves_bnb_sum.to_string()));
                 }
+            }
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn map_swaps(block_ptr: *mut u8, block_len: usize, pairs_store_idx: u32, prices_store_idx: u32) {
+    substreams::register_panic_hook();
+
+    let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
+
+    let mut pcs_events: Vec<PcsEvent> = Vec::new();
+
+    for trx in blk.transaction_traces {
+        let trx_id = eth::address_pretty(trx.hash.as_slice());
+        for call in trx.calls {
+            if call.state_reverted {
+                continue;
+            }
+
+            if call.logs.len() == 0 {
+                continue;
+            }
+
+            let pair_addr = eth::address_pretty(call.address.as_slice());
+
+            let pair: pcs::Pair;
+            match state::get_last(pairs_store_idx, format!("pair:{}", pair_addr)) {
+                None => continue,
+                Some(pair_bytes) => pair = proto::decode(pair_bytes).unwrap()
+            }
+
+            let mut events: Vec<pcs::PcsEvent> = Vec::new();
+            let mut last_ordinal: u64;
+
+            for log in call.logs {
+                last_ordinal = log.block_index as u64;
+                let event = event::decode_event(log);
+                events.push(event);
+            }
+
+            // Match the different patterns
+            log::println(format!("CALL {} on pair {}: ", call.index, pair_addr));
+
+            let new_output: pcs::PcsEvent = PcsEvent { event: None };
+            if events.len() == 4 {
+                let ev_tr1 = match events[0].event.as_ref().unwrap() {
+                    Event::PairTransferEvent(pair_transfer_event) =>
+                        Some(pair_transfer_event),
+                        _ => None
+                };
+
+                let ev_tr2 = match events[1].event.as_ref().unwrap() {
+                    Event::PairTransferEvent(pair_transfer_event) =>
+                        Some(pair_transfer_event),
+                        _ => None
+                };
+
+                let ev_sync = match events[2].event.as_ref().unwrap() {
+                    Event::PairSyncEvent(pair_sync_event) =>
+                        Some(pair_sync_event),
+                        _ => None
+                };
+
+                match events[3].event.as_ref().unwrap() {
+                    Event::PairMintEvent(pair_mint_event) => {
+                        event::process_mint(prices_store_idx, pair, ev_tr1, ev_tr2, ev_sync, pair_mint_event)
+                    }
+                    Event::PairBurnEvent(pair_burn_event) => {
+                        event::process_burn(prices_store_idx, pair, ev_tr1, ev_tr2, ev_sync, pair_burn_event)
+                    },
+                    _ => panic!("Error !!!") // fixme: maybe panic with a different message
+                }
+
+            } else if events.len() == 3 {
+                let ev_tr2 = match events[0].event.as_ref().unwrap() {
+                    Event::PairTransferEvent(pair_transfer_event) =>
+                        Some(pair_transfer_event),
+                    _ => None
+                };
+
+                let ev_sync = match events[1].event.as_ref().unwrap() {
+                    Event::PairSyncEvent(pair_sync_event) =>
+                        Some(pair_sync_event),
+                    _ => None
+                };
+
+                match events[2].event.as_ref().unwrap() {
+                    Event::PairMintEvent(pair_mint_event) => {
+                        event::process_mint(prices_store_idx, pair, None, ev_tr2, ev_sync, pair_mint_event)
+                    }
+                    Event::PairBurnEvent(pair_burn_event) => {
+                        event::process_burn(prices_store_idx, pair, None, ev_tr2, ev_sync, pair_burn_event)
+                    },
+                    _ => panic!("Error !!!") // fixme: maybe panic with a different message
+                }
+
+            } else if events.len() == 2 {
+                match events[1].event.as_ref().unwrap() {
+                    Event::PairSwapEvent(pair_swap_event) => {
+                        let ev_sync = match events[0].event.as_ref().unwrap() {
+                            Event::PairSyncEvent(pair_sync_event) =>
+                                Some(pair_sync_event),
+                            _ => None
+                        };
+                        event::process_swap(prices_store_idx, pair, ev_sync, Some(pair_swap_event), eth::address_pretty(trx.from.as_slice()));
+                    },
+                    _ => log::println(format!("Error?!"))
+                }
+
+            } else if events.len() == 1 {
+                panic!("unhandled event pattern, with 1 event")
+            } else {
+                panic!("unhandled event pattern with {} events", events.len());
+            }
+
+            if new_output.event.is_some() {
+                pcs_events.push(new_output);
             }
         }
     }
