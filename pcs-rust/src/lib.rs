@@ -225,7 +225,7 @@ pub extern "C" fn build_prices_state(reserves_ptr: *mut u8, reserves_len: usize,
 }
 
 #[no_mangle]
-pub extern "C" fn map_swaps(block_ptr: *mut u8, block_len: usize, pairs_store_idx: u32, prices_store_idx: u32) {
+pub extern "C" fn map_mint_burn_swaps(block_ptr: *mut u8, block_len: usize, pairs_store_idx: u32, prices_store_idx: u32) {
     substreams::register_panic_hook();
 
     let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
@@ -315,7 +315,13 @@ pub extern "C" fn map_swaps(block_ptr: *mut u8, block_len: usize, pairs_store_id
                 }
 
             } else if pcs_events.len() == 1 {
-                panic!("unhandled event pattern, with 1 event")
+
+                match pcs_events[0].event.as_ref().unwrap() {
+                    Event::PairTransferEvent(_) => log::println("Events len 1, PairTransferEvent".to_string()), // do nothing
+                    Event::PairApprovalEvent(_) => log::println("Events len 1, PairApprovalEvent".to_string()), // do nothing
+                    _ => panic!("unhandled event pattern, with 1 event")
+                };
+
             } else {
                 panic!("unhandled event pattern with {} events", pcs_events.len());
             }
