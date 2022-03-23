@@ -10,9 +10,11 @@ use bigdecimal::BigDecimal;
 use eth::{address_pretty, decode_string, decode_uint32};
 use hex;
 use substreams::{log, proto, state};
-use crate::event::PcsEvent;
+use crate::event::{Wrapper, PcsEvent};
 use crate::event::pcs_event::Event;
 use crate::pb::pcs;
+use crate::pcs::event::Type;
+use crate::utils::zero_big_decimal;
 
 #[no_mangle]
 pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
@@ -327,6 +329,86 @@ pub extern "C" fn map_mint_burn_swaps(block_ptr: *mut u8, block_len: usize, pair
             }
 
             events.events.push(base_event);
+        }
+    }
+
+    substreams::output(events)
+}
+
+#[no_mangle]
+pub extern "C" fn build_totals_state(events_ptr: *mut u8, events_len: usize, pairs_ptr: *mut u8, pairs_len: usize) {
+    substreams::register_panic_hook();
+
+    if events_len == 0 || pairs_len == 0 {
+        log::println(format!("events len: {}", events_len));
+        log::println(format!("pairs len: {}", pairs_len));
+
+        return;
+    }
+
+    let events: pb::pcs::Events = proto::decode_ptr(events_ptr, events_len).unwrap();
+    let pairs: pb::pcs::Pairs = proto::decode_ptr(pairs_ptr, pairs_len).unwrap();
+
+    let mut all_pairs_and_events: Vec<Wrapper> = Vec::new();
+
+    for pair in pairs.pairs {
+        all_pairs_and_events.push(Wrapper::Pair(pair));
+    }
+
+    for event in events.events {
+        all_pairs_and_events.push(Wrapper::Event(event));
+    }
+
+    all_pairs_and_events.sort_by(|a, b| utils::get_ordinal(a).cmp(&utils::get_ordinal(b)));
+
+    for el in all_pairs_and_events {
+        match el {
+            Wrapper::Event(event) => {
+                match event.r#type.unwrap() {
+                    Type::Swap(_) => state::sum_int64(event.log_ordinal as i64, format!("pair:{}:swaps", event.pair_address), 1),
+                    Type::Burn(_) => state::sum_int64(event.log_ordinal as i64, format!("pair:{}:burns", event.pair_address), 1),
+                    Type::Mint(_) => state::sum_int64(event.log_ordinal as i64, format!("pair:{}:mints", event.pair_address), 1)
+                }
+            }
+            Wrapper::Pair(pair) => {
+                state::sum_int64(pair.log_ordinal as i64, format!("pairs"), 1)
+            }
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn build_volumes_state(block_ptr: *mut u8, block_len: usize, events_ptr: *mut u8, events_len: usize) {
+    substreams::register_panic_hook();
+
+    if events_len == 0 {
+        return;
+    }
+
+    let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
+
+    let timestamp: i64 = blk.header.unwrap().timestamp.unwrap().seconds;
+    let day_id: i64 = timestamp / 86400;
+
+    let events: pb::pcs::Events = proto::decode_ptr(events_ptr, events_len).unwrap();
+
+    for event in events.events {
+        match event.r#type.unwrap() {
+            Type::Swap(swap) => {
+                if swap.amount_usd.is_empty() {
+                    continue;
+                }
+
+                let amount_usd = BigDecimal::from_str(swap.amount_usd.as_str()).unwrap();
+                if amount_usd.eq(&zero_big_decimal()) {
+                    continue;
+                }
+
+                state::sum_bigfloat(event.log_ordinal as i64, format!("pairs:{}:{}", day_id, event.pair_address), amount_usd.clone());
+                state::sum_bigfloat(event.log_ordinal as i64, format!("token:{}:{}", day_id, event.token0), amount_usd.clone());
+                state::sum_bigfloat(event.log_ordinal as i64, format!("pairs:{}:{}", day_id, event.token1), amount_usd);
+            }
+            _ => continue
         }
     }
 }
