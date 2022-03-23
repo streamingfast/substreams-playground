@@ -2,7 +2,7 @@ specVersion: 0.1.0
 description: PancakeSwap substreams
 codeType: native
 
-startBlock: 6809737
+startBlock: 6810706
 
 protoFiles:
 - ./proto/pcs.proto
@@ -93,15 +93,15 @@ modules:
     updatePolicy: sum
     valueType: bigfloat
 
-- name: database_output
-  kind: map
-  inputs:
-    - store: volumes
-      mode: get
-    - store: volumes
-      mode: deltas
-    - map: mint_burn_swaps_extractor
-  output:
-    type: sf.substreams.v1.DebeziumCDC
+#- name: database_output
+#  kind: map
+#  inputs:
+#    - store: volumes
+#      mode: get
+#    - store: volumes
+#      mode: deltas
+#    - map: mint_burn_swaps_extractor
+#  output:
+#    type: sf.substreams.v1.DebeziumCDC
 
 # $ program manifest.yaml pairsExtractor
