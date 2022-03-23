@@ -90,38 +90,38 @@ modules:
     updatePolicy: sum
     valueType: int64
 
-- name: volumes
-  kind: store
-  code:
-    file: ./pcs-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
-    entrypoint: build_volumes_state
-  inputs:
-    - source: sf.ethereum.type.v1.block
-    - map: mint_burn_swaps_extractor
-  output:
-    updatePolicy: sum
-    valueType: bigfloat
-
-- name: block_to_tokens
-  kind: map
-  code:
-    file: ./pcs-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
-    entrypoint: block_to_tokens
-  inputs:
-    - source: sf.ethereum.type.v1.Block
-  output:
-    type: proto:sf.substreams.tokens.v1.Tokens
-
-- name: tokens
-  kind: store
-  code:
-    file: ./pcs-rust/pkg/pcs_substreams_bg.wasm
-    entrypoint: build_tokens_state
-  inputs:
-    - map: block_to_tokens
-  output:
-    updatePolicy: replace
-    valueType: bytes
+#- name: volumes
+#  kind: store
+#  code:
+#    file: ./pcs-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
+#    entrypoint: build_volumes_state
+#  inputs:
+#    - source: sf.ethereum.type.v1.block
+#    - map: mint_burn_swaps_extractor
+#  output:
+#    updatePolicy: sum
+#    valueType: bigfloat
+#
+#- name: block_to_tokens
+#  kind: map
+#  code:
+#    file: ./pcs-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
+#    entrypoint: block_to_tokens
+#  inputs:
+#    - source: sf.ethereum.type.v1.Block
+#  output:
+#    type: proto:sf.substreams.tokens.v1.Tokens
+#
+#- name: tokens
+#  kind: store
+#  code:
+#    file: ./pcs-rust/pkg/pcs_substreams_bg.wasm
+#    entrypoint: build_tokens_state
+#  inputs:
+#    - map: block_to_tokens
+#  output:
+#    updatePolicy: replace
+#    valueType: bytes
 #
 # - name: db_out
 #   kind: map
