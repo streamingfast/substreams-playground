@@ -390,25 +390,31 @@ pub extern "C" fn build_volumes_state(block_ptr: *mut u8, block_len: usize, even
     let timestamp_seconds = timestamp.seconds;
     let day_id: i64 = timestamp_seconds / 86400;
 
+    if events_len == 0 {
+        return;
+    }
+
     let events: pb::pcs::Events = proto::decode_ptr(events_ptr, events_len).unwrap();
 
     for event in events.events {
-        match event.r#type.unwrap() {
-            Type::Swap(swap) => {
-                if swap.amount_usd.is_empty() {
-                    continue;
-                }
+        if event.r#type.is_some() {
+            match event.r#type.unwrap() {
+                Type::Swap(swap) => {
+                    if swap.amount_usd.is_empty() {
+                        continue;
+                    }
 
-                let amount_usd = BigDecimal::from_str(swap.amount_usd.as_str()).unwrap();
-                if amount_usd.eq(&zero_big_decimal()) {
-                    continue;
-                }
+                    let amount_usd = BigDecimal::from_str(swap.amount_usd.as_str()).unwrap();
+                    if amount_usd.eq(&zero_big_decimal()) {
+                        continue;
+                    }
 
-                state::sum_bigfloat(event.log_ordinal as i64, format!("pairs:{}:{}", day_id, event.pair_address), amount_usd.clone());
-                state::sum_bigfloat(event.log_ordinal as i64, format!("token:{}:{}", day_id, event.token0), amount_usd.clone());
-                state::sum_bigfloat(event.log_ordinal as i64, format!("token:{}:{}", day_id, event.token1), amount_usd);
+                    state::sum_bigfloat(event.log_ordinal as i64, format!("pairs:{}:{}", day_id, event.pair_address), amount_usd.clone());
+                    state::sum_bigfloat(event.log_ordinal as i64, format!("token:{}:{}", day_id, event.token0), amount_usd.clone());
+                    state::sum_bigfloat(event.log_ordinal as i64, format!("token:{}:{}", day_id, event.token1), amount_usd);
+                }
+                _ => continue
             }
-            _ => continue
         }
     }
 }
