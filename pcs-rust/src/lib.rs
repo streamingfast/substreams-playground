@@ -231,6 +231,7 @@ pub extern "C" fn map_mint_burn_swaps(block_ptr: *mut u8, block_len: usize, pair
     substreams::register_panic_hook();
 
     let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
+    log::println(format!("map_mint_burn_swaps -> block.size: {}", blk.size));
 
     let mut events: pb::pcs::Events = pb::pcs::Events { events: vec![] };
 
@@ -378,14 +379,16 @@ pub extern "C" fn build_totals_state(pairs_ptr: *mut u8, pairs_len: usize, event
 pub extern "C" fn build_volumes_state(block_ptr: *mut u8, block_len: usize, events_ptr: *mut u8, events_len: usize) {
     substreams::register_panic_hook();
 
-    if events_len == 0 {
-        return;
-    }
+    log::println(format!("block len: {}", block_len));
 
     let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
-
-    let timestamp: i64 = blk.header.unwrap().timestamp.unwrap().seconds;
-    let day_id: i64 = timestamp / 86400;
+    log::println(format!("block size: {}: ", blk.size));
+    // blk.header.as_ref().unwrap().timestamp.as_ref().unwrap().seconds as u64
+    let timestamp_block_header: pb::eth::BlockHeader = blk.header.unwrap();
+    let timestamp = timestamp_block_header.timestamp.unwrap();
+    log::println(format!("timestamp: {}", timestamp.seconds));
+    let timestamp_seconds = timestamp.seconds;
+    let day_id: i64 = timestamp_seconds / 86400;
 
     let events: pb::pcs::Events = proto::decode_ptr(events_ptr, events_len).unwrap();
 
