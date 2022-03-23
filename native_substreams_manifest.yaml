@@ -1,7 +1,5 @@
 specVersion: 0.1.0
 description: PancakeSwap substreams
-codeType: native
-
 startBlock: 6810706
 
 protoFiles:
@@ -11,7 +9,8 @@ modules:
 - name: block_to_pairs
   kind: map
   code:
-    native: pcs_pair_extractor
+    type: native
+    entrypoint: pcs_pair_extractor
   inputs:
     - source: sf.ethereum.type.v1.Block
   output:
@@ -19,18 +18,19 @@ modules:
 
 - name: pairs
   kind: store
+  updatePolicy: replace
+  valueType: string
   code:
-    native: pcs_pairs_state_builder
+    type: native
+    entrypoint: pcs_pairs_state_builder
   inputs:
     - map: block_to_pairs
-  output:
-    updatePolicy: replace
-    valueType: string
 
 - name: block_to_reserves
   kind: map
   code:
-    native: pcs_reserves_extractor
+    type: native
+    entrypoint: pcs_reserves_extractor
   inputs:
     - source: sf.ethereum.type.v1.Block
     - store: pairs
@@ -39,31 +39,32 @@ modules:
 
 - name: reserves
   kind: store
+  updatePolicy: replace
+  valueType: string
   code:
-    native: pcs_reserves_state_builder
+    type: native
+    entrypoint: pcs_reserves_state_builder
   inputs:
     - map: block_to_reserves
     - store: pairs
-  output:
-    updatePolicy: replace
-    valueType: string
 
 - name: prices
   kind: store
+  updatePolicy: replace
+  valueType: string
   code:
-    native: pcs_derived_prices_state_builder
+    type: native
+    entrypoint: pcs_derived_prices_state_builder
   inputs:
     - map: block_to_reserves
     - store: pairs
     - store: reserves
-  output:
-    updatePolicy: replace
-    valueType: string
 
 - name: mint_burn_swaps_extractor
   kind: map
   code:
-    native: pcs_mint_burn_swaps_extractor
+    type: native
+    entrypoint: pcs_mint_burn_swaps_extractor
   inputs:
     - source: sf.ethereum.type.v1.Block
     - store: pairs
@@ -73,25 +74,25 @@ modules:
 
 - name: totals
   kind: store
+  updatePolicy: sum
+  valueType: int64
   code:
-    native: pcs_totals_state_builder
+    type: native
+    entrypoint: pcs_totals_state_builder
   inputs:
     - map: block_to_pairs
     - map: mint_burn_swaps_extractor
-  output:
-    updatePolicy: sum
-    valueType: int64
 
 - name: volumes
   kind: store
+  updatePolicy: sum
+  valueType: bigfloat
   code:
-    native: pcs_volumes_state_builder
+    type: native
+    entrypoint: pcs_volumes_state_builder
   inputs:
     - source: sf.ethereum.type.v1.Block  # Only needed for Number/Timestamp, so a smaller stream would be just as fine.
     - map: mint_burn_swaps_extractor
-  output:
-    updatePolicy: sum
-    valueType: bigfloat
 
 #- name: database_output
 #  kind: map

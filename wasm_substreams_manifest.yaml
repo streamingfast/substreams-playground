@@ -1,6 +1,5 @@
 specVersion: 0.1.0
 description: Test WASM substream
-codeType: wasm/rust-v1
 
 startBlock: 6810706
 
@@ -12,6 +11,7 @@ modules:
 - name: block_to_pairs
   kind: map
   code:
+    type: wasm/rust-v1
     file: ./pcs-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
     entrypoint: map_pairs
   inputs:
@@ -21,18 +21,19 @@ modules:
 
 - name: pairs
   kind: store
+  updatePolicy: replace
+  valueType: bytes
   code:
+    type: wasm/rust-v1
     file: ./pcs-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
     entrypoint: build_pairs_state
   inputs:
     - map: block_to_pairs
-  output:
-    updatePolicy: replace
-    valueType: bytes
 
 - name: block_to_reserves
   kind: map
   code:
+    type: wasm/rust-v1
     file: ./pcs-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
     entrypoint: map_reserves
   inputs:
@@ -43,32 +44,33 @@ modules:
 
 - name: reserves
   kind: store
+  updatePolicy: replace
+  valueType: string
   code:
+    type: wasm/rust-v1
     file: ./pcs-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
     entrypoint: build_reserves_state
   inputs:
     - map: block_to_reserves
     - store: pairs
-  output:
-    updatePolicy: replace
-    valueType: string
 
 - name: prices
   kind: store
+  updatePolicy: replace
+  valueType: string
   code:
+    type: wasm/rust-v1
     file: ./pcs-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
     entrypoint: build_prices_state
   inputs:
     - map: block_to_reserves
     - store: pairs
     - store: reserves
-  output:
-    updatePolicy: replace
-    valueType: string
 
 - name: mint_burn_swaps_extractor
   kind: map
   code:
+    type: wasm/rust-v1
     file: ./pcs-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
     entrypoint: map_mint_burn_swaps
   inputs:
@@ -80,31 +82,32 @@ modules:
 
 - name: totals
   kind: store
+  updatePolicy: sum
+  valueType: int64
   code:
+    type: wasm/rust-v1
     file: ./pcs-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
     entrypoint: build_totals_state
   inputs:
     - map: block_to_pairs
     - map: mint_burn_swaps_extractor
-  output:
-    updatePolicy: sum
-    valueType: int64
 
 - name: volumes
   kind: store
+  updatePolicy: sum
+  valueType: bigfloat
   code:
+    type: wasm/rust-v1
     file: ./pcs-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
     entrypoint: build_volumes_state
   inputs:
     - source: sf.ethereum.type.v1.block
     - map: mint_burn_swaps_extractor
-  output:
-    updatePolicy: sum
-    valueType: bigfloat
 
 - name: block_to_tokens
   kind: map
   code:
+    type: wasm/rust-v1
     file: ./pcs-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
     entrypoint: block_to_tokens
   inputs:
@@ -114,14 +117,14 @@ modules:
 
 - name: tokens
   kind: store
+  updatePolicy: replace
+  valueType: bytes
   code:
+    type: wasm/rust-v1
     file: ./pcs-rust/pkg/pcs_substreams_bg.wasm
     entrypoint: build_tokens_state
   inputs:
     - map: block_to_tokens
-  output:
-    updatePolicy: replace
-    valueType: bytes
 
 # - name: db_out
 #   kind: map
