@@ -317,6 +317,12 @@ fn new_pair_transfer_event(log: pb::eth::Log) -> PcsEvent {
 
 /* ---- Structs definition ---- */
 #[derive(Clone, PartialEq)]
+pub enum Wrapper {
+    Event(pb::pcs::Event),
+    Pair(pb::pcs::Pair)
+}
+
+#[derive(Clone, PartialEq)]
 pub struct PcsEvent {
     pub event: ::std::option::Option<pcs_event::Event>,
 }

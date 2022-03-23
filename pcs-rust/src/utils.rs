@@ -5,7 +5,7 @@ use bigdecimal::{BigDecimal, One, Zero};
 use num_bigint::BigUint;
 use pad::PadStr;
 use substreams::state;
-use crate::pb;
+use crate::{Wrapper, pb};
 
 pub const WBNB_ADDRESS: &str = "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c";
 pub const BUSD_WBNB_PAIR: &str = "0x58f876857a02d6762e0101bb5c46a8c1ed44dc16";
@@ -165,6 +165,13 @@ pub fn find_bnb_price_per_token(log_ordinal: &u64,
 
 pub fn zero_big_decimal() -> BigDecimal {
     BigDecimal::zero().with_prec(100)
+}
+
+pub fn get_ordinal(all: &Wrapper) -> i64 {
+    return match all {
+        Wrapper::Event(event) => event.log_ordinal as i64,
+        Wrapper::Pair(pair) => pair.log_ordinal as i64
+    }
 }
 
 fn one_big_decimal() -> BigDecimal {
