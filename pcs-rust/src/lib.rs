@@ -403,7 +403,7 @@ pub extern "C" fn build_volumes_state(block_ptr: *mut u8, block_len: usize, even
 
                 state::sum_bigfloat(event.log_ordinal as i64, format!("pairs:{}:{}", day_id, event.pair_address), amount_usd.clone());
                 state::sum_bigfloat(event.log_ordinal as i64, format!("token:{}:{}", day_id, event.token0), amount_usd.clone());
-                state::sum_bigfloat(event.log_ordinal as i64, format!("pairs:{}:{}", day_id, event.token1), amount_usd);
+                state::sum_bigfloat(event.log_ordinal as i64, format!("token:{}:{}", day_id, event.token1), amount_usd);
             }
             _ => continue
         }
