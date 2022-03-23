@@ -339,7 +339,7 @@ pub extern "C" fn map_mint_burn_swaps(block_ptr: *mut u8, block_len: usize, pair
 pub extern "C" fn build_totals_state(pairs_ptr: *mut u8, pairs_len: usize, events_ptr: *mut u8, events_len: usize) {
     substreams::register_panic_hook();
 
-    if events_len == 0 || pairs_len == 0 {
+    if events_len == 0 && pairs_len == 0 {
         return;
     }
 
