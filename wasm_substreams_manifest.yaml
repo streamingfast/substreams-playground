@@ -1,8 +1,6 @@
 specVersion: 0.1.0
 description: Test WASM substream
 
-startBlock: 6810706
-
 protoFiles:
 - ./proto/pcs.proto
 - ./proto/tokens.proto
