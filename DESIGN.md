@@ -19,8 +19,8 @@ Could be spread across different instances like so:
 * [d] waits for [b] and [c] to complete
 * [d] starts processing...
 
-However, 
-* until it is implemented in firehose through GRPC, 
+However,
+* until it is implemented in firehose through GRPC,
 * or if we want to keep it on a single instance
 those `--grpc-->` arrows could signify simply a `sseth` command
 
@@ -78,6 +78,12 @@ Y is the stage (store dependencies)
 3  D
 4     P'
 
+   1  2  3  4
+1  D  D
+2  D  D
+3  D  D
+4        P'
+
    1  2  3  4  5
 1  D  D  D  D
 2  D  D  D  D
@@ -106,8 +112,21 @@ sseth manifest.yaml pairs 1000 -s 0
 * IN: NONE
 * OUT: pairs-1000.kv
 
+#1-2
+sseth manifest.yaml reserves 1000 -s 0
+* IN: NONE
+* OUT: pairs-1000.kv
+* OUT: reserves-1000.kv
+
+#1-3
+sseth manifest.yaml prices 1000 -s 0
+* IN: NONE
+* OUT: pairs-1000.kv
+* OUT: reserves-1000.kv
+* OUT: prices-1000.kv
+
 #1-5
-sseth manifest.yaml database_output 1000 -s STARTBLOCK
+sseth manifest.yaml database_output FOREVER -s STARTBLOCK
 * IN: NONE
 * OUT: pairs-1000.kv
 * OUT: reserves-1000.kv
@@ -136,9 +155,9 @@ sseth manifest.yaml prices 1000 -s 1000 --partial
 
 #2-4
 sseth manifest.yaml volumes 1000 -s 1000 --partial
-* IN: pairs-1000.kv
-* IN: reserves-1000.kv
-* IN: prices-1000.kv
+* IN: pairs-0-1000.kv
+* IN: reserves-0-1000.kv
+* IN: prices-0-1000.kv
 * OUT: volumes-1000-2000.partial
 
 #2-5
@@ -164,8 +183,10 @@ sseth manifest.yaml reserves 1000 -s 2000 --partial
 
 #3-3
 sseth manifest.yaml prices 1000 -s 2000 --partial
-* IN: pairs-1000.kv + pairs-1000-2000.partial
-* IN: reserves-1000.kv + reserves-1000-2000.partial
+* IN: pairs-0-1000.kv + pairs-1000-2000.partial
+  * OR: pairs-0-2000.kv
+  * OR: pairs-0-10.kv + pairs-10-2000.kv
+* IN: reserves-0-1000.kv + reserves-1000-2000.partial
 * OUT: prices-2000-3000.partial
 
 #3-4, depends on: #1-1, #1-2, #1-3 (OR #1-5 which includes them all), #2-1, #2-2, #2-3
