@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package uniswap.types.v1;
+
+message Pools {
+  repeated Pool pools = 1;
+}
+
+message Pool {
+  string token0 = 1;
+  string token1 = 2;
+}

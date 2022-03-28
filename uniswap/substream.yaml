@@ -1,0 +1,17 @@
+specVersion: 0.1.0
+description: Uniswap Substream
+
+protoFiles:
+  - ./proto/modules.proto
+
+modules:
+  - name: pools
+    kind: map
+    code:
+      type: wasm/rust-v1
+      file: ./target/wasm32-unknown-unknown/release/uniswap.wasm
+      entrypoint: pools
+    inputs:
+      - source: sf.ethereum.type.v1.Block
+    output:
+      type: proto:uniswap.types.v1.Pool

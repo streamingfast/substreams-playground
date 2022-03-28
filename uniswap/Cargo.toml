@@ -1,0 +1,26 @@
+[package]
+name = "uniswap"
+version = "0.1.0"
+authors = ["Jannis Pohlmann <jannis@edgeandnode.com>"]
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+getrandom = { version = "0.2.5", features = ["js"] }
+hex = "0.4.3"
+once_cell = "1.10.0"
+prost = {version = "0.6.0", default-features = false }
+prost-types = "0.6.0"
+substreams = { git = "https://github.com/streamingfast/substreams", module="rust/substreams", branch="develop" }
+tiny-keccak = { version = "2.0.2", features = ["keccak"] }
+wasm-bindgen = "0.2.79"
+
+[build-dependencies]
+prost-build = "0.6.0"
+
+[profile.release]
+# This makes the compiled code faster and smaller, but it makes compiling slower,
+# so it's only enabled in release mode.
+lto = true
