@@ -20,8 +20,9 @@ modules:
 
 - name: pairs
   kind: store
+  startBlock: 6810706
   updatePolicy: replace
-  valueType: bytes
+  valueType: proto:pcs.types.v1.Pair
   code:
     type: wasm/rust-v1
     file: ./pcs-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
