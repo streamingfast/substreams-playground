@@ -2,13 +2,12 @@ specVersion: 0.1.0
 description: ERC20Transfer WASM substream
 codeType: wasm/rust-v1
 
-startBlock: 6811600
-
 protoFiles:
 - ./proto/erc20.proto
 
 modules:
 - name: erc_20_transfer
+  startBlock: 6811600
   kind: map
   code:
     file: ./erc20-rust/target/wasm32-unknown-unknown/release/erc20_substreams.wasm
