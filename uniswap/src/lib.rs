@@ -35,11 +35,11 @@ pub extern "C" fn pools(block_ptr: *mut u8, block_len: usize) {
             .filter(|event| factory::PoolCreatedEvent::matches(event));
 
         for _event in pool_created_events {
-            // log::println(format!(
-            //     "POOL CREATED EVENT: block #{}, tx {}",
-            //     block.number,
-            //     tx.hash.encode_hex::<String>()
-            // ));
+            log::println(format!(
+                "POOL CREATED EVENT: block #{}, tx {}",
+                block.number,
+                tx.hash.encode_hex::<String>()
+            ));
 
             let token0 = String::from("0");
             let token1 = String::from("1");
