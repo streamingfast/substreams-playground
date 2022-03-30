@@ -7,6 +7,7 @@ protoFiles:
 modules:
   - name: pools
     kind: map
+    startBlock: 12369621
     code:
       type: wasm/rust-v1
       file: ./target/wasm32-unknown-unknown/release/uniswap.wasm
