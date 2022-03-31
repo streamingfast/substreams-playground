@@ -7,6 +7,40 @@ message Pools {
 }
 
 message Pool {
-  string token0 = 1;
-  string token1 = 2;
+  uint64 created_at_timestamp = 1;
+  uint64 created_at_block_number = 2;
+
+  string token0 = 3;
+  string token1 = 4;
+
+  // string feeTier = 5;
+  // string liquidity = 6;
+  // string sqrtPrice = 7;
+  // string feeGrowthGlobal0X128 = 8;
+  // string feeGrowthGlobal1X128 = 9;
+  // string token0Price = 10;
+  // string token1Price = 11;
+  // uint64 tick = 12;
+
+  // string observationIndex = 13;
+
+  // string volumeToken0 = 14;
+  // string volumeToken1 = 15;
+  // string volumeUSD = 16;
+  // string untrackedVolumeUSD = 17;
+  // string feesUSD = 18;
+
+  // uint64 txCount = 19;
+
+  // string collectedFeesToken0 = 20;
+  // string collectedFeesToken1 = 21;
+  // string collectedFeesUSD = 22;
+
+  // string totalValueLockedToken0 = 23;
+  // string totalValueLockedToken1 = 24;
+  // string totalValueLockedETH = 25;
+  // string totalValueLockedUSD = 26;
+  // string totalValueLockedUSDUntracked = 27;
+
+  // uint64 liquidityProviderCount = 28;
 }

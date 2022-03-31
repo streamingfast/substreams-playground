@@ -5,8 +5,12 @@ pub struct Pools {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Pool {
-    #[prost(string, tag="1")]
+    #[prost(uint64, tag="1")]
+    pub created_at_timestamp: u64,
+    #[prost(uint64, tag="2")]
+    pub created_at_block_number: u64,
+    #[prost(string, tag="3")]
     pub token0: std::string::String,
-    #[prost(string, tag="2")]
+    #[prost(string, tag="4")]
     pub token1: std::string::String,
 }

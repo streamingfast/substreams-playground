@@ -15,4 +15,4 @@ modules:
     inputs:
       - source: sf.ethereum.type.v1.Block
     output:
-      type: proto:uniswap.types.v1.Pool
+      type: proto:uniswap.types.v1.Pools

@@ -1,10 +1,12 @@
+use std::time::SystemTime;
+
 use hex::ToHex;
 
 mod contracts;
 mod pb;
 pub mod util;
 
-use substreams::{log, proto};
+use substreams::{log, proto, rpc};
 
 use contracts::factory;
 use pb::{
@@ -26,6 +28,8 @@ pub extern "C" fn pools(block_ptr: *mut u8, block_len: usize) {
         .filter(|tx| hex::encode(&tx.to) == factory::ADDRESS);
 
     for tx in factory_txs {
+        log::println(format!("TX"));
+
         let pool_created_events = tx
             .receipt
             .as_ref()
@@ -34,19 +38,29 @@ pub extern "C" fn pools(block_ptr: *mut u8, block_len: usize) {
             .iter()
             .filter(|event| factory::PoolCreatedEvent::matches(event));
 
-        for _event in pool_created_events {
+        for event in pool_created_events {
             log::println(format!(
-                "POOL CREATED EVENT: block #{}, tx {}",
+                "POOL CREATED: #{}, tx {}",
                 block.number,
-                tx.hash.encode_hex::<String>()
+                hex::encode(&tx.hash)
             ));
 
-            let token0 = String::from("0");
-            let token1 = String::from("1");
+            let mut pool = Pool::default();
+            // let header = block.header.as_ref().expect("header");
 
-            pools.pools.push(Pool { token0, token1 });
+            // pool.token0 = hex::encode(&event.topics[1][12..]);
+            // pool.token1 = hex::encode(&event.topics[2][12..]);
+
+            // let timestamp = header.timestamp.as_ref().expect("timestamp");
+
+            // pool.created_at_timestamp = timestamp.seconds as u64;
+            // pool.created_at_block_number = header.number;
+
+            // pools.pools.push(pool);
         }
     }
 
-    substreams::output(pools);
+    if !pools.pools.is_empty() {
+        substreams::output(pools);
+    }
 }
