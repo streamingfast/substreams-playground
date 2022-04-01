@@ -1,3 +1,5 @@
+extern crate core;
+
 mod eth;
 mod event;
 mod pb;
