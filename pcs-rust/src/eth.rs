@@ -1,5 +1,4 @@
 use std::convert::TryInto;
-use substreams::log;
 
 pub fn address_pretty(input: &[u8]) -> String {
     format!("0x{}", hex::encode(input))
@@ -27,12 +26,7 @@ pub fn decode_string(input: &[u8]) -> String {
           panic!("invalid input: end {:?}, length: {:?}, next: {:?}, size: {:?}, whole: {:?}", end, input.len(), next, size, hex::encode(&input[32..64]));
     }
 
-    return match std::str::from_utf8(&input[64..end]) {
-        Ok(value) => value.to_string(),
-        Err(err) => {
-            log::println(format!("invalid utf-8 sequence: {:?}", err));
-            panic!("{}", err);
-        }
-    }
+
+    String::from_utf8_lossy(&input[64..end]).to_string()
 }
 
