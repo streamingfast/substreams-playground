@@ -1,26 +1,29 @@
 extern crate core;
 
-mod eth;
-mod event;
-mod pb;
-mod rpc;
-mod utils;
+use std::ops::Mul;
+use std::str::FromStr;
+
+use bigdecimal::BigDecimal;
+use hex;
+use substreams::pb::substreams::store_delta;
+use substreams::{log, proto, state};
+
+use eth::{address_pretty, decode_string, decode_uint32};
 
 use crate::event::pcs_event::Event;
 use crate::event::{PcsEvent, Wrapper};
 use crate::pb::pcs;
 use crate::pcs::event::Type;
-use crate::utils::zero_big_decimal;
-use bigdecimal::BigDecimal;
-use eth::{address_pretty, decode_string, decode_uint32};
-use hex;
-use std::ops::Mul;
-use std::str::FromStr;
-use substreams::{log, proto, state};
-use substreams::pb::substreams::store_delta;
-use crate::Operation::Create;
-use crate::pcs::{DatabaseChanges, Field, TableChange};
 use crate::pcs::table_change::Operation;
+use crate::pcs::{DatabaseChanges, Field, TableChange};
+use crate::utils::zero_big_decimal;
+use crate::Operation::Create;
+
+mod eth;
+mod event;
+mod pb;
+mod rpc;
+mod utils;
 
 #[no_mangle]
 pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
@@ -29,7 +32,11 @@ pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
     let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
     let mut pairs = pb::pcs::Pairs { pairs: vec![] };
 
-    log::println(format!("transaction traces count: {}, len: {}", blk.transaction_traces.len(), block_len));
+    log::println(format!(
+        "transaction traces count: {}, len: {}",
+        blk.transaction_traces.len(),
+        block_len
+    ));
 
     for trx in blk.transaction_traces {
         /* PCS Factory address */
@@ -87,7 +94,12 @@ pub extern "C" fn build_pairs_state(pairs_ptr: *mut u8, pairs_len: usize) {
 }
 
 #[no_mangle]
-pub extern "C" fn map_reserves(block_ptr: *mut u8, block_len: usize, pairs_store_idx: u32, tokens_store_idx: u32) {
+pub extern "C" fn map_reserves(
+    block_ptr: *mut u8,
+    block_len: usize,
+    pairs_store_idx: u32,
+    tokens_store_idx: u32,
+) {
     substreams::register_panic_hook();
 
     let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
@@ -110,16 +122,14 @@ pub extern "C" fn map_reserves(block_ptr: *mut u8, block_len: usize, pairs_store
                     let pair: pb::pcs::Pair = proto::decode(pair_bytes).unwrap();
 
                     // reserve
-                    let token0: pb::tokens::Token = utils::get_last_token(tokens_store_idx, &pair.token0_address);
-                    let reserve0 = utils::convert_token_to_decimal(
-                        &log.data[0..32],
-                        &token0.decimals,
-                    );
-                    let token1: pb::tokens::Token = utils::get_last_token(tokens_store_idx, &pair.token1_address);
-                    let reserve1 = utils::convert_token_to_decimal(
-                        &log.data[32..64],
-                        &token1.decimals,
-                    );
+                    let token0: pb::tokens::Token =
+                        utils::get_last_token(tokens_store_idx, &pair.token0_address);
+                    let reserve0 =
+                        utils::convert_token_to_decimal(&log.data[0..32], &token0.decimals);
+                    let token1: pb::tokens::Token =
+                        utils::get_last_token(tokens_store_idx, &pair.token1_address);
+                    let reserve1 =
+                        utils::convert_token_to_decimal(&log.data[32..64], &token1.decimals);
 
                     // token_price
                     let token0_price = utils::get_token_price(reserve0.clone(), reserve1.clone());
@@ -160,38 +170,22 @@ pub extern "C" fn build_reserves_state(
 
                 state::set(
                     reserve.log_ordinal as i64,
-                    format!(
-                        "price:{}:{}",
-                        pair.token0_address,
-                        pair.token1_address
-                    ),
+                    format!("price:{}:{}", pair.token0_address, pair.token1_address),
                     Vec::from(reserve.token0_price),
                 );
                 state::set(
                     reserve.log_ordinal as i64,
-                    format!(
-                        "price:{}:{}",
-                        pair.token1_address,
-                        pair.token0_address
-                    ),
+                    format!("price:{}:{}", pair.token1_address, pair.token0_address),
                     Vec::from(reserve.token1_price),
                 );
                 state::set(
                     reserve.log_ordinal as i64,
-                    format!(
-                        "reserve:{}:{}",
-                        reserve.pair_address,
-                        pair.token0_address
-                    ),
+                    format!("reserve:{}:{}", reserve.pair_address, pair.token0_address),
                     Vec::from(reserve.reserve0),
                 );
                 state::set(
                     reserve.log_ordinal as i64,
-                    format!(
-                        "reserve:{}:{}",
-                        reserve.pair_address,
-                        pair.token1_address
-                    ),
+                    format!("reserve:{}:{}", reserve.pair_address, pair.token1_address),
                     Vec::from(reserve.reserve1),
                 );
             }
@@ -200,10 +194,12 @@ pub extern "C" fn build_reserves_state(
 }
 
 #[no_mangle]
-pub extern "C" fn build_prices_state(reserves_ptr: *mut u8,
-                                     reserves_len: usize,
-                                     pairs_store_idx: u32,
-                                     reserves_store_idx: u32) {
+pub extern "C" fn build_prices_state(
+    reserves_ptr: *mut u8,
+    reserves_len: usize,
+    pairs_store_idx: u32,
+    reserves_store_idx: u32,
+) {
     substreams::register_panic_hook();
 
     let reserves: pb::pcs::Reserves = proto::decode_ptr(reserves_ptr, reserves_len).unwrap();
@@ -255,7 +251,7 @@ pub extern "C" fn build_prices_state(reserves_ptr: *mut u8,
                 let apply = |token_derived_bnb_price: Option<BigDecimal>,
                              token_addr: String,
                              reserve_amount: String|
-                             -> BigDecimal {
+                 -> BigDecimal {
                     if token_derived_bnb_price.is_none() {
                         return utils::zero_big_decimal();
                     }
@@ -367,7 +363,14 @@ pub extern "C" fn map_mint_burn_swaps(
                 token0: pair.token0_address.clone(),
                 token1: pair.token1_address.clone(),
                 transaction_id: trx_id.to_string(),
-                timestamp: blk.header.as_ref().unwrap().timestamp.as_ref().unwrap().seconds as u64,
+                timestamp: blk
+                    .header
+                    .as_ref()
+                    .unwrap()
+                    .timestamp
+                    .as_ref()
+                    .unwrap()
+                    .seconds as u64,
                 r#type: None,
             };
             if pcs_events.len() == 4 {
@@ -394,10 +397,12 @@ pub extern "C" fn map_mint_burn_swaps(
                             ev_tr1,
                             ev_tr2,
                             pair_mint_event,
-                            utils::get_last_token(tokens_store_idx, pair.token0_address.as_str()).decimals,
-                            utils::get_last_token(tokens_store_idx, pair.token1_address.as_str()).decimals,
+                            utils::get_last_token(tokens_store_idx, pair.token0_address.as_str())
+                                .decimals,
+                            utils::get_last_token(tokens_store_idx, pair.token1_address.as_str())
+                                .decimals,
                         )
-                    },
+                    }
                     Event::PairBurnEvent(pair_burn_event) => {
                         let burn_id = format!("{}-{}", trx_id, burn_count);
                         burn_count = burn_count + 1;
@@ -410,10 +415,12 @@ pub extern "C" fn map_mint_burn_swaps(
                             ev_tr1,
                             ev_tr2,
                             pair_burn_event,
-                            utils::get_last_token(tokens_store_idx, pair.token0_address.as_str()).decimals,
-                            utils::get_last_token(tokens_store_idx, pair.token1_address.as_str()).decimals
+                            utils::get_last_token(tokens_store_idx, pair.token0_address.as_str())
+                                .decimals,
+                            utils::get_last_token(tokens_store_idx, pair.token1_address.as_str())
+                                .decimals,
                         );
-                    },
+                    }
                     _ => log::println(format!("Error?! Events len is 4")), // fixme: maybe panic with a different message, not sure if this is good.
                 }
             } else if pcs_events.len() == 3 {
@@ -435,10 +442,12 @@ pub extern "C" fn map_mint_burn_swaps(
                             None,
                             ev_tr2,
                             pair_mint_event,
-                            utils::get_last_token(tokens_store_idx, pair.token0_address.as_str()).decimals,
-                            utils::get_last_token(tokens_store_idx, pair.token1_address.as_str()).decimals,
+                            utils::get_last_token(tokens_store_idx, pair.token0_address.as_str())
+                                .decimals,
+                            utils::get_last_token(tokens_store_idx, pair.token1_address.as_str())
+                                .decimals,
                         )
-                    },
+                    }
                     Event::PairBurnEvent(pair_burn_event) => {
                         let burn_id = format!("{}-{}", trx_id, burn_count);
                         burn_count = burn_count + 1;
@@ -451,8 +460,10 @@ pub extern "C" fn map_mint_burn_swaps(
                             None,
                             ev_tr2,
                             pair_burn_event,
-                            utils::get_last_token(tokens_store_idx, pair.token0_address.as_str()).decimals,
-                            utils::get_last_token(tokens_store_idx, pair.token1_address.as_str()).decimals,
+                            utils::get_last_token(tokens_store_idx, pair.token0_address.as_str())
+                                .decimals,
+                            utils::get_last_token(tokens_store_idx, pair.token1_address.as_str())
+                                .decimals,
                         );
                     }
                     _ => log::println(format!("Error?! Events len is 3")), // fixme: maybe panic with a different message
@@ -546,10 +557,12 @@ pub extern "C" fn build_totals_state(
 }
 
 #[no_mangle]
-pub extern "C" fn build_volumes_state(block_ptr: *mut u8,
-                                      block_len: usize,
-                                      events_ptr: *mut u8,
-                                      events_len: usize) {
+pub extern "C" fn build_volumes_state(
+    block_ptr: *mut u8,
+    block_len: usize,
+    events_ptr: *mut u8,
+    events_len: usize,
+) {
     substreams::register_panic_hook();
 
     log::println(format!("block len: {}", block_len));
@@ -605,23 +618,26 @@ pub extern "C" fn build_volumes_state(block_ptr: *mut u8,
 }
 
 #[no_mangle]
-pub extern "C" fn map_to_database(block_ptr: *mut u8,
-                                  block_len: usize,
-                                  tokens_deltas_ptr: *mut u8,
-                                  tokens_deltas_len: usize,
-                                  pairs_deltas_ptr: *mut u8,
-                                  pairs_deltas_len: usize,
-                                  reserves_ptr: *mut u8,
-                                  reserves_len: usize,
-                                  events_ptr: *mut u8,
-                                  events_len: usize,
-                                  tokens_idx: u32) {
-
+pub extern "C" fn map_to_database(
+    block_ptr: *mut u8,
+    block_len: usize,
+    tokens_deltas_ptr: *mut u8,
+    tokens_deltas_len: usize,
+    pairs_deltas_ptr: *mut u8,
+    pairs_deltas_len: usize,
+    reserves_ptr: *mut u8,
+    reserves_len: usize,
+    events_ptr: *mut u8,
+    events_len: usize,
+    tokens_idx: u32,
+) {
     substreams::register_panic_hook();
 
     let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
 
-    let mut database_changes: pb::pcs::DatabaseChanges = DatabaseChanges { table_changes: vec![] };
+    let mut database_changes: pb::pcs::DatabaseChanges = DatabaseChanges {
+        table_changes: vec![],
+    };
 
     let token_deltas: substreams::pb::substreams::StoreDeltas =
         proto::decode_ptr(tokens_deltas_ptr, tokens_deltas_len).unwrap();
@@ -635,11 +651,27 @@ pub extern "C" fn map_to_database(block_ptr: *mut u8,
                 pk: token.address.clone(),
                 operation: Operation::Create as i32,
                 fields: vec![
-                    Field { key: "id".to_string(), new_value: token.address.clone(), old_value: "".to_string() },
-                    Field { key: "name".to_string(), new_value: token.name, old_value: "".to_string() },
-                    Field { key: "symbol".to_string(), new_value: token.symbol, old_value: "".to_string() },
-                    Field { key: "decimals".to_string(), new_value: token.decimals.to_string(), old_value: "".to_string() },
-                ]
+                    Field {
+                        key: "id".to_string(),
+                        new_value: token.address.clone(),
+                        old_value: "".to_string(),
+                    },
+                    Field {
+                        key: "name".to_string(),
+                        new_value: token.name,
+                        old_value: "".to_string(),
+                    },
+                    Field {
+                        key: "symbol".to_string(),
+                        new_value: token.symbol,
+                        old_value: "".to_string(),
+                    },
+                    Field {
+                        key: "decimals".to_string(),
+                        new_value: token.decimals.to_string(),
+                        old_value: "".to_string(),
+                    },
+                ],
             });
         }
     }
@@ -654,18 +686,41 @@ pub extern "C" fn map_to_database(block_ptr: *mut u8,
             let token0 = utils::get_last_token(tokens_idx, pair.token0_address.as_str());
             let token1 = utils::get_last_token(tokens_idx, pair.token1_address.as_str());
 
-            let timestamp = blk.header.as_ref().unwrap().timestamp.as_ref().unwrap().seconds as u64;
+            let timestamp = blk
+                .header
+                .as_ref()
+                .unwrap()
+                .timestamp
+                .as_ref()
+                .unwrap()
+                .seconds as u64;
 
             database_changes.table_changes.push(TableChange {
                 table: "pair".to_string(),
                 pk: pair.address.clone(),
                 operation: Operation::Create as i32,
                 fields: vec![
-                    Field { key: "id".to_string(), new_value: pair.address.clone(), old_value: "".to_string() },
-                    Field { key: "name".to_string(), new_value: format!("{}-{}", token0.symbol, token1.symbol), old_value: "".to_string() },
-                    Field { key: "block".to_string(), new_value: blk.number.to_string(), old_value: "".to_string() },
-                    Field { key: "timestamp".to_string(), new_value: timestamp.to_string(), old_value: "".to_string() },
-                ]
+                    Field {
+                        key: "id".to_string(),
+                        new_value: pair.address.clone(),
+                        old_value: "".to_string(),
+                    },
+                    Field {
+                        key: "name".to_string(),
+                        new_value: format!("{}-{}", token0.symbol, token1.symbol),
+                        old_value: "".to_string(),
+                    },
+                    Field {
+                        key: "block".to_string(),
+                        new_value: blk.number.to_string(),
+                        old_value: "".to_string(),
+                    },
+                    Field {
+                        key: "timestamp".to_string(),
+                        new_value: timestamp.to_string(),
+                        old_value: "".to_string(),
+                    },
+                ],
             });
 
             /* TODO: should we do on client side or create a new store ??
@@ -682,7 +737,6 @@ pub extern "C" fn map_to_database(block_ptr: *mut u8,
                 ]
             });
             */
-
         }
     }
 
@@ -709,16 +763,52 @@ pub extern "C" fn map_to_database(block_ptr: *mut u8,
                     pk: burn.id.clone(),
                     operation: Operation::Create as i32,
                     fields: vec![
-                        Field { key: "id".to_string(), new_value: burn.id, old_value: "".to_string() },
-                        Field { key: "transaction".to_string(), new_value: event.transaction_id, old_value: "".to_string() },
-                        Field { key: "pair".to_string(), new_value: event.pair_address, old_value: "".to_string() },
-                        Field { key: "token_0".to_string(), new_value: event.token0, old_value: "".to_string() },
-                        Field { key: "token_1".to_string(), new_value: event.token1, old_value: "".to_string() },
-                        Field { key: "liquidity".to_string(), new_value: burn.liquidity, old_value: "".to_string() },
-                        Field { key: "timestamp".to_string(), new_value: event.timestamp.to_string(), old_value: "".to_string() },
-                        Field { key: "to".to_string(), new_value: burn.to, old_value: "".to_string() },
-                        Field { key: "sender".to_string(), new_value: burn.sender, old_value: "".to_string() },
-                    ]
+                        Field {
+                            key: "id".to_string(),
+                            new_value: burn.id,
+                            old_value: "".to_string(),
+                        },
+                        Field {
+                            key: "transaction".to_string(),
+                            new_value: event.transaction_id,
+                            old_value: "".to_string(),
+                        },
+                        Field {
+                            key: "pair".to_string(),
+                            new_value: event.pair_address,
+                            old_value: "".to_string(),
+                        },
+                        Field {
+                            key: "token_0".to_string(),
+                            new_value: event.token0,
+                            old_value: "".to_string(),
+                        },
+                        Field {
+                            key: "token_1".to_string(),
+                            new_value: event.token1,
+                            old_value: "".to_string(),
+                        },
+                        Field {
+                            key: "liquidity".to_string(),
+                            new_value: burn.liquidity,
+                            old_value: "".to_string(),
+                        },
+                        Field {
+                            key: "timestamp".to_string(),
+                            new_value: event.timestamp.to_string(),
+                            old_value: "".to_string(),
+                        },
+                        Field {
+                            key: "to".to_string(),
+                            new_value: burn.to,
+                            old_value: "".to_string(),
+                        },
+                        Field {
+                            key: "sender".to_string(),
+                            new_value: burn.sender,
+                            old_value: "".to_string(),
+                        },
+                    ],
                 });
             }
             Type::Mint(mint) => {
@@ -727,20 +817,51 @@ pub extern "C" fn map_to_database(block_ptr: *mut u8,
                     pk: mint.id.clone(),
                     operation: Operation::Create as i32,
                     fields: vec![
-                        Field { key: "id".to_string(), new_value: mint.id, old_value: "".to_string() },
-                        Field { key: "transaction".to_string(), new_value: event.transaction_id, old_value: "".to_string() },
-                        Field { key: "pair".to_string(), new_value: event.pair_address, old_value: "".to_string() },
-                        Field { key: "token_0".to_string(), new_value: event.token0, old_value: "".to_string() },
-                        Field { key: "token_1".to_string(), new_value: event.token1, old_value: "".to_string() },
-                        Field { key: "to".to_string(), new_value: mint.to, old_value: "".to_string() },
-                        Field { key: "liquidity".to_string(), new_value: mint.liquidity, old_value: "".to_string() },
-                        Field { key: "timestamp".to_string(), new_value: event.timestamp.to_string(), old_value: "".to_string() },
-                    ]
+                        Field {
+                            key: "id".to_string(),
+                            new_value: mint.id,
+                            old_value: "".to_string(),
+                        },
+                        Field {
+                            key: "transaction".to_string(),
+                            new_value: event.transaction_id,
+                            old_value: "".to_string(),
+                        },
+                        Field {
+                            key: "pair".to_string(),
+                            new_value: event.pair_address,
+                            old_value: "".to_string(),
+                        },
+                        Field {
+                            key: "token_0".to_string(),
+                            new_value: event.token0,
+                            old_value: "".to_string(),
+                        },
+                        Field {
+                            key: "token_1".to_string(),
+                            new_value: event.token1,
+                            old_value: "".to_string(),
+                        },
+                        Field {
+                            key: "to".to_string(),
+                            new_value: mint.to,
+                            old_value: "".to_string(),
+                        },
+                        Field {
+                            key: "liquidity".to_string(),
+                            new_value: mint.liquidity,
+                            old_value: "".to_string(),
+                        },
+                        Field {
+                            key: "timestamp".to_string(),
+                            new_value: event.timestamp.to_string(),
+                            old_value: "".to_string(),
+                        },
+                    ],
                 });
             }
         }
     }
-
 
     // let reserves: pb::pcs::Reserves = proto::decode_ptr(reserves_ptr, reserves_len).unwrap();
 
@@ -752,7 +873,6 @@ pub extern "C" fn map_to_database(block_ptr: *mut u8,
     // }
 
     substreams::output(database_changes);
-
 }
 
 #[no_mangle]
@@ -774,13 +894,15 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
 
                 if rpc_responses_unmarshalled.responses[0].failed
                     || rpc_responses_unmarshalled.responses[1].failed
-                    || rpc_responses_unmarshalled.responses[2].failed {
+                    || rpc_responses_unmarshalled.responses[2].failed
+                {
                     continue;
                 };
 
                 if !(rpc_responses_unmarshalled.responses[1].raw.len() >= 96)
                     || rpc_responses_unmarshalled.responses[0].raw.len() != 32
-                    || !(rpc_responses_unmarshalled.responses[2].raw.len() >= 96) {
+                    || !(rpc_responses_unmarshalled.responses[2].raw.len() >= 96)
+                {
                     continue;
                 };
 
