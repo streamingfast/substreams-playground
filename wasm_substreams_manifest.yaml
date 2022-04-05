@@ -133,10 +133,13 @@ modules:
      file: ./pcs-rust/pkg/pcs_substreams_bg.wasm
      entrypoint: map_to_database
    inputs:
+     - source: sf.ethereum.type.v1.Block
      - store: tokens
        mode: deltas
      - store: pairs
        mode: deltas
      - map: reserves_extractor
+     - map: mint_burn_swaps_extractor
+     - store: tokens
    output:
-     type: proto:sf.substreams.v1.DebeziumCDC
+     type: proto:pcs.types.v1.DatabaseChanges

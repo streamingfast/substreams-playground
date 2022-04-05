@@ -751,6 +751,8 @@ pub extern "C" fn map_to_database(block_ptr: *mut u8,
     //     ));
     // }
 
+    substreams::output(database_changes);
+
 }
 
 #[no_mangle]
