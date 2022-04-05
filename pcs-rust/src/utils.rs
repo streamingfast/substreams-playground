@@ -4,7 +4,7 @@ use std::str;
 use bigdecimal::{BigDecimal, One, Zero};
 use num_bigint::BigUint;
 use pad::PadStr;
-use substreams::state;
+use substreams::{proto, state};
 use crate::{Wrapper, pb};
 
 pub const WBNB_ADDRESS: &str = "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c";
@@ -33,7 +33,7 @@ pub fn get_token_price(bf0: BigDecimal, bf1: BigDecimal) -> BigDecimal {
     return bf0.div(bf1).with_prec(100);
 }
 
-pub fn generate_tokens_key(token0: String, token1: String) -> String {
+pub fn generate_tokens_key(token0: &str, token1: &str) -> String {
     if token0 > token1 {
         return format!("{}:{}", token1, token0);
     }
@@ -104,10 +104,10 @@ pub fn compute_usd_price(reserve: &pb::pcs::Reserve, reserves_store_idx: u32) ->
 }
 
 pub fn find_bnb_price_per_token(log_ordinal: &u64,
-                                erc20_token_address: String,
+                                erc20_token_address: &str,
                                 pairs_store_idx: u32,
                                 reserves_store_idx: u32) -> Option<BigDecimal> {
-    if erc20_token_address.eq(&WBNB_ADDRESS) {
+    if erc20_token_address.eq(WBNB_ADDRESS) {
         return Option::Some(one_big_decimal())  // BNB price of a BNB is always 1
     }
 
@@ -123,7 +123,7 @@ pub fn find_bnb_price_per_token(log_ordinal: &u64,
     // loop all whitelist for a matching pair
     for major_token in WHITELIST_TOKENS {
         let tiny_to_major_pair =
-            match state::get_at(pairs_store_idx, *log_ordinal as i64, format!("tokens:{}", generate_tokens_key(erc20_token_address.clone(), major_token.to_string()))) {
+            match state::get_at(pairs_store_idx, *log_ordinal as i64, format!("tokens:{}", generate_tokens_key(erc20_token_address, major_token))) {
                 None => continue,
                 Some(pair_bytes) => decode_pair_bytes(pair_bytes)
 
@@ -172,6 +172,10 @@ pub fn get_ordinal(all: &Wrapper) -> i64 {
         Wrapper::Event(event) => event.log_ordinal as i64,
         Wrapper::Pair(pair) => pair.log_ordinal as i64
     }
+}
+
+pub fn get_last_token(tokens_store_idx: u32, token_address: &str) -> pb::tokens::Token {
+    proto::decode(state::get_last(tokens_store_idx, format!("token:{}", token_address)).unwrap()).unwrap()
 }
 
 fn one_big_decimal() -> BigDecimal {

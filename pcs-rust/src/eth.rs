@@ -26,7 +26,6 @@ pub fn decode_string(input: &[u8]) -> String {
           panic!("invalid input: end {:?}, length: {:?}, next: {:?}, size: {:?}, whole: {:?}", end, input.len(), next, size, hex::encode(&input[32..64]));
     }
 
-
     String::from_utf8_lossy(&input[64..end]).to_string()
 }
 

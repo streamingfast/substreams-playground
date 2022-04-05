@@ -80,13 +80,24 @@ pub fn decode_event(log: pb::eth::Log) -> PcsEvent {
     };
 }
 
-pub fn process_mint(base_event: &mut pcs::Event, prices_store_idx: u32, pair: &pcs::Pair, tr1: Option<&PairTransferEvent>, tr2: Option<&PairTransferEvent>, pair_mint_event: &PairMintEvent) {
+pub fn process_mint(mint_id: &str,
+                    base_event: &mut pcs::Event,
+                    prices_store_idx: u32,
+                    pair: &pcs::Pair,
+                    tr1: Option<&PairTransferEvent>,
+                    tr2: Option<&PairTransferEvent>,
+                    pair_mint_event: &PairMintEvent,
+                    token0_decimals: u64,
+                    token1_decimals: u64) {
+
     let log_ordinal = pair_mint_event.log_index;
-    let (amount0, amount1, amount_usd) = convert_prices(&prices_store_idx, &log_ordinal, &pair_mint_event.amount0, &pair_mint_event.amount1, &pair);
+    let (amount0, amount1, amount_usd) =
+        convert_prices(&prices_store_idx, &log_ordinal, &pair_mint_event.amount0, &pair_mint_event.amount1, &pair, token0_decimals, token1_decimals);
     
     base_event.log_ordinal = log_ordinal;
     
     let mut mint = pcs::Mint {
+        id: mint_id.to_string(),
         sender: address_pretty(pair_mint_event.sender.as_slice()),
         to: address_pretty(tr2.unwrap().to.as_slice()),
         fee_to: "".to_string(),
@@ -107,13 +118,24 @@ pub fn process_mint(base_event: &mut pcs::Event, prices_store_idx: u32, pair: &p
     base_event.r#type = Option::Some(Mint(mint));
 }
 
-pub fn process_burn(base_event: &mut pcs::Event, prices_store_idx: u32, pair: pcs::Pair, tr1: Option<&PairTransferEvent>, tr2: Option<&PairTransferEvent>, pair_burn_event: &PairBurnEvent) {
+pub fn process_burn(burn_id: &str,
+                    base_event: &mut pcs::Event,
+                    prices_store_idx: u32,
+                    pair: &pcs::Pair,
+                    tr1: Option<&PairTransferEvent>,
+                    tr2: Option<&PairTransferEvent>,
+                    pair_burn_event: &PairBurnEvent,
+                    token0_decimals: u64,
+                    token1_decimals: u64) {
+
     let log_ordinal = pair_burn_event.log_index;
-    let (amount0, amount1, amount_usd) = convert_prices(&prices_store_idx, &log_ordinal, &pair_burn_event.amount0, &pair_burn_event.amount1, &pair);
+    let (amount0, amount1, amount_usd) =
+        convert_prices(&prices_store_idx, &log_ordinal, &pair_burn_event.amount0, &pair_burn_event.amount1, &pair, token0_decimals, token1_decimals);
 
     base_event.log_ordinal = log_ordinal;
 
     let mut burn = pcs::Burn {
+        id: burn_id.to_string(),
         sender: address_pretty(tr2.unwrap().from.as_slice()),
         to: address_pretty(tr2.unwrap().to.as_slice()),
         fee_to: "".to_string(),
@@ -121,7 +143,7 @@ pub fn process_burn(base_event: &mut pcs::Event, prices_store_idx: u32, pair: pc
         amount1: amount1.to_string(),
         amount_usd: amount_usd.to_string(),
         liquidity: convert_token_to_decimal(tr2.unwrap().value.as_slice(), &18).to_string(),
-        fee_liquidity: "".to_string()
+        fee_liquidity: "".to_string(),
     };
 
     if tr1.is_some() {
@@ -132,24 +154,31 @@ pub fn process_burn(base_event: &mut pcs::Event, prices_store_idx: u32, pair: pc
     base_event.r#type = Option::Some(Burn(burn));
 }
 
-pub fn process_swap(base_event: &mut pcs::Event, prices_store_idx: u32, pair: pcs::Pair, pair_swap_event: Option<&PairSwapEvent>, from_addr: String) {
+pub fn process_swap(base_event: &mut pcs::Event,
+                    prices_store_idx: u32,
+                    pair: &pcs::Pair,
+                    pair_swap_event: Option<&PairSwapEvent>,
+                    from_addr: String,
+                    token0_decimals: u64,
+                    token1_decimals: u64) {
+
     let log_ordinal = pair_swap_event.unwrap().log_index;
 
-    let amount0_in = convert_token_to_decimal(pair_swap_event.unwrap().amount0_in.as_slice(), &pair.erc20_token0.as_ref().unwrap().decimals);
-    let amount1_in = convert_token_to_decimal(pair_swap_event.unwrap().amount1_in.as_slice(), &pair.erc20_token1.as_ref().unwrap().decimals);
-    let amount0_out = convert_token_to_decimal(pair_swap_event.unwrap().amount0_out.as_slice(), &pair.erc20_token0.as_ref().unwrap().decimals);
-    let amount1_out = convert_token_to_decimal(pair_swap_event.unwrap().amount1_out.as_slice(), &pair.erc20_token1.as_ref().unwrap().decimals);
+    let amount0_in = convert_token_to_decimal(pair_swap_event.unwrap().amount0_in.as_slice(), &token0_decimals);
+    let amount1_in = convert_token_to_decimal(pair_swap_event.unwrap().amount1_in.as_slice(), &token1_decimals);
+    let amount0_out = convert_token_to_decimal(pair_swap_event.unwrap().amount0_out.as_slice(), &token0_decimals);
+    let amount1_out = convert_token_to_decimal(pair_swap_event.unwrap().amount1_out.as_slice(), &token1_decimals);
 
     let amount0_total = amount0_out.clone().add(amount0_in.clone());
     let amount1_total = amount1_out.clone().add(amount1_in.clone());
 
     let mut big_decimals_bnb = Vec::new();
-    big_decimals_bnb.push(get_derived_price(&log_ordinal, &prices_store_idx, "bnb".to_string(), amount0_total.clone(), &pair.erc20_token0.as_ref().unwrap().address));
-    big_decimals_bnb.push(get_derived_price(&log_ordinal, &prices_store_idx, "bnb".to_string(), amount1_total.clone(), &pair.erc20_token1.as_ref().unwrap().address));
+    big_decimals_bnb.push(get_derived_price(&log_ordinal, &prices_store_idx, "bnb".to_string(), amount0_total.clone(), &pair.token0_address));
+    big_decimals_bnb.push(get_derived_price(&log_ordinal, &prices_store_idx, "bnb".to_string(), amount1_total.clone(), &pair.token1_address));
 
     let mut big_decimals_usd = Vec::new();
-    big_decimals_usd.push(get_derived_price(&log_ordinal, &prices_store_idx, "usd".to_string(), amount0_total, &pair.erc20_token0.as_ref().unwrap().address));
-    big_decimals_usd.push(get_derived_price(&log_ordinal, &prices_store_idx, "usd".to_string(), amount1_total, &pair.erc20_token1.as_ref().unwrap().address));
+    big_decimals_usd.push(get_derived_price(&log_ordinal, &prices_store_idx, "usd".to_string(), amount0_total, &pair.token0_address));
+    big_decimals_usd.push(get_derived_price(&log_ordinal, &prices_store_idx, "usd".to_string(), amount1_total, &pair.token1_address));
 
     let derived_amount_bnb = average_floats(&big_decimals_bnb);
     let tracked_amount_usd = average_floats(&big_decimals_usd);
@@ -171,16 +200,23 @@ pub fn process_swap(base_event: &mut pcs::Event, prices_store_idx: u32, pair: pc
     base_event.r#type = Option::Some(Swap(swap));
 }
 
-fn convert_prices(prices_stores_idx: &u32, log_ordinal: &u64, amount0: &Vec<u8>, amount1: &Vec<u8>, pair: &pcs::Pair) -> (BigDecimal, BigDecimal, BigDecimal) {
-    let token0_amount = convert_token_to_decimal(amount0, &pair.erc20_token0.as_ref().unwrap().decimals);
-    let token1_amount = convert_token_to_decimal(amount1, &pair.erc20_token1.as_ref().unwrap().decimals);
+fn convert_prices(prices_stores_idx: &u32,
+                  log_ordinal: &u64,
+                  amount0: &Vec<u8>,
+                  amount1: &Vec<u8>,
+                  pair: &pcs::Pair,
+                  token0_decimals: u64,
+                  token1_decimals: u64) -> (BigDecimal, BigDecimal, BigDecimal) {
 
-    let derived_bnb0_big_decimal = match state::get_at(*prices_stores_idx, *log_ordinal as i64, format!("dprice:{}:bnb", pair.erc20_token0.as_ref().unwrap().address)) {
+    let token0_amount = convert_token_to_decimal(amount0, &token0_decimals);
+    let token1_amount = convert_token_to_decimal(amount1, &token1_decimals);
+
+    let derived_bnb0_big_decimal = match state::get_at(*prices_stores_idx, *log_ordinal as i64, format!("dprice:{}:bnb", pair.token0_address)) {
         None => zero_big_decimal(),
         Some(derived_bnb0_bytes) => BigDecimal::from_str(str::from_utf8(derived_bnb0_bytes.as_slice()).unwrap()).unwrap()
     };
 
-    let derived_bnb1_big_decimal = match state::get_at(*prices_stores_idx, *log_ordinal as i64, format!("dprice:{}:bnb", pair.erc20_token1.as_ref().unwrap().address)) {
+    let derived_bnb1_big_decimal = match state::get_at(*prices_stores_idx, *log_ordinal as i64, format!("dprice:{}:bnb", pair.token1_address)) {
         None => zero_big_decimal(),
         Some(derived_bnb1_bytes) => BigDecimal::from_str(str::from_utf8(derived_bnb1_bytes.as_slice()).unwrap()).unwrap()
     };
