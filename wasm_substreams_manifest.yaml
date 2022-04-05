@@ -77,6 +77,7 @@ modules:
     - source: sf.ethereum.type.v1.Block
     - store: pairs
     - store: prices
+    - store: tokens
   output:
     type: proto:pcs.types.v1.MintBurnSwaps
 
@@ -126,16 +127,16 @@ modules:
   inputs:
     - map: block_to_tokens
 
-# - name: db_out
-#   kind: map
-#   code:
-#     file: ./pcs-rust/pkg/pcs_substreams_bg.wasm
-#     entrypoint: map_to_database
-#   inputs:
-#     - map: reserves_extractor
-#     - store: pairs
-#       mode: deltas
-#     - store: pairs ## Expose `get_at`, `get_first` and `get_last`
-#       mode: get
-#   output:
-#     type: proto:sf.substreams.v1.DebeziumCDC
+ - name: db_out
+   kind: map
+   code:
+     file: ./pcs-rust/pkg/pcs_substreams_bg.wasm
+     entrypoint: map_to_database
+   inputs:
+     - store: tokens
+       mode: deltas
+     - store: pairs
+       mode: deltas
+     - map: reserves_extractor
+   output:
+     type: proto:sf.substreams.v1.DebeziumCDC
