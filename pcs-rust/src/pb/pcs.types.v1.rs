@@ -7,10 +7,10 @@ pub struct Pairs {
 pub struct Pair {
     #[prost(string, tag="1")]
     pub address: std::string::String,
-    #[prost(message, optional, tag="2")]
-    pub erc20_token0: ::std::option::Option<Erc20Token>,
-    #[prost(message, optional, tag="3")]
-    pub erc20_token1: ::std::option::Option<Erc20Token>,
+    #[prost(string, tag="2")]
+    pub token0_address: std::string::String,
+    #[prost(string, tag="3")]
+    pub token1_address: std::string::String,
     #[prost(string, tag="4")]
     pub creation_transaction_id: std::string::String,
     #[prost(uint64, tag="5")]
@@ -18,17 +18,13 @@ pub struct Pair {
     #[prost(uint64, tag="6")]
     pub log_ordinal: u64,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct Erc20Token {
-    #[prost(string, tag="1")]
-    pub address: std::string::String,
-    #[prost(string, tag="2")]
-    pub name: std::string::String,
-    #[prost(string, tag="3")]
-    pub symbol: std::string::String,
-    #[prost(uint64, tag="4")]
-    pub decimals: u64,
-}
+//message ERC20Token {
+//  string address = 1;
+//  string name = 2;
+//  string symbol = 3;
+//  uint64 decimals = 4;
+//}
+
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Reserves {
     #[prost(message, repeated, tag="1")]
@@ -56,17 +52,17 @@ pub struct Events {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Event {
-    #[prost(uint64, tag="10")]
+    #[prost(uint64, tag="100")]
     pub log_ordinal: u64,
-    #[prost(string, tag="11")]
+    #[prost(string, tag="101")]
     pub pair_address: std::string::String,
-    #[prost(string, tag="12")]
+    #[prost(string, tag="102")]
     pub token0: std::string::String,
-    #[prost(string, tag="13")]
+    #[prost(string, tag="103")]
     pub token1: std::string::String,
-    #[prost(string, tag="14")]
+    #[prost(string, tag="104")]
     pub transaction_id: std::string::String,
-    #[prost(uint64, tag="15")]
+    #[prost(uint64, tag="105")]
     pub timestamp: u64,
     #[prost(oneof="event::Type", tags="1, 2, 3")]
     pub r#type: ::std::option::Option<event::Type>,
@@ -106,38 +102,76 @@ pub struct Swap {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Burn {
     #[prost(string, tag="1")]
-    pub sender: std::string::String,
+    pub id: std::string::String,
     #[prost(string, tag="2")]
-    pub to: std::string::String,
+    pub sender: std::string::String,
     #[prost(string, tag="3")]
-    pub fee_to: std::string::String,
+    pub to: std::string::String,
     #[prost(string, tag="4")]
-    pub amount0: std::string::String,
+    pub fee_to: std::string::String,
     #[prost(string, tag="5")]
-    pub amount1: std::string::String,
+    pub amount0: std::string::String,
     #[prost(string, tag="6")]
-    pub amount_usd: std::string::String,
+    pub amount1: std::string::String,
     #[prost(string, tag="7")]
-    pub liquidity: std::string::String,
+    pub amount_usd: std::string::String,
     #[prost(string, tag="8")]
+    pub liquidity: std::string::String,
+    #[prost(string, tag="9")]
     pub fee_liquidity: std::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Mint {
     #[prost(string, tag="1")]
-    pub sender: std::string::String,
+    pub id: std::string::String,
     #[prost(string, tag="2")]
-    pub to: std::string::String,
+    pub sender: std::string::String,
     #[prost(string, tag="3")]
-    pub fee_to: std::string::String,
+    pub to: std::string::String,
     #[prost(string, tag="4")]
-    pub amount0: std::string::String,
+    pub fee_to: std::string::String,
     #[prost(string, tag="5")]
-    pub amount1: std::string::String,
+    pub amount0: std::string::String,
     #[prost(string, tag="6")]
-    pub amount_usd: std::string::String,
+    pub amount1: std::string::String,
     #[prost(string, tag="7")]
-    pub liquidity: std::string::String,
+    pub amount_usd: std::string::String,
     #[prost(string, tag="8")]
+    pub liquidity: std::string::String,
+    #[prost(string, tag="9")]
     pub fee_liquidity: std::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DatabaseChanges {
+    #[prost(message, repeated, tag="1")]
+    pub table_changes: ::std::vec::Vec<TableChange>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TableChange {
+    #[prost(string, tag="1")]
+    pub table: std::string::String,
+    #[prost(string, tag="2")]
+    pub pk: std::string::String,
+    #[prost(enumeration="table_change::Operation", tag="3")]
+    pub operation: i32,
+    #[prost(message, repeated, tag="4")]
+    pub fields: ::std::vec::Vec<Field>,
+}
+pub mod table_change {
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+    #[repr(i32)]
+    pub enum Operation {
+        Create = 0,
+        Update = 1,
+        Delete = 2,
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Field {
+    #[prost(string, tag="1")]
+    pub key: std::string::String,
+    #[prost(string, tag="2")]
+    pub new_value: std::string::String,
+    #[prost(string, tag="3")]
+    pub old_value: std::string::String,
 }
