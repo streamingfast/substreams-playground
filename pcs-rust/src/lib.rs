@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 use bigdecimal::BigDecimal;
 use hex;
-use substreams::pb::substreams::store_delta;
+
 use substreams::{log, proto, state};
 
 use eth::{address_pretty, decode_string, decode_uint32};
@@ -14,11 +14,9 @@ use crate::event::pcs_event::Event;
 use crate::event::{PcsEvent, Wrapper};
 use crate::pb::pcs;
 use crate::pcs::event::Type;
-use crate::pcs::table_change::Operation;
-use crate::pcs::{DatabaseChanges, Field, TableChange};
 use crate::utils::zero_big_decimal;
-use crate::Operation::Create;
 
+mod db;
 mod eth;
 mod event;
 mod pb;
@@ -551,7 +549,9 @@ pub extern "C" fn build_totals_state(
                     1,
                 ),
             },
-            Wrapper::Pair(pair) => state::sum_int64(pair.log_ordinal as i64, format!("pairs"), 1),
+            Wrapper::Pair(pair) => {
+                state::sum_int64(pair.log_ordinal as i64, "pairs".to_string(), 1)
+            }
         }
     }
 }
@@ -633,237 +633,184 @@ pub extern "C" fn map_to_database(
 ) {
     substreams::register_panic_hook();
 
-    let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
-
-    let mut database_changes: pb::pcs::DatabaseChanges = DatabaseChanges {
-        table_changes: vec![],
-    };
-
-    let token_deltas: substreams::pb::substreams::StoreDeltas =
-        proto::decode_ptr(tokens_deltas_ptr, tokens_deltas_len).unwrap();
-
-    for token_delta in token_deltas.deltas {
-        if token_delta.operation == store_delta::Operation::Create as i32 {
-            let token: pb::tokens::Token = proto::decode(token_delta.new_value).unwrap();
-
-            database_changes.table_changes.push(TableChange {
-                table: "token".to_string(),
-                pk: token.address.clone(),
-                operation: Operation::Create as i32,
-                fields: vec![
-                    Field {
-                        key: "id".to_string(),
-                        new_value: token.address.clone(),
-                        old_value: "".to_string(),
-                    },
-                    Field {
-                        key: "name".to_string(),
-                        new_value: token.name,
-                        old_value: "".to_string(),
-                    },
-                    Field {
-                        key: "symbol".to_string(),
-                        new_value: token.symbol,
-                        old_value: "".to_string(),
-                    },
-                    Field {
-                        key: "decimals".to_string(),
-                        new_value: token.decimals.to_string(),
-                        old_value: "".to_string(),
-                    },
-                ],
-            });
-        }
-    }
+    let block: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
 
     let pair_deltas: substreams::pb::substreams::StoreDeltas =
         proto::decode_ptr(pairs_deltas_ptr, pairs_deltas_len).unwrap();
 
-    for pair_delta in pair_deltas.deltas {
-        if pair_delta.operation == store_delta::Operation::Create as i32 {
-            let pair: pcs::Pair = proto::decode(pair_delta.new_value).unwrap();
-
-            let token0 = utils::get_last_token(tokens_idx, pair.token0_address.as_str());
-            let token1 = utils::get_last_token(tokens_idx, pair.token1_address.as_str());
-
-            let timestamp = blk
-                .header
-                .as_ref()
-                .unwrap()
-                .timestamp
-                .as_ref()
-                .unwrap()
-                .seconds as u64;
-
-            database_changes.table_changes.push(TableChange {
-                table: "pair".to_string(),
-                pk: pair.address.clone(),
-                operation: Operation::Create as i32,
-                fields: vec![
-                    Field {
-                        key: "id".to_string(),
-                        new_value: pair.address.clone(),
-                        old_value: "".to_string(),
-                    },
-                    Field {
-                        key: "name".to_string(),
-                        new_value: format!("{}-{}", token0.symbol, token1.symbol),
-                        old_value: "".to_string(),
-                    },
-                    Field {
-                        key: "block".to_string(),
-                        new_value: blk.number.to_string(),
-                        old_value: "".to_string(),
-                    },
-                    Field {
-                        key: "timestamp".to_string(),
-                        new_value: timestamp.to_string(),
-                        old_value: "".to_string(),
-                    },
-                ],
-            });
-
-            /* TODO: should we do on client side or create a new store ??
-            database_changes.table_changes.push(TableChange {
-                table: "pancake_factory".to_string(),
-                pk: "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73".to_string(),
-                operation: Operation::Update as i32,
-                fields: vec![
-                    Field {
-                        key: "total_pairs".to_string(),
-                        new_value: "".to_string(),
-                        old_value: "".to_string()
-                    }
-                ]
-            });
-            */
-        }
-    }
+    let token_deltas: substreams::pb::substreams::StoreDeltas =
+        proto::decode_ptr(tokens_deltas_ptr, tokens_deltas_len).unwrap();
+    let reserves: pb::pcs::Reserves = proto::decode_ptr(reserves_ptr, reserves_len).unwrap();
 
     let events: pb::pcs::Events = proto::decode_ptr(events_ptr, events_len).unwrap();
 
-    for event in events.events {
-        match event.r#type.unwrap() {
-            Type::Swap(_) => {}
-            Type::Burn(burn) => {
-                /* TODO: how can we compute the old and new value
-                database_changes.table_changes.push(TableChange {
-                    table: "pair".to_string(),
-                    pk: burn.pair_address,
-                    operation: Operation::Update as i32,
-                    fields: vec![ Field {
-                        key: "total_supply".to_string(),
-                        new_value: "".to_string(),
-                        old_value: "".to_string()
-                    }]
-                })
-                */
-                database_changes.table_changes.push(TableChange {
-                    table: "burn".to_string(),
-                    pk: burn.id.clone(),
-                    operation: Operation::Create as i32,
-                    fields: vec![
-                        Field {
-                            key: "id".to_string(),
-                            new_value: burn.id,
-                            old_value: "".to_string(),
-                        },
-                        Field {
-                            key: "transaction".to_string(),
-                            new_value: event.transaction_id,
-                            old_value: "".to_string(),
-                        },
-                        Field {
-                            key: "pair".to_string(),
-                            new_value: event.pair_address,
-                            old_value: "".to_string(),
-                        },
-                        Field {
-                            key: "token_0".to_string(),
-                            new_value: event.token0,
-                            old_value: "".to_string(),
-                        },
-                        Field {
-                            key: "token_1".to_string(),
-                            new_value: event.token1,
-                            old_value: "".to_string(),
-                        },
-                        Field {
-                            key: "liquidity".to_string(),
-                            new_value: burn.liquidity,
-                            old_value: "".to_string(),
-                        },
-                        Field {
-                            key: "timestamp".to_string(),
-                            new_value: event.timestamp.to_string(),
-                            old_value: "".to_string(),
-                        },
-                        Field {
-                            key: "to".to_string(),
-                            new_value: burn.to,
-                            old_value: "".to_string(),
-                        },
-                        Field {
-                            key: "sender".to_string(),
-                            new_value: burn.sender,
-                            old_value: "".to_string(),
-                        },
-                    ],
-                });
-            }
-            Type::Mint(mint) => {
-                database_changes.table_changes.push(TableChange {
-                    table: "mint".to_string(),
-                    pk: mint.id.clone(),
-                    operation: Operation::Create as i32,
-                    fields: vec![
-                        Field {
-                            key: "id".to_string(),
-                            new_value: mint.id,
-                            old_value: "".to_string(),
-                        },
-                        Field {
-                            key: "transaction".to_string(),
-                            new_value: event.transaction_id,
-                            old_value: "".to_string(),
-                        },
-                        Field {
-                            key: "pair".to_string(),
-                            new_value: event.pair_address,
-                            old_value: "".to_string(),
-                        },
-                        Field {
-                            key: "token_0".to_string(),
-                            new_value: event.token0,
-                            old_value: "".to_string(),
-                        },
-                        Field {
-                            key: "token_1".to_string(),
-                            new_value: event.token1,
-                            old_value: "".to_string(),
-                        },
-                        Field {
-                            key: "to".to_string(),
-                            new_value: mint.to,
-                            old_value: "".to_string(),
-                        },
-                        Field {
-                            key: "liquidity".to_string(),
-                            new_value: mint.liquidity,
-                            old_value: "".to_string(),
-                        },
-                        Field {
-                            key: "timestamp".to_string(),
-                            new_value: event.timestamp.to_string(),
-                            old_value: "".to_string(),
-                        },
-                    ],
-                });
-            }
-        }
-    }
+    let changes = db::process(
+        &block,
+        pair_deltas,
+        token_deltas,
+        reserves,
+        events,
+        tokens_idx,
+    );
 
-    // let reserves: pb::pcs::Reserves = proto::decode_ptr(reserves_ptr, reserves_len).unwrap();
+    //todo: change substreams proto to add name property to StoreDeltas
+    //todo: call join_sort_deltas
+    //todo: loop all NameDeltas in a single loop with a huge match statements
+
+    // for token_delta in token_deltas.deltas {
+    //     if token_delta.operation == store_delta::Operation::Create as i32 {
+    //         let token: pb::tokens::Token = proto::decode(token_delta.new_value).unwrap();
+    //
+    //         database_changes.table_changes.push(TableChange {
+    //             table: "token".to_string(),
+    //             pk: token.address.clone(),
+    //             operation: Operation::Create as i32,
+    //             fields: vec![
+    //                 Field {
+    //                     key: "id".to_string(),
+    //                     new_value: token.address.clone(),
+    //                     old_value: "".to_string(),
+    //                 },
+    //                 Field {
+    //                     key: "name".to_string(),
+    //                     new_value: token.name,
+    //                     old_value: "".to_string(),
+    //                 },
+    //                 Field {
+    //                     key: "symbol".to_string(),
+    //                     new_value: token.symbol,
+    //                     old_value: "".to_string(),
+    //                 },
+    //                 Field {
+    //                     key: "decimals".to_string(),
+    //                     new_value: token.decimals.to_string(),
+    //                     old_value: "".to_string(),
+    //                 },
+    //             ],
+    //         });
+    //     }
+    // }
+    //
+    //
+    // for pair_delta in pair_deltas.deltas {
+    // }
+    //
+    // for delta in total_deltas {
+    //     if startwith(delta.key:"pairs") {
+    //         // // TODO: should we do on client side or create a new store ??
+    //         // database_changes.table_changes.push(TableChange {
+    //         //     table: "pancake_factory".to_string(),
+    //         //     pk: "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73".to_string(),
+    //         //     operation: Operation::Update as i32,
+    //         //     fields: vec![
+    //         //         Field {
+    //         //             key: "total_pairs".to_string(),
+    //         //             new_value: "10".to_string(),
+    //         //             old_value: "11".to_string()
+    //         //         }
+    //         //     ]
+    //         // });
+    //     }
+    // }
+    //
+    //
+    //
+    // for event in events.events {
+    //     match event.r#type.unwrap() {
+    //         Type::Swap(_) => {}
+    //         Type::Burn(burn) => {
+    //             /* TODO: how can we compute the old and new value
+    //             database_changes.table_changes.push(TableChange {
+    //                 table: "pair".to_string(),
+    //                 pk: burn.pair_address,
+    //                 operation: Operation::Update as i32,
+    //                 fields: vec![ Field {
+    //                     key: "total_supply".to_string(),
+    //                     new_value: "".to_string(),
+    //                     old_value: "".to_string()
+    //                 }]
+    //             })
+    //             */
+    //             database_changes.table_changes.push(TableChange {
+    //                 table: "burn".to_string(),
+    //                 pk: burn.id.clone(),
+    //                 operation: Operation::Create as i32,
+    //                 fields: vec![
+    //                     Field {
+    //                         key: "id".to_string(),
+    //                         new_value: burn.id,
+    //                         old_value: "".to_string(),
+    //                     },
+    //                     Field {
+    //                         key: "transaction".to_string(),
+    //                         new_value: event.transaction_id,
+    //                         old_value: "".to_string(),
+    //                     },
+    //                     Field {
+    //                         key: "pair".to_string(),
+    //                         new_value: event.pair_address,
+    //                         old_value: "".to_string(),
+    //                     },
+    //                     Field {
+    //                         key: "token_0".to_string(),
+    //                         new_value: event.token0,
+    //                         old_value: "".to_string(),
+    //                     },
+    //                     Field {
+    //                         key: "token_1".to_string(),
+    //                         new_value: event.token1,
+    //                         old_value: "".to_string(),
+    //                     },
+    //                     Field {
+    //                         key: "liquidity".to_string(),
+    //                         new_value: burn.liquidity,
+    //                         old_value: "".to_string(),
+    //                     },
+    //                     Field {
+    //                         key: "timestamp".to_string(),
+    //                         new_value: event.timestamp.to_string(),
+    //                         old_value: "".to_string(),
+    //                     },
+    //                     Field {
+    //                         key: "to".to_string(),
+    //                         new_value: burn.to,
+    //                         old_value: "".to_string(),
+    //                     },
+    //                     Field {
+    //                         key: "sender".to_string(),
+    //                         new_value: burn.sender,
+    //                         old_value: "".to_string(),
+    //                     },
+    //                 ],
+    //             });
+    //         }
+    //         Type::Mint(mint) => {
+    //             database_changes.table_changes.push(TableChange {
+    //                 table: "mint".to_string(),
+    //                 pk: mint.id.clone(),
+    //                 operation: Operation::Create as i32,
+    //                 fields: vec![
+    //                     field("id".to_string(), mint.id, "".to_string()),
+    //                     field(
+    //                         "transaction".to_string(),
+    //                         event.transaction_id,
+    //                         "".to_string(),
+    //                     ),
+    //                     field("pair".to_string(), event.pair_address, "".to_string()),
+    //                     field("token_0".to_string(), event.token0, "".to_string()),
+    //                     field("token_1".to_string(), event.token1, "".to_string()),
+    //                     field("to".to_string(), mint.to, "".to_string()),
+    //                     field("liquidity".to_string(), mint.liquidity, "".to_string()),
+    //                     field(
+    //                         "timestamp".to_string(),
+    //                         event.timestamp.to_string(),
+    //                         "".to_string(),
+    //                     ),
+    //                 ],
+    //             });
+    //         }
+    //     }
+    // }
 
     // for reserve in reserves.reserves {
     //     log::println(format!(
@@ -872,7 +819,7 @@ pub extern "C" fn map_to_database(
     //     ));
     // }
 
-    substreams::output(database_changes);
+    substreams::output(changes);
 }
 
 #[no_mangle]
@@ -885,7 +832,6 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
     for trx in blk.transaction_traces {
         for call in trx.calls {
             if call.call_type == pb::eth::CallType::Create as i32 && !call.state_reverted {
-
                 let mut code_change_len = 0;
                 for code_change in &call.code_changes {
                     code_change_len += code_change.new_code.len()
@@ -898,17 +844,18 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
                     call.input.len(),
                 ));
 
-
-                if  code_change_len <= 150 { // optimization to skip none viable SC
+                if code_change_len <= 150 {
+                    // optimization to skip none viable SC
                     log::println(format!(
                         "skipping to small code to be a token contract: {}",
                         address_pretty(&call.address)
                     ));
-                    continue
+                    continue;
                 }
                 if address_pretty(&call.caller) == "0x0000000000004946c0e9f43f4dee607b0ef1fa1c"
-                    || address_pretty(&call.caller) == "0x00000000687f5b66638856396bee28c1db0178d1"{
-                    continue
+                    || address_pretty(&call.caller) == "0x00000000687f5b66638856396bee28c1db0178d1"
+                {
+                    continue;
                 }
                 let rpc_calls = rpc::create_rpc_calls(call.clone().address);
 
@@ -943,7 +890,6 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
                     "found a token: {} {}",
                     address_pretty(&call.address),
                     decode_string(rpc_responses_unmarshalled.responses[1].raw.as_ref()),
-
                 ));
                 let decoded_address = address_pretty(&call.address);
                 let decoded_decimals =
