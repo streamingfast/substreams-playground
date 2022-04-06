@@ -56,16 +56,17 @@ message Event {
 }
 
 message Swap {
-  string sender = 1;
-  string to = 2;
-  string from = 3;
+  string id = 1;
+  string sender = 2;
+  string to = 3;
+  string from = 4;
 
-  string amount0_in = 4;
-  string amount1_in = 5;
-  string amount0_out = 6;
-  string amount1_out = 7;
-  string amount_bnb = 8;
-  string amount_usd = 9;
+  string amount0_in = 5;
+  string amount1_in = 6;
+  string amount0_out = 7;
+  string amount1_out = 8;
+  string amount_bnb = 9;
+  string amount_usd = 10;
 }
 
 message Burn {

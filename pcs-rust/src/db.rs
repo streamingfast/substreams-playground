@@ -1,9 +1,12 @@
-use crate::pb::eth::Block;
-use crate::pcs::table_change::Operation;
-use crate::pcs::{DatabaseChanges, Event, Events, Field, Reserve, Reserves, TableChange};
-use crate::{pcs, utils};
 use substreams::pb::substreams::{store_delta, StoreDelta, StoreDeltas};
 use substreams::proto;
+
+use crate::pb::eth::Block;
+use crate::pcs::table_change::Operation;
+use crate::pcs::{
+    Burn, DatabaseChanges, Event, Events, Field, Mint, Reserve, Reserves, Swap, TableChange,
+};
+use crate::{pb, pcs, utils, Type};
 
 #[derive(Clone)]
 enum Item {
@@ -30,18 +33,18 @@ pub fn process(
     for item in items {
         match item {
             Item::PairDelta(delta) => {
-                hand_pair_delta(delta, &block, &mut database_changes, tokens_idx)
+                handle_pair_delta(delta, &block, &mut database_changes, tokens_idx)
             }
-            Item::TokenDelta(_delta) => {}
-            Item::Reserve(_reserve) => {}
-            Item::Event(_event) => {}
+            Item::TokenDelta(delta) => handle_token_delta(delta, &mut database_changes),
+            Item::Reserve(reserve) => handle_reserves(reserve, &mut database_changes),
+            Item::Event(event) => handle_events(event, &mut database_changes),
         }
     }
 
     return database_changes;
 }
 
-fn hand_pair_delta(
+fn handle_pair_delta(
     delta: StoreDelta,
     block: &Block,
     changes: &mut DatabaseChanges,
@@ -81,6 +84,244 @@ fn hand_pair_delta(
             ],
         });
     }
+}
+
+fn handle_token_delta(delta: StoreDelta, changes: &mut DatabaseChanges) {
+    if delta.operation == store_delta::Operation::Create as i32 {
+        let token: pb::tokens::Token = proto::decode(delta.new_value).unwrap();
+
+        changes.table_changes.push(TableChange {
+            table: "token".to_string(),
+            pk: token.address.clone(),
+            operation: Operation::Create as i32,
+            fields: vec![
+                Field {
+                    key: "id".to_string(),
+                    new_value: token.address.clone(),
+                    old_value: "".to_string(),
+                },
+                Field {
+                    key: "name".to_string(),
+                    new_value: token.name,
+                    old_value: "".to_string(),
+                },
+                Field {
+                    key: "symbol".to_string(),
+                    new_value: token.symbol,
+                    old_value: "".to_string(),
+                },
+                Field {
+                    key: "decimals".to_string(),
+                    new_value: token.decimals.to_string(),
+                    old_value: "".to_string(),
+                },
+            ],
+        });
+    }
+}
+
+fn handle_reserves(reserve: Reserve, changes: &mut DatabaseChanges) {
+    // todo
+}
+
+fn handle_events(event: Event, changes: &mut DatabaseChanges) {
+    match event.r#type.clone().unwrap() {
+        Type::Swap(swap) => handle_swap_event(swap, event, changes),
+        Type::Burn(burn) => handle_burn_event(burn, event, changes),
+        Type::Mint(mint) => handle_mint_event(mint, event, changes),
+    }
+}
+
+fn handle_swap_event(swap: Swap, event: Event, changes: &mut DatabaseChanges) {
+    changes.table_changes.push(TableChange {
+        table: "swap".to_string(),
+        pk: swap.id.clone(),
+        operation: Operation::Create as i32,
+        fields: vec![
+            Field {
+                key: "id".to_string(),
+                new_value: swap.id,
+                old_value: "".to_string(),
+            },
+            Field {
+                key: "transaction".to_string(),
+                new_value: event.transaction_id,
+                old_value: "".to_string(),
+            },
+            Field {
+                key: "pair".to_string(),
+                new_value: event.pair_address,
+                old_value: "".to_string(),
+            },
+            Field {
+                key: "token_0".to_string(),
+                new_value: event.token0,
+                old_value: "".to_string(),
+            },
+            Field {
+                key: "token_1".to_string(),
+                new_value: event.token1,
+                old_value: "".to_string(),
+            },
+            Field {
+                key: "timestamp".to_string(),
+                new_value: event.timestamp.to_string(),
+                old_value: "".to_string(),
+            },
+            Field {
+                key: "sender".to_string(),
+                new_value: swap.sender,
+                old_value: "".to_string(),
+            },
+            Field {
+                key: "amount_0_in".to_string(),
+                new_value: swap.amount0_in,
+                old_value: "".to_string(),
+            },
+            Field {
+                key: "amount_1_in".to_string(),
+                new_value: swap.amount1_in,
+                old_value: "".to_string(),
+            },
+            Field {
+                key: "amount_0_out".to_string(),
+                new_value: swap.amount0_out,
+                old_value: "".to_string(),
+            },
+            Field {
+                key: "amount_1_out".to_string(),
+                new_value: swap.amount1_out,
+                old_value: "".to_string(),
+            },
+            Field {
+                key: "to".to_string(),
+                new_value: swap.to,
+                old_value: "".to_string(),
+            },
+            Field {
+                key: "from".to_string(),
+                new_value: swap.from,
+                old_value: "".to_string(),
+            },
+        ],
+    })
+}
+
+fn handle_burn_event(burn: Burn, event: Event, changes: &mut DatabaseChanges) {
+    /* TODO: how can we compute the old and new value
+    database_changes.table_changes.push(TableChange {
+        table: "pair".to_string(),
+        pk: burn.pair_address,
+        operation: Operation::Update as i32,
+        fields: vec![ Field {
+            key: "total_supply".to_string(),
+            new_value: "".to_string(),
+            old_value: "".to_string()
+        }]
+    })
+    */
+    changes.table_changes.push(TableChange {
+        table: "burn".to_string(),
+        pk: burn.id.clone(),
+        operation: Operation::Create as i32,
+        fields: vec![
+            Field {
+                key: "id".to_string(),
+                new_value: burn.id,
+                old_value: "".to_string(),
+            },
+            Field {
+                key: "transaction".to_string(),
+                new_value: event.transaction_id,
+                old_value: "".to_string(),
+            },
+            Field {
+                key: "pair".to_string(),
+                new_value: event.pair_address,
+                old_value: "".to_string(),
+            },
+            Field {
+                key: "token_0".to_string(),
+                new_value: event.token0,
+                old_value: "".to_string(),
+            },
+            Field {
+                key: "token_1".to_string(),
+                new_value: event.token1,
+                old_value: "".to_string(),
+            },
+            Field {
+                key: "liquidity".to_string(),
+                new_value: burn.liquidity,
+                old_value: "".to_string(),
+            },
+            Field {
+                key: "timestamp".to_string(),
+                new_value: event.timestamp.to_string(),
+                old_value: "".to_string(),
+            },
+            Field {
+                key: "to".to_string(),
+                new_value: burn.to,
+                old_value: "".to_string(),
+            },
+            Field {
+                key: "sender".to_string(),
+                new_value: burn.sender,
+                old_value: "".to_string(),
+            },
+        ],
+    });
+}
+
+fn handle_mint_event(mint: Mint, event: Event, changes: &mut DatabaseChanges) {
+    changes.table_changes.push(TableChange {
+        table: "mint".to_string(),
+        pk: mint.id.clone(),
+        operation: Operation::Create as i32,
+        fields: vec![
+            Field {
+                key: "id".to_string(),
+                new_value: mint.id,
+                old_value: "".to_string(),
+            },
+            Field {
+                key: "transaction".to_string(),
+                new_value: event.transaction_id,
+                old_value: "".to_string(),
+            },
+            Field {
+                key: "pair".to_string(),
+                new_value: event.pair_address,
+                old_value: "".to_string(),
+            },
+            Field {
+                key: "token_0".to_string(),
+                new_value: event.token0,
+                old_value: "".to_string(),
+            },
+            Field {
+                key: "token_1".to_string(),
+                new_value: event.token1,
+                old_value: "".to_string(),
+            },
+            Field {
+                key: "to".to_string(),
+                new_value: mint.to,
+                old_value: "".to_string(),
+            },
+            Field {
+                key: "liquidity".to_string(),
+                new_value: mint.liquidity,
+                old_value: "".to_string(),
+            },
+            Field {
+                key: "timestamp".to_string(),
+                new_value: event.timestamp.to_string(),
+                old_value: "".to_string(),
+            },
+        ],
+    });
 }
 
 fn join_sort_deltas(

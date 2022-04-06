@@ -81,22 +81,24 @@ pub mod event {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Swap {
     #[prost(string, tag="1")]
-    pub sender: std::string::String,
+    pub id: std::string::String,
     #[prost(string, tag="2")]
-    pub to: std::string::String,
+    pub sender: std::string::String,
     #[prost(string, tag="3")]
-    pub from: std::string::String,
+    pub to: std::string::String,
     #[prost(string, tag="4")]
-    pub amount0_in: std::string::String,
+    pub from: std::string::String,
     #[prost(string, tag="5")]
-    pub amount1_in: std::string::String,
+    pub amount0_in: std::string::String,
     #[prost(string, tag="6")]
-    pub amount0_out: std::string::String,
+    pub amount1_in: std::string::String,
     #[prost(string, tag="7")]
-    pub amount1_out: std::string::String,
+    pub amount0_out: std::string::String,
     #[prost(string, tag="8")]
-    pub amount_bnb: std::string::String,
+    pub amount1_out: std::string::String,
     #[prost(string, tag="9")]
+    pub amount_bnb: std::string::String,
+    #[prost(string, tag="10")]
     pub amount_usd: std::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
