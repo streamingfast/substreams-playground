@@ -885,6 +885,31 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
     for trx in blk.transaction_traces {
         for call in trx.calls {
             if call.call_type == pb::eth::CallType::Create as i32 && !call.state_reverted {
+
+                let mut code_change_len = 0;
+                for code_change in &call.code_changes {
+                    code_change_len += code_change.new_code.len()
+                }
+                log::println(format!(
+                    "found contract creation: {}, caller {}, code change {}, input {}",
+                    address_pretty(&call.address),
+                    address_pretty(&call.caller),
+                    code_change_len,
+                    call.input.len(),
+                ));
+
+
+                if  code_change_len <= 150 { // optimization to skip none viable SC
+                    log::println(format!(
+                        "skipping to small code to be a token contract: {}",
+                        address_pretty(&call.address)
+                    ));
+                    continue
+                }
+                if address_pretty(&call.caller) == "0x0000000000004946c0e9f43f4dee607b0ef1fa1c"
+                    || address_pretty(&call.caller) == "0x00000000687f5b66638856396bee28c1db0178d1"{
+                    continue
+                }
                 let rpc_calls = rpc::create_rpc_calls(call.clone().address);
 
                 let rpc_responses_marshalled: Vec<u8> =
@@ -896,6 +921,10 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
                     || rpc_responses_unmarshalled.responses[1].failed
                     || rpc_responses_unmarshalled.responses[2].failed
                 {
+                    log::println(format!(
+                        "not a token because of a failure: {}",
+                        address_pretty(&call.address)
+                    ));
                     continue;
                 };
 
@@ -903,9 +932,19 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
                     || rpc_responses_unmarshalled.responses[0].raw.len() != 32
                     || !(rpc_responses_unmarshalled.responses[2].raw.len() >= 96)
                 {
+                    log::println(format!(
+                        "not a token because response length: {}",
+                        address_pretty(&call.address)
+                    ));
                     continue;
                 };
 
+                log::println(format!(
+                    "found a token: {} {}",
+                    address_pretty(&call.address),
+                    decode_string(rpc_responses_unmarshalled.responses[1].raw.as_ref()),
+
+                ));
                 let decoded_address = address_pretty(&call.address);
                 let decoded_decimals =
                     decode_uint32(rpc_responses_unmarshalled.responses[0].raw.as_ref());
