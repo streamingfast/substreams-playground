@@ -21,3 +21,14 @@ impl Block {
             .to_string()
     }
 }
+
+#[macro_export]
+macro_rules! field {
+    ($a:expr, $b:expr, $c:expr) => {
+        Field {
+            key: $a.to_string(),
+            new_value: $b.to_string(),
+            old_value: $c.to_string(),
+        }
+    };
+}

@@ -100,6 +100,26 @@ pub struct Swap {
     pub amount_bnb: std::string::String,
     #[prost(string, tag="10")]
     pub amount_usd: std::string::String,
+    #[prost(string, tag="11")]
+    pub trade_volume0: std::string::String,
+    #[prost(string, tag="12")]
+    pub trade_volume1: std::string::String,
+    #[prost(string, tag="13")]
+    pub trade_volume_usd0: std::string::String,
+    #[prost(string, tag="14")]
+    pub trade_volume_usd1: std::string::String,
+    // dropped for now...
+    //string untracked_volume_usd0 = 15;
+    //string untracked_volume_usd1 = 16;
+
+    #[prost(string, tag="17")]
+    pub volume_usd: std::string::String,
+    #[prost(string, tag="18")]
+    pub volume_token0: std::string::String,
+    #[prost(string, tag="19")]
+    pub volume_token1: std::string::String,
+    #[prost(string, tag="20")]
+    pub log_address: std::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Burn {

@@ -1,6 +1,6 @@
 extern crate core;
 
-use std::ops::Mul;
+use std::ops::{Add, Mul};
 use std::str::FromStr;
 
 use bigdecimal::BigDecimal;
@@ -553,9 +553,11 @@ pub extern "C" fn build_totals_state(
                     1,
                 ),
             },
-            Wrapper::Pair(pair) => {
-                state::sum_int64(pair.log_ordinal as i64, "pairs".to_string(), 1)
-            }
+            Wrapper::Pair(pair) => state::sum_int64(
+                pair.log_ordinal as i64,
+                "pancake_factory:pairs".to_string(),
+                1,
+            ),
         }
     }
 }
@@ -601,18 +603,38 @@ pub extern "C" fn build_volumes_state(
 
                     state::sum_bigfloat(
                         event.log_ordinal as i64,
-                        format!("pairs:{}:{}", day_id, event.pair_address),
+                        format!("pairs:day_amount_usd:{}:{}", day_id, event.pair_address),
                         amount_usd.clone(),
                     );
                     state::sum_bigfloat(
                         event.log_ordinal as i64,
-                        format!("token:{}:{}", day_id, event.token0),
+                        format!("token:day_amount_usd:{}:{}", day_id, event.token0),
                         amount_usd.clone(),
                     );
                     state::sum_bigfloat(
                         event.log_ordinal as i64,
-                        format!("token:{}:{}", day_id, event.token1),
+                        format!("token:day_amount_usd:{}:{}", day_id, event.token1),
                         amount_usd,
+                    );
+                    state::sum_bigfloat(
+                        event.log_ordinal as i64,
+                        format!("token:trade_volume:{}", event.token0),
+                        BigDecimal::from_str(swap.trade_volume0.as_str()).unwrap(),
+                    );
+                    state::sum_bigfloat(
+                        event.log_ordinal as i64,
+                        format!("token:trade_volume:{}", event.token1),
+                        BigDecimal::from_str(swap.trade_volume1.as_str()).unwrap(),
+                    );
+                    state::sum_bigfloat(
+                        event.log_ordinal as i64,
+                        format!("token:trade_volume_usd:{}", event.token0),
+                        BigDecimal::from_str(swap.trade_volume_usd0.as_str()).unwrap(),
+                    );
+                    state::sum_bigfloat(
+                        event.log_ordinal as i64,
+                        format!("token:trade_volume_usd:{}", event.token1),
+                        BigDecimal::from_str(swap.trade_volume_usd1.as_str()).unwrap(),
                     );
                 }
                 _ => continue,
@@ -629,6 +651,10 @@ pub extern "C" fn map_to_database(
     tokens_deltas_len: usize,
     pairs_deltas_ptr: *mut u8,
     pairs_deltas_len: usize,
+    totals_deltas_ptr: *mut u8,
+    totals_deltas_len: usize,
+    volumes_deltas_ptr: *mut u8,
+    volumes_deltas_len: usize,
     reserves_ptr: *mut u8,
     reserves_len: usize,
     events_ptr: *mut u8,
@@ -639,11 +665,18 @@ pub extern "C" fn map_to_database(
 
     let block: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
 
+    let token_deltas: substreams::pb::substreams::StoreDeltas =
+        proto::decode_ptr(tokens_deltas_ptr, tokens_deltas_len).unwrap();
+
     let pair_deltas: substreams::pb::substreams::StoreDeltas =
         proto::decode_ptr(pairs_deltas_ptr, pairs_deltas_len).unwrap();
 
-    let token_deltas: substreams::pb::substreams::StoreDeltas =
-        proto::decode_ptr(tokens_deltas_ptr, tokens_deltas_len).unwrap();
+    let totals_deltas: substreams::pb::substreams::StoreDeltas =
+        proto::decode_ptr(totals_deltas_ptr, totals_deltas_len).unwrap();
+
+    let volumes_deltas: substreams::pb::substreams::StoreDeltas =
+        proto::decode_ptr(volumes_deltas_ptr, volumes_deltas_len).unwrap();
+
     let reserves: pb::pcs::Reserves = proto::decode_ptr(reserves_ptr, reserves_len).unwrap();
 
     let events: pb::pcs::Events = proto::decode_ptr(events_ptr, events_len).unwrap();
@@ -652,6 +685,8 @@ pub extern "C" fn map_to_database(
         &block,
         pair_deltas,
         token_deltas,
+        totals_deltas,
+        volumes_deltas,
         reserves,
         events,
         tokens_idx,

@@ -63,10 +63,28 @@ message Swap {
 
   string amount0_in = 5;
   string amount1_in = 6;
+
   string amount0_out = 7;
   string amount1_out = 8;
+
   string amount_bnb = 9;
   string amount_usd = 10;
+
+  string trade_volume0 = 11;
+  string trade_volume1 = 12;
+
+  string trade_volume_usd0 = 13;
+  string trade_volume_usd1 = 14;
+
+  // dropped for now...
+  //string untracked_volume_usd0 = 15;
+  //string untracked_volume_usd1 = 16;
+
+  string volume_usd = 17;
+  string volume_token0 = 18;
+  string volume_token1 = 19;
+
+  string log_address = 20;
 }
 
 message Burn {

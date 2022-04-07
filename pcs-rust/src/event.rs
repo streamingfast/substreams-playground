@@ -184,7 +184,7 @@ pub fn process_swap(
     token0_decimals: u64,
     token1_decimals: u64,
 ) {
-    let log_ordinal = pair_swap_event.unwrap().log_index;
+    let swap_event = pair_swap_event.unwrap();
 
     let amount0_in = convert_token_to_decimal(
         pair_swap_event.unwrap().amount0_in.as_slice(),
@@ -208,40 +208,48 @@ pub fn process_swap(
 
     let mut big_decimals_bnb = Vec::new();
     big_decimals_bnb.push(get_derived_price(
-        &log_ordinal,
+        &swap_event.log_index,
         &prices_store_idx,
         "bnb".to_string(),
-        amount0_total.clone(),
+        &amount0_total,
         &pair.token0_address,
     ));
     big_decimals_bnb.push(get_derived_price(
-        &log_ordinal,
+        &swap_event.log_index,
         &prices_store_idx,
         "bnb".to_string(),
-        amount1_total.clone(),
+        &amount1_total,
         &pair.token1_address,
     ));
 
     let mut big_decimals_usd = Vec::new();
     big_decimals_usd.push(get_derived_price(
-        &log_ordinal,
+        &swap_event.log_index,
         &prices_store_idx,
         "usd".to_string(),
-        amount0_total,
+        &amount0_total,
         &pair.token0_address,
     ));
     big_decimals_usd.push(get_derived_price(
-        &log_ordinal,
+        &swap_event.log_index,
         &prices_store_idx,
         "usd".to_string(),
-        amount1_total,
+        &amount1_total,
         &pair.token1_address,
     ));
 
     let derived_amount_bnb = average_floats(&big_decimals_bnb);
     let tracked_amount_usd = average_floats(&big_decimals_usd);
 
-    base_event.log_ordinal = log_ordinal;
+    let token0_trade_volume: BigDecimal = amount1_in.clone().add(&amount0_out);
+    let token1_trade_volume: BigDecimal = amount0_in.clone().add(&amount1_out);
+
+    let token0_trade_volume_usd: &BigDecimal = &tracked_amount_usd;
+    let token1_trade_volume_usd: &BigDecimal = &tracked_amount_usd;
+
+    let volume_usd = &tracked_amount_usd;
+    let token0_volume = &amount0_total;
+    let token1_volume = &amount1_total;
 
     let swap = pcs::Swap {
         id: swap_id.to_string(),
@@ -254,6 +262,14 @@ pub fn process_swap(
         amount1_out: amount1_out.to_string(),
         amount_bnb: derived_amount_bnb.to_string(),
         amount_usd: tracked_amount_usd.to_string(),
+        trade_volume0: token0_trade_volume.to_string(),
+        trade_volume1: token1_trade_volume.to_string(),
+        trade_volume_usd0: token0_trade_volume_usd.to_string(),
+        trade_volume_usd1: token1_trade_volume_usd.to_string(),
+        volume_usd: volume_usd.to_string(),
+        volume_token0: token0_volume.to_string(),
+        volume_token1: token1_volume.to_string(),
+        log_address: String::from_utf8(swap_event.clone().log_address).unwrap(),
     };
 
     base_event.r#type = Option::Some(Swap(swap));
@@ -318,7 +334,7 @@ fn get_derived_price(
     ord: &u64,
     prices_stores_idx: &u32,
     derived_token: String,
-    token_amount: BigDecimal,
+    token_amount: &BigDecimal,
     token_addr: &String,
 ) -> Option<BigDecimal> {
     let usd_price_bytes = state::get_at(
@@ -333,7 +349,7 @@ fn get_derived_price(
         return None;
     }
 
-    return Some((token_amount.clone()).mul(usd_price));
+    return Some((token_amount).mul(usd_price));
 }
 
 fn average_floats(big_decimals: &Vec<Option<BigDecimal>>) -> BigDecimal {
