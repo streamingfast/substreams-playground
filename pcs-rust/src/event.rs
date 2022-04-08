@@ -184,6 +184,7 @@ pub fn process_swap(
     token0_decimals: u64,
     token1_decimals: u64,
 ) {
+    let log_ordinal = pair_swap_event.unwrap().log_index;
     let swap_event = pair_swap_event.unwrap();
 
     let amount0_in = convert_token_to_decimal(
@@ -273,6 +274,7 @@ pub fn process_swap(
     };
 
     base_event.r#type = Option::Some(Swap(swap));
+    base_event.log_ordinal = log_ordinal;
 }
 
 fn convert_prices(

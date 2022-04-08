@@ -145,6 +145,8 @@ modules:
         mode: deltas
       - store: totals
         mode: deltas
+      - store: volumes
+        mode: deltas
       - map: reserves_extractor
       - map: mint_burn_swaps_extractor
       - store: tokens

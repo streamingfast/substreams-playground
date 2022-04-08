@@ -1,11 +1,13 @@
-use crate::{pb, Wrapper};
-use bigdecimal::{BigDecimal, One, Zero};
-use num_bigint::BigUint;
-use pad::PadStr;
 use std::ops::{Add, Div, Mul};
 use std::str;
 use std::str::FromStr;
+
+use bigdecimal::{BigDecimal, One, Zero};
+use num_bigint::BigUint;
+use pad::PadStr;
 use substreams::{proto, state};
+
+use crate::{pb, Wrapper};
 
 pub const WBNB_ADDRESS: &str = "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c";
 pub const BUSD_WBNB_PAIR: &str = "0x58f876857a02d6762e0101bb5c46a8c1ed44dc16";
@@ -200,7 +202,6 @@ pub fn find_bnb_price_per_token(
             match state::get_at(reserves_store_idx, *log_ordinal as i64, format!("reserve:{}:{}", tiny_to_major_pair, major_token)) {
                 None => continue,
                 Some(reserve_bytes) => decode_reserve_bytes_to_big_decimal(reserve_bytes)
-
             };
 
         let bnb_reserve_in_major_pair = major_to_bnb_price.clone().mul(major_reserve);
@@ -219,6 +220,13 @@ pub fn find_bnb_price_per_token(
 
 pub fn zero_big_decimal() -> BigDecimal {
     BigDecimal::zero().with_prec(100)
+}
+
+pub fn compute_amount_total(amount1: String, amount2: String) -> BigDecimal {
+    let amount1_bd: BigDecimal = BigDecimal::from_str(amount1.as_str()).unwrap();
+    let amount2_bd: BigDecimal = BigDecimal::from_str(amount2.as_str()).unwrap();
+
+    amount1_bd.add(amount2_bd)
 }
 
 pub fn get_ordinal(all: &Wrapper) -> i64 {

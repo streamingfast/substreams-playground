@@ -1,3 +1,4 @@
+use bigdecimal::BigDecimal;
 use substreams::pb::substreams::{store_delta, StoreDelta, StoreDeltas};
 use substreams::{log, proto};
 
@@ -154,41 +155,76 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges) {
     let parts: Vec<&str> = delta.key.split(":").collect();
     let table = parts[0];
 
+    //todo: @alex how to get the old value?
     match table {
-        //todo: update the totals here, from volumes in lib.rs
-        // and maybe even add more keys inside it to be able to pick up as much information as possible
-        "pairs" => {}
-        "token" => {}
+        "pair" => {
+            let key = parts[1];
+            let pair_address = parts[parts.len() - 1];
+
+            let mut field: Option<Field> = None;
+
+            match key {
+                "volume_usd" => {
+                    let volume_usd: String = proto::decode(delta.new_value).unwrap();
+                    field = Some(field!("volume_usd", volume_usd, ""));
+                }
+                "volume_token0" => {
+                    let volume_token0: String = proto::decode(delta.new_value).unwrap();
+                    field = Some(field!("volume_token0", volume_token0, ""));
+                }
+                "volume_token1" => {
+                    let volume_token1: String = proto::decode(delta.new_value).unwrap();
+                    field = Some(field!("volume_token1", volume_token1, ""));
+                }
+                "total_transactions" => {
+                    let total_transactions: String = proto::decode(delta.new_value).unwrap();
+                    field = Some(field!("total_transactions", total_transactions, ""));
+                }
+                _ => {}
+            }
+
+            if field.is_some() {
+                changes.table_changes.push(TableChange {
+                    table: "pair".to_string(),
+                    pk: pair_address.to_string(),
+                    operation: Operation::Update as i32,
+                    fields: vec![field.unwrap()],
+                })
+            }
+        }
+        "token" => {
+            let key = parts[1];
+            let token_address = parts[parts.len() - 1];
+
+            let mut field: Option<Field> = None;
+
+            match key {
+                "trade_volume" => {
+                    let trade_volume: String = proto::decode(delta.new_value).unwrap();
+                    field = Some(field!("trade_volume", trade_volume, ""));
+                }
+                "trade_volume_usd" => {
+                    let trade_volume_usd: String = proto::decode(delta.new_value).unwrap();
+                    field = Some(field!("trade_volume_usd", trade_volume_usd, ""));
+                }
+                "total_transactions" => {
+                    let total_transactions: String = proto::decode(delta.new_value).unwrap();
+                    field = Some(field!("total_transactions", total_transactions, ""));
+                }
+                _ => {}
+            }
+
+            if field.is_some() {
+                changes.table_changes.push(TableChange {
+                    table: "token".to_string(),
+                    pk: token_address.to_string(),
+                    operation: Operation::Update as i32,
+                    fields: vec![field.unwrap()],
+                });
+            }
+        }
         _ => {}
     }
-
-    // changes.table_changes.push(TableChange {
-    //     table: "token".to_string(),
-    //     pk: event.token0.to_string(),
-    //     operation: Operation::Update as i32,
-    //     fields: vec![
-    //         Field {
-    //             key: "trade_volume".to_string(),
-    //             new_value: delta.trade_volume0.to_string(),
-    //             old_value: "".to_string(), //todo: how to get the value?
-    //         },
-    //         Field {
-    //             key: "trade_volume_usd".to_string(),
-    //             new_value: swap.trade_volume_usd0.to_string(),
-    //             old_value: "".to_string(), //todo: how to get the value?
-    //         },
-    //         Field {
-    //             key: "trade_volume".to_string(),
-    //             new_value: swap.trade_volume1.to_string(),
-    //             old_value: "".to_string(), //todo: how to get the value?
-    //         },
-    //         Field {
-    //             key: "trade_volume_usd".to_string(),
-    //             new_value: swap.trade_volume_usd1.to_string(),
-    //             old_value: "".to_string(), //todo: how to get the value?
-    //         },
-    //     ],
-    // });
 }
 
 fn handle_reserves(reserve: Reserve, changes: &mut DatabaseChanges) {
@@ -223,6 +259,7 @@ fn handle_swap_event(swap: &Swap, event: &Event, changes: &mut DatabaseChanges) 
             field!("amount_1_out", swap.amount1_out, ""),
             field!("to", swap.to, ""),
             field!("amount_usd", swap.amount_usd, ""),
+            field!("log_index", event.log_ordinal, ""),
         ],
     });
     changes.table_changes.push(TableChange {
@@ -242,6 +279,26 @@ fn handle_swap_event(swap: &Swap, event: &Event, changes: &mut DatabaseChanges) 
         fields: vec![
             field!("total_volume_usd", "", ""),
             field!("total_volume_bnb", "", ""),
+            field!("total_transactions", "", ""),
+        ],
+    });
+    changes.table_changes.push(TableChange {
+        table: "token".to_string(),
+        pk: event.token0.to_string(),
+        operation: Operation::Update as i32,
+        fields: vec![
+            field!("trade_volume", "", ""),
+            field!("trade_volume_usd", "", ""),
+            field!("total_transactions", "", ""),
+        ],
+    });
+    changes.table_changes.push(TableChange {
+        table: "token".to_string(),
+        pk: event.token1.to_string(),
+        operation: Operation::Update as i32,
+        fields: vec![
+            field!("trade_volume", "", ""),
+            field!("trade_volume_usd", "", ""),
             field!("total_transactions", "", ""),
         ],
     });

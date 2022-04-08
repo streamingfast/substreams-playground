@@ -571,14 +571,9 @@ pub extern "C" fn build_volumes_state(
 ) {
     substreams::register_panic_hook();
 
-    log::println(format!("block len: {}", block_len));
-
     let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
-    log::println(format!("block size: {}: ", blk.size));
-    // blk.header.as_ref().unwrap().timestamp.as_ref().unwrap().seconds as u64
     let timestamp_block_header: pb::eth::BlockHeader = blk.header.unwrap();
     let timestamp = timestamp_block_header.timestamp.unwrap();
-    log::println(format!("timestamp: {}", timestamp.seconds));
     let timestamp_seconds = timestamp.seconds;
     let day_id: i64 = timestamp_seconds / 86400;
 
@@ -601,11 +596,39 @@ pub extern "C" fn build_volumes_state(
                         continue;
                     }
 
+                    let volume_usd: BigDecimal =
+                        BigDecimal::from_str(swap.amount_usd.as_str()).unwrap();
+                    let amount_0_total: BigDecimal =
+                        utils::compute_amount_total(swap.amount0_out, swap.amount0_in);
+                    let amount_1_total: BigDecimal =
+                        utils::compute_amount_total(swap.amount1_out, swap.amount1_in);
+
                     state::sum_bigfloat(
                         event.log_ordinal as i64,
-                        format!("pairs:day_amount_usd:{}:{}", day_id, event.pair_address),
+                        format!("pair:day_amount_usd:{}:{}", day_id, event.pair_address),
                         amount_usd.clone(),
                     );
+                    state::sum_bigfloat(
+                        event.log_ordinal as i64,
+                        format!("pair:volume_usd:{}", event.pair_address),
+                        volume_usd,
+                    );
+                    state::sum_bigfloat(
+                        event.log_ordinal as i64,
+                        format!("pair:volume_token0:{}", event.pair_address),
+                        amount_0_total,
+                    );
+                    state::sum_bigfloat(
+                        event.log_ordinal as i64,
+                        format!("pair:volume_token1:{}", event.pair_address),
+                        amount_1_total,
+                    );
+                    state::sum_int64(
+                        event.log_ordinal as i64,
+                        format!("pair:total_transactions"),
+                        1,
+                    );
+
                     state::sum_bigfloat(
                         event.log_ordinal as i64,
                         format!("token:day_amount_usd:{}:{}", day_id, event.token0),
@@ -635,6 +658,16 @@ pub extern "C" fn build_volumes_state(
                         event.log_ordinal as i64,
                         format!("token:trade_volume_usd:{}", event.token1),
                         BigDecimal::from_str(swap.trade_volume_usd1.as_str()).unwrap(),
+                    );
+                    state::sum_int64(
+                        event.log_ordinal as i64,
+                        format!("token:total_transactions:{}", event.token0),
+                        1,
+                    );
+                    state::sum_int64(
+                        event.log_ordinal as i64,
+                        format!("token:total_transactions:{}", event.token1),
+                        1,
                     );
                 }
                 _ => continue,
