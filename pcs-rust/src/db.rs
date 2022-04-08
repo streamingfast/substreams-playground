@@ -154,14 +154,13 @@ fn handle_total_delta(delta: StoreDelta, changes: &mut DatabaseChanges) {
 fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges) {
     let parts: Vec<&str> = delta.key.split(":").collect();
     let table = parts[0];
+    let key = parts[1];
+    let mut field: Option<Field> = None;
 
     //todo: @alex how to get the old value?
     match table {
         "pair" => {
-            let key = parts[1];
             let pair_address = parts[parts.len() - 1];
-
-            let mut field: Option<Field> = None;
 
             match key {
                 "volume_usd" => {
@@ -193,10 +192,7 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges) {
             }
         }
         "token" => {
-            let key = parts[1];
             let token_address = parts[parts.len() - 1];
-
-            let mut field: Option<Field> = None;
 
             match key {
                 "trade_volume" => {
@@ -218,6 +214,31 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges) {
                 changes.table_changes.push(TableChange {
                     table: "token".to_string(),
                     pk: token_address.to_string(),
+                    operation: Operation::Update as i32,
+                    fields: vec![field.unwrap()],
+                });
+            }
+        }
+        "pancake_factory" => {
+            match key {
+                "total_volume_usd" => {
+                    let total_volume_usd: String = proto::decode(delta.new_value).unwrap();
+                    field = Some(field!("trade_volume_usd", total_volume_usd, ""));
+                }
+                "total_volume_bnb" => {
+                    let total_volume_bnb: String = proto::decode(delta.new_value).unwrap();
+                    field = Some(field!("trade_volume_bnb", total_volume_bnb, ""));
+                }
+                "total_transactions" => {
+                    let total_transactions: String = proto::decode(delta.new_value).unwrap();
+                    field = Some(field!("total_transactions", total_transactions, ""))
+                }
+                _ => {}
+            }
+            if field.is_some() {
+                changes.table_changes.push(TableChange {
+                    table: "pancake_factory".to_string(),
+                    pk: PANCAKE_FACTORY.to_string(),
                     operation: Operation::Update as i32,
                     fields: vec![field.unwrap()],
                 });
@@ -279,26 +300,6 @@ fn handle_swap_event(swap: &Swap, event: &Event, changes: &mut DatabaseChanges) 
         fields: vec![
             field!("total_volume_usd", "", ""),
             field!("total_volume_bnb", "", ""),
-            field!("total_transactions", "", ""),
-        ],
-    });
-    changes.table_changes.push(TableChange {
-        table: "token".to_string(),
-        pk: event.token0.to_string(),
-        operation: Operation::Update as i32,
-        fields: vec![
-            field!("trade_volume", "", ""),
-            field!("trade_volume_usd", "", ""),
-            field!("total_transactions", "", ""),
-        ],
-    });
-    changes.table_changes.push(TableChange {
-        table: "token".to_string(),
-        pk: event.token1.to_string(),
-        operation: Operation::Update as i32,
-        fields: vec![
-            field!("trade_volume", "", ""),
-            field!("trade_volume_usd", "", ""),
             field!("total_transactions", "", ""),
         ],
     });

@@ -669,6 +669,22 @@ pub extern "C" fn build_volumes_state(
                         format!("token:total_transactions:{}", event.token1),
                         1,
                     );
+
+                    state::sum_bigfloat(
+                        event.log_ordinal as i64,
+                        "pancake_factory:total_volume_usd".to_string(),
+                        BigDecimal::from_str(swap.amount_usd.as_str()).unwrap(),
+                    );
+                    state::sum_bigfloat(
+                        event.log_ordinal as i64,
+                        "pancake_factory:total_volume_bnb".to_string(),
+                        BigDecimal::from_str(swap.amount_bnb.as_str()).unwrap(),
+                    );
+                    state::sum_int64(
+                        event.log_ordinal as i64,
+                        "pancake:total_transactions".to_string(),
+                        1,
+                    )
                 }
                 _ => continue,
             }
