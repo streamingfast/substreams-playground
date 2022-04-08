@@ -151,8 +151,6 @@ pub fn process_burn(
         token1_decimals,
     );
 
-    base_event.log_ordinal = log_ordinal;
-
     let mut burn = pcs::Burn {
         id: burn_id.to_string(),
         sender: address_pretty(tr2.unwrap().from.as_slice()),
@@ -172,6 +170,7 @@ pub fn process_burn(
     }
 
     base_event.r#type = Option::Some(Burn(burn));
+    base_event.log_ordinal = log_ordinal;
 }
 
 pub fn process_swap(

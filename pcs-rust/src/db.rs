@@ -306,18 +306,6 @@ fn handle_swap_event(swap: &Swap, event: &Event, changes: &mut DatabaseChanges) 
 }
 
 fn handle_burn_event(burn: &Burn, event: &Event, changes: &mut DatabaseChanges) {
-    /* TODO: how can we compute the old and new value
-    database_changes.table_changes.push(TableChange {
-        table: "pair".to_string(),
-        pk: burn.pair_address,
-        operation: Operation::Update as i32,
-        fields: vec![ Field {
-            key: "total_supply".to_string(),
-            new_value: "".to_string(),
-            old_value: "".to_string()
-        }]
-    })
-    */
     changes.table_changes.push(TableChange {
         table: "burn".to_string(),
         pk: burn.id.to_string(),
@@ -332,6 +320,10 @@ fn handle_burn_event(burn: &Burn, event: &Event, changes: &mut DatabaseChanges) 
             field!("timestamp", event.timestamp, ""),
             field!("to", burn.to, ""),
             field!("sender", burn.sender, ""),
+            field!("amount_0", burn.amount0, ""),
+            field!("amount_1", burn.amount1, ""),
+            field!("log_index", event.log_ordinal, ""),
+            field!("amount_usd", burn.amount_usd, ""),
         ],
     });
 }
@@ -350,6 +342,11 @@ fn handle_mint_event(mint: &Mint, event: &Event, changes: &mut DatabaseChanges) 
             field!("to", mint.to, ""),
             field!("liquidity", mint.liquidity, ""),
             field!("timestamp", event.timestamp, ""),
+            field!("sender", mint.sender, ""),
+            field!("amount_0", mint.amount0, ""),
+            field!("amount_1", mint.amount1, ""),
+            field!("log_index", event.log_ordinal, ""),
+            field!("amount_usd", mint.amount_usd, ""),
         ],
     });
 }
