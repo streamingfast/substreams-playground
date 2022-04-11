@@ -535,28 +535,44 @@ pub extern "C" fn build_totals_state(
 
     for el in all_pairs_and_events {
         match el {
-            Wrapper::Event(event) => match event.r#type.unwrap() {
-                Type::Swap(_) => state::sum_int64(
+            Wrapper::Event(event) => {
+                state::sum_int64(
                     event.log_ordinal as i64,
-                    format!("pair:{}:swaps", event.pair_address),
+                    format!("token:{}:transaction_count", event.token0),
                     1,
-                ),
-                Type::Burn(_) => state::sum_int64(
+                );
+                state::sum_int64(
                     event.log_ordinal as i64,
-                    format!("pair:{}:burns", event.pair_address),
+                    format!("token:{}:transaction_count", event.token1),
                     1,
-                ),
-                Type::Mint(_) => state::sum_int64(
+                );
+                state::sum_int64(
                     event.log_ordinal as i64,
-                    format!("pair:{}:mints", event.pair_address),
+                    format!("pair:{}:transaction_count", event.pair_address),
                     1,
-                ),
-            },
-            Wrapper::Pair(pair) => state::sum_int64(
-                pair.log_ordinal as i64,
-                "pancake_factory:pairs".to_string(),
-                1,
-            ),
+                );
+
+                match event.r#type.unwrap() {
+                    Type::Swap(_) => state::sum_int64(
+                        event.log_ordinal as i64,
+                        format!("pair:{}:swap_count", event.pair_address),
+                        1,
+                    ),
+                    Type::Burn(_) => state::sum_int64(
+                        event.log_ordinal as i64,
+                        format!("pair:{}:burn_count", event.pair_address),
+                        1,
+                    ),
+                    Type::Mint(_) => state::sum_int64(
+                        event.log_ordinal as i64,
+                        format!("pair:{}:mint_count", event.pair_address),
+                        1,
+                    ),
+                }
+            }
+            Wrapper::Pair(pair) => {
+                state::sum_int64(pair.log_ordinal as i64, "global:pair_count".to_string(), 1);
+            }
         }
     }
 }
@@ -575,6 +591,7 @@ pub extern "C" fn build_volumes_state(
     let timestamp = timestamp_block_header.timestamp.unwrap();
     let timestamp_seconds = timestamp.seconds;
     let day_id: i64 = timestamp_seconds / 86400;
+    let hour_id: i64 = timestamp_seconds / 3600;
 
     if events_len == 0 {
         return;
@@ -585,18 +602,27 @@ pub extern "C" fn build_volumes_state(
     for event in events.events {
         if event.r#type.is_some() {
             match event.r#type.unwrap() {
+		Type::Mint(mint) => {
+		    // sum("global:liquidity_usd", mint.amount_usd)
+		    // sum("token:{}:liquidity_usd", mint.to)
+		},
+		Type::Burn(burn) => {
+		    // sum("global:liquidity_usd", /* NEGATIVE */ -burn.amount_usd)
+		    // sum(token:{}:liquidity_usd", /* NEGATIVE */ burn.to)
+		},
                 Type::Swap(swap) => {
                     if swap.amount_usd.is_empty() {
                         continue;
                     }
 
+		    // TODO: Make all those variables refs, and tweak `sum_bigfloat()` to use refs.
+		   
                     let amount_usd = BigDecimal::from_str(swap.amount_usd.as_str()).unwrap();
                     if amount_usd.eq(&zero_big_decimal()) {
                         continue;
                     }
+                    let amount_bnb = BigDecimal::from_str(swap.amount_bnb.as_str()).unwrap();
 
-                    let volume_usd: BigDecimal =
-                        BigDecimal::from_str(swap.amount_usd.as_str()).unwrap();
                     let amount_0_total: BigDecimal =
                         utils::compute_amount_total(swap.amount0_out, swap.amount0_in);
                     let amount_1_total: BigDecimal =
@@ -604,91 +630,110 @@ pub extern "C" fn build_volumes_state(
 
                     state::sum_bigfloat(
                         event.log_ordinal as i64,
-                        format!("pair:day_amount_usd:{}:{}", day_id, event.pair_address),
+                        format!("pair_day:{}:{}:usd", day_id, event.pair_address),
                         amount_usd.clone(),
                     );
                     state::sum_bigfloat(
                         event.log_ordinal as i64,
-                        format!("pair:volume_usd:{}", event.pair_address),
-                        volume_usd,
-                    );
-                    state::sum_bigfloat(
-                        event.log_ordinal as i64,
-                        format!("pair:volume_token0:{}", event.pair_address),
-                        amount_0_total,
-                    );
-                    state::sum_bigfloat(
-                        event.log_ordinal as i64,
-                        format!("pair:volume_token1:{}", event.pair_address),
-                        amount_1_total,
-                    );
-                    state::sum_int64(
-                        event.log_ordinal as i64,
-                        format!("pair:total_transactions"),
-                        1,
-                    );
-
-                    state::sum_bigfloat(
-                        event.log_ordinal as i64,
-                        format!("token:day_amount_usd:{}:{}", day_id, event.token0),
+                        format!("pair_hour:{}:{}:usd", hour_id, event.pair_address),
                         amount_usd.clone(),
                     );
                     state::sum_bigfloat(
                         event.log_ordinal as i64,
-                        format!("token:day_amount_usd:{}:{}", day_id, event.token1),
+                        format!("pair:{}:usd", event.pair_address),
                         amount_usd,
                     );
                     state::sum_bigfloat(
                         event.log_ordinal as i64,
-                        format!("token:trade_volume:{}", event.token0),
+                        format!("pair:{}:token0", event.pair_address),
+                        amount_0_total,
+                    );
+                    state::sum_bigfloat(
+                        event.log_ordinal as i64,
+                        format!("pair:{}:token1", event.pair_address),
+                        amount_1_total,
+                    );
+                    // state::sum_int64(
+                    //     event.log_ordinal as i64,
+                    //     format!("pair:{}:total_transactions", event.pair_address),
+                    //     1,
+                    // );
+                    state::sum_bigfloat(
+                        event.log_ordinal as i64,
+                        format!("token_day:{}:{}:usd", day_id, event.token0),
+                        amount_usd,
+                    );
+                    state::sum_bigfloat(
+                        event.log_ordinal as i64,
+                        format!("token_day:{}:{}:usd", day_id, event.token1),
+                        amount_usd,
+                    );
+		    
+                    state::sum_bigfloat(
+                        event.log_ordinal as i64,
+                        format!("token:{}:trade", event.token0),
                         BigDecimal::from_str(swap.trade_volume0.as_str()).unwrap(),
                     );
                     state::sum_bigfloat(
                         event.log_ordinal as i64,
-                        format!("token:trade_volume:{}", event.token1),
+                        format!("token:{}:trade", event.token1),
                         BigDecimal::from_str(swap.trade_volume1.as_str()).unwrap(),
                     );
                     state::sum_bigfloat(
                         event.log_ordinal as i64,
-                        format!("token:trade_volume_usd:{}", event.token0),
+                        format!("token:{}:trade_usd", event.token0),
                         BigDecimal::from_str(swap.trade_volume_usd0.as_str()).unwrap(),
                     );
                     state::sum_bigfloat(
                         event.log_ordinal as i64,
-                        format!("token:trade_volume_usd:{}", event.token1),
+                        format!("token:{}:trade_usd", event.token1),
                         BigDecimal::from_str(swap.trade_volume_usd1.as_str()).unwrap(),
                     );
-                    state::sum_int64(
-                        event.log_ordinal as i64,
-                        format!("token:total_transactions:{}", event.token0),
-                        1,
-                    );
-                    state::sum_int64(
-                        event.log_ordinal as i64,
-                        format!("token:total_transactions:{}", event.token1),
-                        1,
-                    );
+                    // state::sum_int64(
+                    //     event.log_ordinal as i64,
+                    //     format!("token:{}:total_transactions", event.token0),
+                    //     1,
+                    // );
+                    // state::sum_int64(
+                    //     event.log_ordinal as i64,
+                    //     format!("token:{}:total_transactions", event.token1),
+                    //     1,
+                    // );
 
-                    state::sum_bigfloat(
+                    // state::sum_int64(
+                    //     event.log_ordinal as i64,
+                    //     format!("global_day:{}:total_transactions", day_id),
+                    //     1,
+                    // );
+
+		    // global_day:{}:bnb
+		    // global_day:{}:usd
+
+		    state::sum_bigfloat(
                         event.log_ordinal as i64,
-                        "pancake_factory:total_volume_usd".to_string(),
-                        BigDecimal::from_str(swap.amount_usd.as_str()).unwrap(),
+                        "global:usd".to_string(),
+                        amount_usd,
                     );
                     state::sum_bigfloat(
                         event.log_ordinal as i64,
-                        "pancake_factory:total_volume_bnb".to_string(),
-                        BigDecimal::from_str(swap.amount_bnb.as_str()).unwrap(),
+                        "global:bnb".to_string(),
+                        amount_bnb,
                     );
-                    state::sum_int64(
-                        event.log_ordinal as i64,
-                        "pancake:total_transactions".to_string(),
-                        1,
-                    )
+                    // state::sum_int64(
+                    //     event.log_ordinal as i64,
+                    //     "global:total_transactions".to_string(),
+                    //     1,
+                    // );
                 }
                 _ => continue,
             }
         }
     }
+
+    state::delete_prefix("pair_day:{}:", day_id - 1);
+    state::delete_prefix("token_day:{}:", day_id - 1);
+    state::delete_prefix("pair_hour:{}:", hour_id - 1);
+    state::delete_prefix("global_day:{}:", day_id - 1);
 }
 
 #[no_mangle]

@@ -120,7 +120,7 @@ fn handle_total_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &
         "pair" => {
             // !todo?
         }
-        "pancake_factory" => changes.table_changes.push(TableChange {
+        "global" => changes.table_changes.push(TableChange {
             table: "pancake_factory".to_string(),
             pk: PANCAKE_FACTORY.to_string(),
             block_num: block.number,
@@ -139,14 +139,18 @@ fn handle_total_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &
 fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &Block) {
     let parts: Vec<&str> = delta.key.split(":").collect();
     let table = parts[0];
-    let key = parts[1];
     let mut field: Option<Field> = None;
 
     match table {
+	"pair_day" => {
+	    let day = parts[1];
+	    let pk = parts[2];
+	}
         "pair" => {
-            let pair_address = parts[parts.len() - 1];
+            let pk = parts[2];
+	    let field_name = parts[3];
 
-            match key {
+            match field_name {
                 "volume_usd" => {
                     let volume_usd_new: String = proto_decode_to_string!(delta.new_value, "0.0");
                     let volume_usd_old: String = proto_decode_to_string!(delta.old_value, "0.0");
@@ -197,7 +201,8 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: 
             }
         }
         "token" => {
-            let token_address = parts[parts.len() - 1];
+            let token_address = parts[2];
+	    let key = parts[1];
 
             match key {
                 "trade_volume" => {
@@ -241,7 +246,7 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: 
                 });
             }
         }
-        "pancake_factory" => {
+        "global" => {
             match key {
                 "total_volume_usd" => {
                     let total_volume_usd_new: String =
