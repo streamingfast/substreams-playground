@@ -56,16 +56,35 @@ message Event {
 }
 
 message Swap {
-  string sender = 1;
-  string to = 2;
-  string from = 3;
+  string id = 1;
+  string sender = 2;
+  string to = 3;
+  string from = 4;
 
-  string amount0_in = 4;
-  string amount1_in = 5;
-  string amount0_out = 6;
-  string amount1_out = 7;
-  string amount_bnb = 8;
-  string amount_usd = 9;
+  string amount0_in = 5;
+  string amount1_in = 6;
+
+  string amount0_out = 7;
+  string amount1_out = 8;
+
+  string amount_bnb = 9;
+  string amount_usd = 10;
+
+  string trade_volume0 = 11;
+  string trade_volume1 = 12;
+
+  string trade_volume_usd0 = 13;
+  string trade_volume_usd1 = 14;
+
+  // dropped for now...
+  //string untracked_volume_usd0 = 15;
+  //string untracked_volume_usd1 = 16;
+
+  string volume_usd = 17;
+  string volume_token0 = 18;
+  string volume_token1 = 19;
+
+  string log_address = 20;
 }
 
 message Burn {
@@ -94,26 +113,4 @@ message Mint {
 
   string liquidity = 8;
   string fee_liquidity = 9;
-}
-
-message DatabaseChanges {
-  repeated TableChange tableChanges = 1;
-}
-
-message TableChange {
-  string table = 1;
-  string pk = 2;
-  enum Operation {
-    CREATE = 0;
-    UPDATE = 1;
-    DELETE = 2;
-  }
-  Operation operation = 3;
-  repeated Field fields = 4;
-}
-
-message Field {
-  string key = 1;
-  string new_value = 2;
-  string old_value = 3;
 }

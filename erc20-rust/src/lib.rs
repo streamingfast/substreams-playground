@@ -1,9 +1,9 @@
+use num_bigint::BigUint;
+use substreams::proto;
+
+mod eth;
 mod pb;
 mod utils;
-mod eth;
-
-use substreams::{log, proto};
-use num_bigint::BigUint;
 
 #[no_mangle]
 pub extern "C" fn map_erc_20_transfer(block_ptr: *mut u8, block_len: usize) {
@@ -16,7 +16,7 @@ pub extern "C" fn map_erc_20_transfer(block_ptr: *mut u8, block_len: usize) {
         for call in trx.calls {
             for log in call.clone().logs {
                 if !utils::is_erc20transfer_event(&log) {
-                    continue
+                    continue;
                 }
 
                 let from_addr = &Vec::from(&log.topics[1][12..]);
@@ -28,9 +28,12 @@ pub extern "C" fn map_erc_20_transfer(block_ptr: *mut u8, block_len: usize) {
                     from: eth::address_pretty(from_addr.as_slice()),
                     to: eth::address_pretty(to_addr.as_slice()),
                     amount: BigUint::from_bytes_le(amount).to_string(),
-                    balance_change_from: utils::find_erc20_storage_changes(&call.clone(), from_addr),
+                    balance_change_from: utils::find_erc20_storage_changes(
+                        &call.clone(),
+                        from_addr,
+                    ),
                     balance_change_to: utils::find_erc20_storage_changes(&call.clone(), to_addr),
-                    log_ordinal
+                    log_ordinal,
                 };
 
                 transfers.transfers.push(transfer_event);

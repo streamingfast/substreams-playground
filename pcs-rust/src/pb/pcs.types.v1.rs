@@ -81,23 +81,45 @@ pub mod event {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Swap {
     #[prost(string, tag="1")]
-    pub sender: std::string::String,
+    pub id: std::string::String,
     #[prost(string, tag="2")]
-    pub to: std::string::String,
+    pub sender: std::string::String,
     #[prost(string, tag="3")]
-    pub from: std::string::String,
+    pub to: std::string::String,
     #[prost(string, tag="4")]
-    pub amount0_in: std::string::String,
+    pub from: std::string::String,
     #[prost(string, tag="5")]
-    pub amount1_in: std::string::String,
+    pub amount0_in: std::string::String,
     #[prost(string, tag="6")]
-    pub amount0_out: std::string::String,
+    pub amount1_in: std::string::String,
     #[prost(string, tag="7")]
-    pub amount1_out: std::string::String,
+    pub amount0_out: std::string::String,
     #[prost(string, tag="8")]
-    pub amount_bnb: std::string::String,
+    pub amount1_out: std::string::String,
     #[prost(string, tag="9")]
+    pub amount_bnb: std::string::String,
+    #[prost(string, tag="10")]
     pub amount_usd: std::string::String,
+    #[prost(string, tag="11")]
+    pub trade_volume0: std::string::String,
+    #[prost(string, tag="12")]
+    pub trade_volume1: std::string::String,
+    #[prost(string, tag="13")]
+    pub trade_volume_usd0: std::string::String,
+    #[prost(string, tag="14")]
+    pub trade_volume_usd1: std::string::String,
+    // dropped for now...
+    //string untracked_volume_usd0 = 15;
+    //string untracked_volume_usd1 = 16;
+
+    #[prost(string, tag="17")]
+    pub volume_usd: std::string::String,
+    #[prost(string, tag="18")]
+    pub volume_token0: std::string::String,
+    #[prost(string, tag="19")]
+    pub volume_token1: std::string::String,
+    #[prost(string, tag="20")]
+    pub log_address: std::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Burn {
@@ -140,38 +162,4 @@ pub struct Mint {
     pub liquidity: std::string::String,
     #[prost(string, tag="9")]
     pub fee_liquidity: std::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct DatabaseChanges {
-    #[prost(message, repeated, tag="1")]
-    pub table_changes: ::std::vec::Vec<TableChange>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct TableChange {
-    #[prost(string, tag="1")]
-    pub table: std::string::String,
-    #[prost(string, tag="2")]
-    pub pk: std::string::String,
-    #[prost(enumeration="table_change::Operation", tag="3")]
-    pub operation: i32,
-    #[prost(message, repeated, tag="4")]
-    pub fields: ::std::vec::Vec<Field>,
-}
-pub mod table_change {
-    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-    #[repr(i32)]
-    pub enum Operation {
-        Create = 0,
-        Update = 1,
-        Delete = 2,
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct Field {
-    #[prost(string, tag="1")]
-    pub key: std::string::String,
-    #[prost(string, tag="2")]
-    pub new_value: std::string::String,
-    #[prost(string, tag="3")]
-    pub old_value: std::string::String,
 }

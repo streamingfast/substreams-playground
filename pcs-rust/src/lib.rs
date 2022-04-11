@@ -1,11 +1,10 @@
 extern crate core;
 
-use std::ops::Mul;
+use std::ops::{Add, Mul};
 use std::str::FromStr;
 
 use bigdecimal::BigDecimal;
 use hex;
-use substreams::pb::substreams::store_delta;
 use substreams::{log, proto, state};
 
 use eth::{address_pretty, decode_string, decode_uint32};
@@ -14,11 +13,9 @@ use crate::event::pcs_event::Event;
 use crate::event::{PcsEvent, Wrapper};
 use crate::pb::pcs;
 use crate::pcs::event::Type;
-use crate::pcs::table_change::Operation;
-use crate::pcs::{DatabaseChanges, Field, TableChange};
 use crate::utils::zero_big_decimal;
-use crate::Operation::Create;
 
+mod db;
 mod eth;
 mod event;
 mod pb;
@@ -326,12 +323,12 @@ pub extern "C" fn map_mint_burn_swaps(
     substreams::register_panic_hook();
 
     let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
-    log::println(format!("map_mint_burn_swaps -> block.size: {}", blk.size));
 
     let mut events: pb::pcs::Events = pb::pcs::Events { events: vec![] };
 
     let mut burn_count: i32 = 0;
     let mut mint_count: i32 = 0;
+    let mut swap_count: i32 = 0;
 
     for trx in blk.transaction_traces {
         let trx_id = eth::address_pretty(trx.hash.as_slice());
@@ -388,7 +385,7 @@ pub extern "C" fn map_mint_burn_swaps(
                 match pcs_events[3].event.as_ref().unwrap() {
                     Event::PairMintEvent(pair_mint_event) => {
                         let mint_id = format!("{}-{}", trx_id, mint_count);
-                        mint_count = mint_count + 1;
+                        mint_count += 1;
 
                         event::process_mint(
                             mint_id.as_str(),
@@ -433,7 +430,7 @@ pub extern "C" fn map_mint_burn_swaps(
                 match pcs_events[2].event.as_ref().unwrap() {
                     Event::PairMintEvent(pair_mint_event) => {
                         let mint_id = format!("{}-{}", trx_id, mint_count);
-                        mint_count = mint_count + 1;
+                        mint_count += 1;
 
                         event::process_mint(
                             mint_id.as_str(),
@@ -451,7 +448,7 @@ pub extern "C" fn map_mint_burn_swaps(
                     }
                     Event::PairBurnEvent(pair_burn_event) => {
                         let burn_id = format!("{}-{}", trx_id, burn_count);
-                        burn_count = burn_count + 1;
+                        burn_count += 1;
 
                         event::process_burn(
                             burn_id.as_str(),
@@ -472,7 +469,11 @@ pub extern "C" fn map_mint_burn_swaps(
             } else if pcs_events.len() == 2 {
                 match pcs_events[1].event.as_ref().unwrap() {
                     Event::PairSwapEvent(pair_swap_event) => {
+                        let swap_id = format!("{}-{}", trx_id, swap_count);
+                        swap_count += 1;
+
                         event::process_swap(
+                            swap_id.as_str(),
                             &mut base_event,
                             prices_store_idx,
                             &pair,
@@ -552,7 +553,11 @@ pub extern "C" fn build_totals_state(
                     1,
                 ),
             },
-            Wrapper::Pair(pair) => state::sum_int64(pair.log_ordinal as i64, format!("pairs"), 1),
+            Wrapper::Pair(pair) => state::sum_int64(
+                pair.log_ordinal as i64,
+                "pancake_factory:pairs".to_string(),
+                1,
+            ),
         }
     }
 }
@@ -566,14 +571,9 @@ pub extern "C" fn build_volumes_state(
 ) {
     substreams::register_panic_hook();
 
-    log::println(format!("block len: {}", block_len));
-
     let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
-    log::println(format!("block size: {}: ", blk.size));
-    // blk.header.as_ref().unwrap().timestamp.as_ref().unwrap().seconds as u64
     let timestamp_block_header: pb::eth::BlockHeader = blk.header.unwrap();
     let timestamp = timestamp_block_header.timestamp.unwrap();
-    log::println(format!("timestamp: {}", timestamp.seconds));
     let timestamp_seconds = timestamp.seconds;
     let day_id: i64 = timestamp_seconds / 86400;
 
@@ -596,21 +596,95 @@ pub extern "C" fn build_volumes_state(
                         continue;
                     }
 
+                    let volume_usd: BigDecimal =
+                        BigDecimal::from_str(swap.amount_usd.as_str()).unwrap();
+                    let amount_0_total: BigDecimal =
+                        utils::compute_amount_total(swap.amount0_out, swap.amount0_in);
+                    let amount_1_total: BigDecimal =
+                        utils::compute_amount_total(swap.amount1_out, swap.amount1_in);
+
                     state::sum_bigfloat(
                         event.log_ordinal as i64,
-                        format!("pairs:{}:{}", day_id, event.pair_address),
+                        format!("pair:day_amount_usd:{}:{}", day_id, event.pair_address),
                         amount_usd.clone(),
                     );
                     state::sum_bigfloat(
                         event.log_ordinal as i64,
-                        format!("token:{}:{}", day_id, event.token0),
+                        format!("pair:volume_usd:{}", event.pair_address),
+                        volume_usd,
+                    );
+                    state::sum_bigfloat(
+                        event.log_ordinal as i64,
+                        format!("pair:volume_token0:{}", event.pair_address),
+                        amount_0_total,
+                    );
+                    state::sum_bigfloat(
+                        event.log_ordinal as i64,
+                        format!("pair:volume_token1:{}", event.pair_address),
+                        amount_1_total,
+                    );
+                    state::sum_int64(
+                        event.log_ordinal as i64,
+                        format!("pair:total_transactions"),
+                        1,
+                    );
+
+                    state::sum_bigfloat(
+                        event.log_ordinal as i64,
+                        format!("token:day_amount_usd:{}:{}", day_id, event.token0),
                         amount_usd.clone(),
                     );
                     state::sum_bigfloat(
                         event.log_ordinal as i64,
-                        format!("token:{}:{}", day_id, event.token1),
+                        format!("token:day_amount_usd:{}:{}", day_id, event.token1),
                         amount_usd,
                     );
+                    state::sum_bigfloat(
+                        event.log_ordinal as i64,
+                        format!("token:trade_volume:{}", event.token0),
+                        BigDecimal::from_str(swap.trade_volume0.as_str()).unwrap(),
+                    );
+                    state::sum_bigfloat(
+                        event.log_ordinal as i64,
+                        format!("token:trade_volume:{}", event.token1),
+                        BigDecimal::from_str(swap.trade_volume1.as_str()).unwrap(),
+                    );
+                    state::sum_bigfloat(
+                        event.log_ordinal as i64,
+                        format!("token:trade_volume_usd:{}", event.token0),
+                        BigDecimal::from_str(swap.trade_volume_usd0.as_str()).unwrap(),
+                    );
+                    state::sum_bigfloat(
+                        event.log_ordinal as i64,
+                        format!("token:trade_volume_usd:{}", event.token1),
+                        BigDecimal::from_str(swap.trade_volume_usd1.as_str()).unwrap(),
+                    );
+                    state::sum_int64(
+                        event.log_ordinal as i64,
+                        format!("token:total_transactions:{}", event.token0),
+                        1,
+                    );
+                    state::sum_int64(
+                        event.log_ordinal as i64,
+                        format!("token:total_transactions:{}", event.token1),
+                        1,
+                    );
+
+                    state::sum_bigfloat(
+                        event.log_ordinal as i64,
+                        "pancake_factory:total_volume_usd".to_string(),
+                        BigDecimal::from_str(swap.amount_usd.as_str()).unwrap(),
+                    );
+                    state::sum_bigfloat(
+                        event.log_ordinal as i64,
+                        "pancake_factory:total_volume_bnb".to_string(),
+                        BigDecimal::from_str(swap.amount_bnb.as_str()).unwrap(),
+                    );
+                    state::sum_int64(
+                        event.log_ordinal as i64,
+                        "pancake:total_transactions".to_string(),
+                        1,
+                    )
                 }
                 _ => continue,
             }
@@ -626,6 +700,10 @@ pub extern "C" fn map_to_database(
     tokens_deltas_len: usize,
     pairs_deltas_ptr: *mut u8,
     pairs_deltas_len: usize,
+    totals_deltas_ptr: *mut u8,
+    totals_deltas_len: usize,
+    volumes_deltas_ptr: *mut u8,
+    volumes_deltas_len: usize,
     reserves_ptr: *mut u8,
     reserves_len: usize,
     events_ptr: *mut u8,
@@ -634,237 +712,64 @@ pub extern "C" fn map_to_database(
 ) {
     substreams::register_panic_hook();
 
-    let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
-
-    let mut database_changes: pb::pcs::DatabaseChanges = DatabaseChanges {
-        table_changes: vec![],
-    };
+    let block: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
 
     let token_deltas: substreams::pb::substreams::StoreDeltas =
         proto::decode_ptr(tokens_deltas_ptr, tokens_deltas_len).unwrap();
 
-    for token_delta in token_deltas.deltas {
-        if token_delta.operation == store_delta::Operation::Create as i32 {
-            let token: pb::tokens::Token = proto::decode(token_delta.new_value).unwrap();
-
-            database_changes.table_changes.push(TableChange {
-                table: "token".to_string(),
-                pk: token.address.clone(),
-                operation: Operation::Create as i32,
-                fields: vec![
-                    Field {
-                        key: "id".to_string(),
-                        new_value: token.address.clone(),
-                        old_value: "".to_string(),
-                    },
-                    Field {
-                        key: "name".to_string(),
-                        new_value: token.name,
-                        old_value: "".to_string(),
-                    },
-                    Field {
-                        key: "symbol".to_string(),
-                        new_value: token.symbol,
-                        old_value: "".to_string(),
-                    },
-                    Field {
-                        key: "decimals".to_string(),
-                        new_value: token.decimals.to_string(),
-                        old_value: "".to_string(),
-                    },
-                ],
-            });
-        }
-    }
-
     let pair_deltas: substreams::pb::substreams::StoreDeltas =
         proto::decode_ptr(pairs_deltas_ptr, pairs_deltas_len).unwrap();
 
-    for pair_delta in pair_deltas.deltas {
-        if pair_delta.operation == store_delta::Operation::Create as i32 {
-            let pair: pcs::Pair = proto::decode(pair_delta.new_value).unwrap();
+    let totals_deltas: substreams::pb::substreams::StoreDeltas =
+        proto::decode_ptr(totals_deltas_ptr, totals_deltas_len).unwrap();
 
-            let token0 = utils::get_last_token(tokens_idx, pair.token0_address.as_str());
-            let token1 = utils::get_last_token(tokens_idx, pair.token1_address.as_str());
+    let volumes_deltas: substreams::pb::substreams::StoreDeltas =
+        proto::decode_ptr(volumes_deltas_ptr, volumes_deltas_len).unwrap();
 
-            let timestamp = blk
-                .header
-                .as_ref()
-                .unwrap()
-                .timestamp
-                .as_ref()
-                .unwrap()
-                .seconds as u64;
-
-            database_changes.table_changes.push(TableChange {
-                table: "pair".to_string(),
-                pk: pair.address.clone(),
-                operation: Operation::Create as i32,
-                fields: vec![
-                    Field {
-                        key: "id".to_string(),
-                        new_value: pair.address.clone(),
-                        old_value: "".to_string(),
-                    },
-                    Field {
-                        key: "name".to_string(),
-                        new_value: format!("{}-{}", token0.symbol, token1.symbol),
-                        old_value: "".to_string(),
-                    },
-                    Field {
-                        key: "block".to_string(),
-                        new_value: blk.number.to_string(),
-                        old_value: "".to_string(),
-                    },
-                    Field {
-                        key: "timestamp".to_string(),
-                        new_value: timestamp.to_string(),
-                        old_value: "".to_string(),
-                    },
-                ],
-            });
-
-            /* TODO: should we do on client side or create a new store ??
-            database_changes.table_changes.push(TableChange {
-                table: "pancake_factory".to_string(),
-                pk: "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73".to_string(),
-                operation: Operation::Update as i32,
-                fields: vec![
-                    Field {
-                        key: "total_pairs".to_string(),
-                        new_value: "".to_string(),
-                        old_value: "".to_string()
-                    }
-                ]
-            });
-            */
-        }
-    }
+    let reserves: pb::pcs::Reserves = proto::decode_ptr(reserves_ptr, reserves_len).unwrap();
 
     let events: pb::pcs::Events = proto::decode_ptr(events_ptr, events_len).unwrap();
 
-    for event in events.events {
-        match event.r#type.unwrap() {
-            Type::Swap(_) => {}
-            Type::Burn(burn) => {
-                /* TODO: how can we compute the old and new value
-                database_changes.table_changes.push(TableChange {
-                    table: "pair".to_string(),
-                    pk: burn.pair_address,
-                    operation: Operation::Update as i32,
-                    fields: vec![ Field {
-                        key: "total_supply".to_string(),
-                        new_value: "".to_string(),
-                        old_value: "".to_string()
-                    }]
-                })
-                */
-                database_changes.table_changes.push(TableChange {
-                    table: "burn".to_string(),
-                    pk: burn.id.clone(),
-                    operation: Operation::Create as i32,
-                    fields: vec![
-                        Field {
-                            key: "id".to_string(),
-                            new_value: burn.id,
-                            old_value: "".to_string(),
-                        },
-                        Field {
-                            key: "transaction".to_string(),
-                            new_value: event.transaction_id,
-                            old_value: "".to_string(),
-                        },
-                        Field {
-                            key: "pair".to_string(),
-                            new_value: event.pair_address,
-                            old_value: "".to_string(),
-                        },
-                        Field {
-                            key: "token_0".to_string(),
-                            new_value: event.token0,
-                            old_value: "".to_string(),
-                        },
-                        Field {
-                            key: "token_1".to_string(),
-                            new_value: event.token1,
-                            old_value: "".to_string(),
-                        },
-                        Field {
-                            key: "liquidity".to_string(),
-                            new_value: burn.liquidity,
-                            old_value: "".to_string(),
-                        },
-                        Field {
-                            key: "timestamp".to_string(),
-                            new_value: event.timestamp.to_string(),
-                            old_value: "".to_string(),
-                        },
-                        Field {
-                            key: "to".to_string(),
-                            new_value: burn.to,
-                            old_value: "".to_string(),
-                        },
-                        Field {
-                            key: "sender".to_string(),
-                            new_value: burn.sender,
-                            old_value: "".to_string(),
-                        },
-                    ],
-                });
-            }
-            Type::Mint(mint) => {
-                database_changes.table_changes.push(TableChange {
-                    table: "mint".to_string(),
-                    pk: mint.id.clone(),
-                    operation: Operation::Create as i32,
-                    fields: vec![
-                        Field {
-                            key: "id".to_string(),
-                            new_value: mint.id,
-                            old_value: "".to_string(),
-                        },
-                        Field {
-                            key: "transaction".to_string(),
-                            new_value: event.transaction_id,
-                            old_value: "".to_string(),
-                        },
-                        Field {
-                            key: "pair".to_string(),
-                            new_value: event.pair_address,
-                            old_value: "".to_string(),
-                        },
-                        Field {
-                            key: "token_0".to_string(),
-                            new_value: event.token0,
-                            old_value: "".to_string(),
-                        },
-                        Field {
-                            key: "token_1".to_string(),
-                            new_value: event.token1,
-                            old_value: "".to_string(),
-                        },
-                        Field {
-                            key: "to".to_string(),
-                            new_value: mint.to,
-                            old_value: "".to_string(),
-                        },
-                        Field {
-                            key: "liquidity".to_string(),
-                            new_value: mint.liquidity,
-                            old_value: "".to_string(),
-                        },
-                        Field {
-                            key: "timestamp".to_string(),
-                            new_value: event.timestamp.to_string(),
-                            old_value: "".to_string(),
-                        },
-                    ],
-                });
-            }
-        }
-    }
+    let changes = db::process(
+        &block,
+        pair_deltas,
+        token_deltas,
+        totals_deltas,
+        volumes_deltas,
+        reserves,
+        events,
+        tokens_idx,
+    );
 
-    // let reserves: pb::pcs::Reserves = proto::decode_ptr(reserves_ptr, reserves_len).unwrap();
+    //todo: call join_sort_deltas
+    //todo: loop all NameDeltas in a single loop with a huge match statements
+
+    //
+    //
+    // for pair_delta in pair_deltas.deltas {
+    // }
+    //
+    // for delta in total_deltas {
+    //     if startwith(delta.key:"pairs") {
+    //         // // TODO: should we do on client side or create a new store ??
+    //         // database_changes.table_changes.push(TableChange {
+    //         //     table: "pancake_factory".to_string(),
+    //         //     pk: "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73".to_string(),
+    //         //     operation: Operation::Update as i32,
+    //         //     fields: vec![
+    //         //         Field {
+    //         //             key: "total_pairs".to_string(),
+    //         //             new_value: "10".to_string(),
+    //         //             old_value: "11".to_string()
+    //         //         }
+    //         //     ]
+    //         // });
+    //     }
+    // }
+    //
+    //
+    //
+    // }
 
     // for reserve in reserves.reserves {
     //     log::println(format!(
@@ -873,7 +778,7 @@ pub extern "C" fn map_to_database(
     //     ));
     // }
 
-    substreams::output(database_changes);
+    substreams::output(changes);
 }
 
 #[no_mangle]
