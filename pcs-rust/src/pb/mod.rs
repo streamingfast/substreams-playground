@@ -32,3 +32,14 @@ macro_rules! field {
         }
     };
 }
+
+#[macro_export]
+macro_rules! proto_decode_to_string {
+    ($a:expr, $b:expr) => {
+        if $a.len() == 0 {
+            $b.to_string()
+        } else {
+            proto::decode($a).unwrap()
+        }
+    };
+}

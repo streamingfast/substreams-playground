@@ -7,7 +7,7 @@ use crate::pcs::table_change::Operation;
 use crate::pcs::{
     Burn, DatabaseChanges, Event, Events, Field, Mint, Reserve, Reserves, Swap, TableChange,
 };
-use crate::{field, pb, pcs, utils, Type};
+use crate::{field, pb, pcs, proto_decode_to_string, utils, Type};
 
 const PANCAKE_FACTORY: &str = "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73";
 
@@ -109,33 +109,9 @@ fn handle_total_delta(delta: StoreDelta, changes: &mut DatabaseChanges) {
     let parts: Vec<&str> = delta.key.split(":").collect();
     let table = parts[0];
 
-    //todo: @alex, how do we add the event to the list of events in the table of transactions in all the
-    // use-cases of swaps, burns and mints
     match table {
         "pair" => {
-            let pair_address = parts[1];
-            let event_type = parts[2];
-            match event_type {
-                "swaps" => changes.table_changes.push(TableChange {
-                    table: "transaction".to_string(),
-                    pk: pair_address.to_string(),
-                    operation: Operation::Update as i32,
-                    fields: vec![field!("swaps", pair_address, "")],
-                }),
-                "burns" => changes.table_changes.push(TableChange {
-                    table: "transaction".to_string(),
-                    pk: pair_address.to_string(),
-                    operation: Operation::Update as i32,
-                    fields: vec![field!("burns", pair_address, "")],
-                }),
-                "mints" => changes.table_changes.push(TableChange {
-                    table: "transaction".to_string(),
-                    pk: pair_address.to_string(),
-                    operation: Operation::Update as i32,
-                    fields: vec![field!("mints", pair_address, "")],
-                }),
-                _ => {}
-            }
+            // !todo?
         }
         "pancake_factory" => changes.table_changes.push(TableChange {
             table: "pancake_factory".to_string(),
@@ -143,8 +119,8 @@ fn handle_total_delta(delta: StoreDelta, changes: &mut DatabaseChanges) {
             operation: Operation::Update as i32,
             fields: vec![Field {
                 key: "total_pairs".to_string(),
-                new_value: proto::decode(delta.new_value).unwrap(),
-                old_value: proto::decode(delta.old_value).unwrap(),
+                new_value: proto_decode_to_string!(delta.new_value, "0"),
+                old_value: proto_decode_to_string!(delta.old_value, "0"),
             }],
         }),
         _ => {}
@@ -157,27 +133,45 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges) {
     let key = parts[1];
     let mut field: Option<Field> = None;
 
-    //todo: @alex how to get the old value?
     match table {
         "pair" => {
             let pair_address = parts[parts.len() - 1];
 
             match key {
                 "volume_usd" => {
-                    let volume_usd: String = proto::decode(delta.new_value).unwrap();
-                    field = Some(field!("volume_usd", volume_usd, ""));
+                    let volume_usd_new: String = proto_decode_to_string!(delta.new_value, "0.0");
+                    let volume_usd_old: String = proto_decode_to_string!(delta.old_value, "0.0");
+                    field = Some(field!("volume_usd", volume_usd_new, volume_usd_old));
                 }
                 "volume_token0" => {
-                    let volume_token0: String = proto::decode(delta.new_value).unwrap();
-                    field = Some(field!("volume_token0", volume_token0, ""));
+                    let volume_token0_new: String = proto_decode_to_string!(delta.new_value, "0.0");
+                    let volume_token0_old: String = proto_decode_to_string!(delta.old_value, "0.0");
+                    field = Some(field!(
+                        "volume_token0",
+                        volume_token0_new,
+                        volume_token0_old
+                    ));
                 }
                 "volume_token1" => {
-                    let volume_token1: String = proto::decode(delta.new_value).unwrap();
-                    field = Some(field!("volume_token1", volume_token1, ""));
+                    let volume_token1_new: String = proto_decode_to_string!(delta.new_value, "0.0");
+                    let volume_token1_old: String = proto_decode_to_string!(delta.old_value, "0.0");
+                    field = Some(field!(
+                        "volume_token1",
+                        volume_token1_new,
+                        volume_token1_old
+                    ));
                 }
                 "total_transactions" => {
-                    let total_transactions: String = proto::decode(delta.new_value).unwrap();
-                    field = Some(field!("total_transactions", total_transactions, ""));
+                    let total_transactions_new: String =
+                        proto_decode_to_string!(delta.new_value, "0");
+                    let total_transactions_old: String =
+                        proto_decode_to_string!(delta.old_value, "0");
+
+                    field = Some(field!(
+                        "total_transactions",
+                        total_transactions_new,
+                        total_transactions_old
+                    ));
                 }
                 _ => {}
             }
@@ -196,16 +190,31 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges) {
 
             match key {
                 "trade_volume" => {
-                    let trade_volume: String = proto::decode(delta.new_value).unwrap();
-                    field = Some(field!("trade_volume", trade_volume, ""));
+                    let trade_volume_new: String = proto_decode_to_string!(delta.new_value, "0.0");
+                    let trade_volume_old: String = proto_decode_to_string!(delta.old_value, "0.0");
+                    field = Some(field!("trade_volume", trade_volume_new, trade_volume_old));
                 }
                 "trade_volume_usd" => {
-                    let trade_volume_usd: String = proto::decode(delta.new_value).unwrap();
-                    field = Some(field!("trade_volume_usd", trade_volume_usd, ""));
+                    let trade_volume_usd_new: String =
+                        proto_decode_to_string!(delta.new_value, "0.0");
+                    let trade_volume_usd_old: String =
+                        proto_decode_to_string!(delta.old_value, "0.0");
+                    field = Some(field!(
+                        "trade_volume_usd",
+                        trade_volume_usd_new,
+                        trade_volume_usd_old
+                    ));
                 }
                 "total_transactions" => {
-                    let total_transactions: String = proto::decode(delta.new_value).unwrap();
-                    field = Some(field!("total_transactions", total_transactions, ""));
+                    let total_transactions_new: String =
+                        proto_decode_to_string!(delta.new_value, "0");
+                    let total_transactions_old: String =
+                        proto_decode_to_string!(delta.old_value, "0");
+                    field = Some(field!(
+                        "total_transactions",
+                        total_transactions_new,
+                        total_transactions_old
+                    ));
                 }
                 _ => {}
             }
@@ -222,16 +231,37 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges) {
         "pancake_factory" => {
             match key {
                 "total_volume_usd" => {
-                    let total_volume_usd: String = proto::decode(delta.new_value).unwrap();
-                    field = Some(field!("trade_volume_usd", total_volume_usd, ""));
+                    let total_volume_usd_new: String =
+                        proto_decode_to_string!(delta.new_value, "0.0");
+                    let total_volume_usd_old: String =
+                        proto_decode_to_string!(delta.old_value, "0.0");
+                    field = Some(field!(
+                        "trade_volume_usd",
+                        total_volume_usd_new,
+                        total_volume_usd_old
+                    ));
                 }
                 "total_volume_bnb" => {
-                    let total_volume_bnb: String = proto::decode(delta.new_value).unwrap();
-                    field = Some(field!("trade_volume_bnb", total_volume_bnb, ""));
+                    let total_volume_bnb_new: String =
+                        proto_decode_to_string!(delta.new_value, "0.0");
+                    let total_volume_bnb_old: String =
+                        proto_decode_to_string!(delta.old_value, "0.0");
+                    field = Some(field!(
+                        "trade_volume_bnb",
+                        total_volume_bnb_new,
+                        total_volume_bnb_old
+                    ));
                 }
                 "total_transactions" => {
-                    let total_transactions: String = proto::decode(delta.new_value).unwrap();
-                    field = Some(field!("total_transactions", total_transactions, ""))
+                    let total_transactions_new: String =
+                        proto_decode_to_string!(delta.new_value, "0");
+                    let total_transactions_old: String =
+                        proto_decode_to_string!(delta.old_value, "0");
+                    field = Some(field!(
+                        "total_transactions",
+                        total_transactions_new,
+                        total_transactions_old
+                    ));
                 }
                 _ => {}
             }

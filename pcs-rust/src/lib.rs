@@ -322,7 +322,6 @@ pub extern "C" fn map_mint_burn_swaps(
     substreams::register_panic_hook();
 
     let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
-    log::println(format!("map_mint_burn_swaps -> block.size: {}", blk.size));
 
     let mut events: pb::pcs::Events = pb::pcs::Events { events: vec![] };
 
