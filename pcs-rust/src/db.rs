@@ -1,12 +1,15 @@
 use bigdecimal::BigDecimal;
-use substreams::pb::substreams::{store_delta, StoreDelta, StoreDeltas};
+use std::process::exit;
+use substreams::pb::substreams::{
+    store_delta, table_change::Operation, DatabaseChanges, Field, StoreDelta, StoreDeltas,
+    TableChange,
+};
+
 use substreams::{log, proto};
 
 use crate::pb::eth::Block;
-use crate::pcs::table_change::Operation;
-use crate::pcs::{
-    Burn, DatabaseChanges, Event, Events, Field, Mint, Reserve, Reserves, Swap, TableChange,
-};
+use crate::pcs::{Burn, Event, Events, Mint, Reserve, Reserves, Swap};
+
 use crate::{field, pb, pcs, proto_decode_to_string, utils, Type};
 
 const PANCAKE_FACTORY: &str = "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73";
@@ -49,11 +52,11 @@ pub fn process(
             Item::PairDelta(delta) => {
                 handle_pair_delta(delta, &block, &mut database_changes, tokens_idx)
             }
-            Item::TokenDelta(delta) => handle_token_delta(delta, &mut database_changes),
-            Item::TotalDelta(delta) => handle_total_delta(delta, &mut database_changes),
-            Item::VolumeDelta(delta) => handle_volume_delta(delta, &mut database_changes),
+            Item::TokenDelta(delta) => handle_token_delta(delta, &mut database_changes, block),
+            Item::TotalDelta(delta) => handle_total_delta(delta, &mut database_changes, block),
+            Item::VolumeDelta(delta) => handle_volume_delta(delta, &mut database_changes, block),
             Item::Reserve(reserve) => handle_reserves(reserve, &mut database_changes),
-            Item::Event(event) => handle_events(event, &mut database_changes),
+            Item::Event(event) => handle_events(event, &mut database_changes, block),
         }
     }
 
@@ -75,6 +78,8 @@ fn handle_pair_delta(
         changes.table_changes.push(TableChange {
             table: "pair".to_string(),
             pk: pair.address.clone(),
+            block_num: block.number,
+            ordinal: delta.ordinal,
             operation: Operation::Create as i32,
             fields: vec![
                 field!("id", pair.address.clone(), ""),
@@ -87,13 +92,15 @@ fn handle_pair_delta(
     // fixme: is there an update ?
 }
 
-fn handle_token_delta(delta: StoreDelta, changes: &mut DatabaseChanges) {
+fn handle_token_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &Block) {
     if delta.operation == store_delta::Operation::Create as i32 {
         let token: pb::tokens::Token = proto::decode(delta.new_value).unwrap();
 
         changes.table_changes.push(TableChange {
             table: "token".to_string(),
             pk: token.address.clone(),
+            block_num: block.number,
+            ordinal: delta.ordinal,
             operation: Operation::Create as i32,
             fields: vec![
                 field!("id", token.address, ""),
@@ -105,7 +112,7 @@ fn handle_token_delta(delta: StoreDelta, changes: &mut DatabaseChanges) {
     }
 }
 
-fn handle_total_delta(delta: StoreDelta, changes: &mut DatabaseChanges) {
+fn handle_total_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &Block) {
     let parts: Vec<&str> = delta.key.split(":").collect();
     let table = parts[0];
 
@@ -116,18 +123,20 @@ fn handle_total_delta(delta: StoreDelta, changes: &mut DatabaseChanges) {
         "pancake_factory" => changes.table_changes.push(TableChange {
             table: "pancake_factory".to_string(),
             pk: PANCAKE_FACTORY.to_string(),
+            block_num: block.number,
+            ordinal: delta.ordinal,
             operation: Operation::Update as i32,
-            fields: vec![Field {
-                key: "total_pairs".to_string(),
-                new_value: proto_decode_to_string!(delta.new_value, "0"),
-                old_value: proto_decode_to_string!(delta.old_value, "0"),
-            }],
+            fields: vec![field!(
+                "total_pairs",
+                proto_decode_to_string!(delta.new_value, "0"),
+                proto_decode_to_string!(delta.old_value, "0")
+            )],
         }),
         _ => {}
     }
 }
 
-fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges) {
+fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &Block) {
     let parts: Vec<&str> = delta.key.split(":").collect();
     let table = parts[0];
     let key = parts[1];
@@ -180,6 +189,8 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges) {
                 changes.table_changes.push(TableChange {
                     table: "pair".to_string(),
                     pk: pair_address.to_string(),
+                    block_num: block.number,
+                    ordinal: delta.ordinal,
                     operation: Operation::Update as i32,
                     fields: vec![field.unwrap()],
                 })
@@ -223,6 +234,8 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges) {
                 changes.table_changes.push(TableChange {
                     table: "token".to_string(),
                     pk: token_address.to_string(),
+                    block_num: block.number,
+                    ordinal: delta.ordinal,
                     operation: Operation::Update as i32,
                     fields: vec![field.unwrap()],
                 });
@@ -269,6 +282,8 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges) {
                 changes.table_changes.push(TableChange {
                     table: "pancake_factory".to_string(),
                     pk: PANCAKE_FACTORY.to_string(),
+                    block_num: block.number,
+                    ordinal: delta.ordinal,
                     operation: Operation::Update as i32,
                     fields: vec![field.unwrap()],
                 });
@@ -282,18 +297,20 @@ fn handle_reserves(reserve: Reserve, changes: &mut DatabaseChanges) {
     // todo
 }
 
-fn handle_events(event: Event, changes: &mut DatabaseChanges) {
+fn handle_events(event: Event, changes: &mut DatabaseChanges, block: &Block) {
     match event.r#type.as_ref().unwrap() {
-        Type::Swap(swap) => handle_swap_event(&swap, &event, changes),
-        Type::Burn(burn) => handle_burn_event(&burn, &event, changes),
-        Type::Mint(mint) => handle_mint_event(&mint, &event, changes),
+        Type::Swap(swap) => handle_swap_event(&swap, &event, changes, block),
+        Type::Burn(burn) => handle_burn_event(&burn, &event, changes, block),
+        Type::Mint(mint) => handle_mint_event(&mint, &event, changes, block),
     }
 }
 
-fn handle_swap_event(swap: &Swap, event: &Event, changes: &mut DatabaseChanges) {
+fn handle_swap_event(swap: &Swap, event: &Event, changes: &mut DatabaseChanges, block: &Block) {
     changes.table_changes.push(TableChange {
         table: "swap".to_string(),
         pk: swap.id.to_string(),
+        block_num: block.number,
+        ordinal: event.log_ordinal,
         operation: Operation::Create as i32,
         fields: vec![
             field!("id", swap.id, ""),
@@ -316,6 +333,8 @@ fn handle_swap_event(swap: &Swap, event: &Event, changes: &mut DatabaseChanges) 
     changes.table_changes.push(TableChange {
         table: "pair".to_string(),
         pk: swap.log_address.to_string(),
+        block_num: block.number,
+        ordinal: event.log_ordinal,
         operation: Operation::Update as i32,
         fields: vec![
             field!("volume_token_0", swap.volume_token0, ""),
@@ -326,19 +345,23 @@ fn handle_swap_event(swap: &Swap, event: &Event, changes: &mut DatabaseChanges) 
     changes.table_changes.push(TableChange {
         table: "pancake_factory".to_string(),
         pk: PANCAKE_FACTORY.to_string(),
+        block_num: block.number,
+        ordinal: event.log_ordinal,
         operation: Operation::Update as i32,
         fields: vec![
-            field!("total_volume_usd", "", ""),
-            field!("total_volume_bnb", "", ""),
-            field!("total_transactions", "", ""),
+            field!("total_volume_usd", "", ""),   //todo: handle into total
+            field!("total_volume_bnb", "", ""),   //todo: handle into total
+            field!("total_transactions", "", ""), //todo: handle into total
         ],
     });
 }
 
-fn handle_burn_event(burn: &Burn, event: &Event, changes: &mut DatabaseChanges) {
+fn handle_burn_event(burn: &Burn, event: &Event, changes: &mut DatabaseChanges, block: &Block) {
     changes.table_changes.push(TableChange {
         table: "burn".to_string(),
         pk: burn.id.to_string(),
+        block_num: block.number,
+        ordinal: event.log_ordinal,
         operation: Operation::Create as i32,
         fields: vec![
             field!("id", burn.id, ""),
@@ -358,10 +381,12 @@ fn handle_burn_event(burn: &Burn, event: &Event, changes: &mut DatabaseChanges) 
     });
 }
 
-fn handle_mint_event(mint: &Mint, event: &Event, changes: &mut DatabaseChanges) {
+fn handle_mint_event(mint: &Mint, event: &Event, changes: &mut DatabaseChanges, block: &Block) {
     changes.table_changes.push(TableChange {
         table: "mint".to_string(),
         pk: mint.id.to_string(),
+        block_num: block.number,
+        ordinal: event.log_ordinal,
         operation: Operation::Create as i32,
         fields: vec![
             field!("id", mint.id, ""),

@@ -4,11 +4,11 @@ go 1.17
 
 require (
 	github.com/golang/protobuf v1.5.2
-	github.com/streamingfast/bstream v0.0.2-0.20220312192323-e6b8e55c4e99
-	github.com/streamingfast/eth-go v0.0.0-20220312041930-62a1ff104ff6
+	github.com/streamingfast/bstream v0.0.2-0.20220330132237-248bc2d8ea7e
+	github.com/streamingfast/eth-go v0.0.0-20220405184903-d026e066f29d
 	github.com/streamingfast/jsonpb v0.0.0-20210811021341-3670f0aa02d0
 	github.com/streamingfast/logging v0.0.0-20220304214715-bc750a74b424
-	github.com/streamingfast/substreams v0.0.0-20220328171236-39ac0f2ee03d
+	github.com/streamingfast/substreams v0.0.0-20220411171715-c658bf3d912d
 	github.com/stretchr/testify v1.7.1-0.20210427113832-6241f9ab9942
 	go.uber.org/zap v1.21.0
 	google.golang.org/protobuf v1.27.1
@@ -42,7 +42,6 @@ require (
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
-	github.com/jhump/protoreflect v1.12.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/klauspost/compress v1.10.2 // indirect
 	github.com/logrusorgru/aurora v2.0.3+incompatible // indirect
@@ -67,7 +66,6 @@ require (
 	github.com/tidwall/gjson v1.6.5 // indirect
 	github.com/tidwall/match v1.0.3 // indirect
 	github.com/tidwall/pretty v1.0.2 // indirect
-	github.com/yourbasic/graph v0.0.0-20210606180040-8ecfec1c2869 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect

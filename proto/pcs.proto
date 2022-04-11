@@ -114,25 +114,3 @@ message Mint {
   string liquidity = 8;
   string fee_liquidity = 9;
 }
-
-message DatabaseChanges {
-  repeated TableChange tableChanges = 1;
-}
-
-message TableChange {
-  string table = 1;
-  string pk = 2;
-  enum Operation {
-    CREATE = 0;
-    UPDATE = 1;
-    DELETE = 2;
-  }
-  Operation operation = 3;
-  repeated Field fields = 4;
-}
-
-message Field {
-  string key = 1;
-  string new_value = 2;
-  string old_value = 3;
-}
