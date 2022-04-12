@@ -4,6 +4,7 @@ description: Test WASM substream
 protoFiles:
   - ./proto/pcs.proto
   - ./proto/tokens.proto
+  - /Users/eduardvoiculescu/git/streamingFast/substreams/proto/sf/substreams/v1/substreams.proto
 
 modules:
   - name: block_to_pairs
@@ -30,30 +31,31 @@ modules:
     inputs:
       - map: block_to_pairs
 
-  #  - name: block_to_reserves
-  #    kind: map
-  #    startblock: 6680000
-  #    code:
-  #      type: wasm/rust-v1
-  #      file: ./pcs-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
-  #      entrypoint: map_reserves
-  #    inputs:
-  #      - source: sf.ethereum.type.v1.Block
-  #      - store: pairs
-  #    output:
-  #      type: proto:pcs.types.v1.Reserves
-  #
-  #  - name: reserves
-  #    kind: store
-  #    updatePolicy: replace
-  #    valueType: string
-  #    code:
-  #      type: wasm/rust-v1
-  #      file: ./pcs-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
-  #      entrypoint: build_reserves_state
-  #    inputs:
-  #      - map: block_to_reserves
-  #      - store: pairs
+  - name: block_to_reserves
+    kind: map
+    startblock: 6680000
+    code:
+      type: wasm/rust-v1
+      file: ./pcs-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
+      entrypoint: map_reserves
+    inputs:
+      - source: sf.ethereum.type.v1.Block
+      - store: pairs
+      - store: tokens
+    output:
+      type: proto:pcs.types.v1.Reserves
+
+  - name: reserves
+    kind: store
+    updatePolicy: replace
+    valueType: string
+    code:
+      type: wasm/rust-v1
+      file: ./pcs-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
+      entrypoint: build_reserves_state
+    inputs:
+      - map: block_to_reserves
+      - store: pairs
 
   - name: prices
     kind: store
@@ -151,4 +153,4 @@ modules:
       - map: mint_burn_swaps_extractor
       - store: tokens
     output:
-      type: proto:pcs.types.v1.DatabaseChanges
+      type: proto:sf.substreams.v1.DatabaseChanges
