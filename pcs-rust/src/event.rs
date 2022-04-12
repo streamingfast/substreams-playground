@@ -291,7 +291,7 @@ fn convert_prices(
     let derived_bnb0_big_decimal = match state::get_at(
         *prices_stores_idx,
         *log_ordinal as i64,
-        format!("dprice:{}:bnb", pair.token0_address),
+        &format!("dprice:{}:bnb", pair.token0_address),
     ) {
         None => zero_big_decimal(),
         Some(derived_bnb0_bytes) => {
@@ -302,7 +302,7 @@ fn convert_prices(
     let derived_bnb1_big_decimal = match state::get_at(
         *prices_stores_idx,
         *log_ordinal as i64,
-        format!("dprice:{}:bnb", pair.token1_address),
+        &format!("dprice:{}:bnb", pair.token1_address),
     ) {
         None => zero_big_decimal(),
         Some(derived_bnb1_bytes) => {
@@ -313,7 +313,7 @@ fn convert_prices(
     let usd_price_big_decimal = match state::get_at(
         *prices_stores_idx,
         *log_ordinal as i64,
-        format!("dprice:usd:bnb"),
+        &format!("dprice:usd:bnb"),
     ) {
         None => zero_big_decimal(),
         Some(usd_price_bytes) => {
@@ -341,7 +341,7 @@ fn get_derived_price(
     let usd_price_bytes = state::get_at(
         *prices_stores_idx,
         *ord as i64,
-        format!("dprice:{}:{}", *token_addr, derived_token),
+        &format!("dprice:{}:{}", *token_addr, derived_token),
     )
     .unwrap();
     let usd_price =

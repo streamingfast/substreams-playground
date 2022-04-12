@@ -1,15 +1,14 @@
-use bigdecimal::BigDecimal;
 use std::process::exit;
+
+use bigdecimal::BigDecimal;
 use substreams::pb::substreams::{
     store_delta, table_change::Operation, DatabaseChanges, Field, StoreDelta, StoreDeltas,
     TableChange,
 };
-
 use substreams::{log, proto};
 
 use crate::pb::eth::Block;
 use crate::pcs::{Burn, Event, Events, Mint, Reserve, Reserves, Swap};
-
 use crate::{field, pb, pcs, proto_decode_to_string, utils, Type};
 
 const PANCAKE_FACTORY: &str = "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73";
@@ -141,22 +140,68 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: 
     let table = parts[0];
     let mut field: Option<Field> = None;
 
+    //todo: fix the proto_decode_to_string stuff, because we do not proto_encode the
+    // fields, we only put them in base 10
     match table {
-	"pair_day" => {
-	    let day = parts[1];
-	    let pk = parts[2];
-	}
+        // "pair_day" => {
+        //     // todo
+        //     let day = parts[1];
+        //     let pair_address = parts[2];
+        //     let key = parts[3];
+        //
+        //     match key {
+        //         "usd" => {}
+        //         _ => {}
+        //     }
+        //
+        //     if field.is_some() {
+        //         let pk = format!("{}-{}", pair_address, day);
+        //         changes.table_changes.push(TableChange {
+        //             table: "pair_day_data".to_string(),
+        //             pk,
+        //             block_num: block.number,
+        //             ordinal: delta.ordinal,
+        //             operation: Operation::Update as i32,
+        //             fields: vec![field.unwrap()],
+        //         })
+        //     }
+        // }
+        // "pair_hour" => {
+        //     // todo
+        //     let hour = parts[1];
+        //     let pair_address = parts[2];
+        //     let key = parts[3];
+        //
+        //     match key {
+        //         "usd" => {
+        //             field = Some(field!("", "", ""));
+        //         }
+        //         _ => {}
+        //     }
+        //
+        //     if field.is_some() {
+        //         let pk = format!("{}-{}", pair_address, hour);
+        //         changes.table_changes.push(TableChange {
+        //             table: "pair_hour_data".to_string(),
+        //             pk,
+        //             block_num: block.number,
+        //             ordinal: delta.ordinal,
+        //             operation: Operation::Update as i32,
+        //             fields: vec![field.unwrap()],
+        //         })
+        //     }
+        // }
         "pair" => {
-            let pk = parts[2];
-	    let field_name = parts[3];
+            let pair_address = parts[1];
+            let field_name = parts[2];
 
             match field_name {
-                "volume_usd" => {
+                "usd" => {
                     let volume_usd_new: String = proto_decode_to_string!(delta.new_value, "0.0");
                     let volume_usd_old: String = proto_decode_to_string!(delta.old_value, "0.0");
                     field = Some(field!("volume_usd", volume_usd_new, volume_usd_old));
                 }
-                "volume_token0" => {
+                "token0" => {
                     let volume_token0_new: String = proto_decode_to_string!(delta.new_value, "0.0");
                     let volume_token0_old: String = proto_decode_to_string!(delta.old_value, "0.0");
                     field = Some(field!(
@@ -165,7 +210,7 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: 
                         volume_token0_old
                     ));
                 }
-                "volume_token1" => {
+                "token1" => {
                     let volume_token1_new: String = proto_decode_to_string!(delta.new_value, "0.0");
                     let volume_token1_old: String = proto_decode_to_string!(delta.old_value, "0.0");
                     field = Some(field!(
@@ -174,18 +219,18 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: 
                         volume_token1_old
                     ));
                 }
-                "total_transactions" => {
-                    let total_transactions_new: String =
-                        proto_decode_to_string!(delta.new_value, "0");
-                    let total_transactions_old: String =
-                        proto_decode_to_string!(delta.old_value, "0");
-
-                    field = Some(field!(
-                        "total_transactions",
-                        total_transactions_new,
-                        total_transactions_old
-                    ));
-                }
+                // "total_transactions" => {
+                //     let total_transactions_new: String =
+                //         proto_decode_to_string!(delta.new_value, "0");
+                //     let total_transactions_old: String =
+                //         proto_decode_to_string!(delta.old_value, "0");
+                //
+                //     field = Some(field!(
+                //         "total_transactions",
+                //         total_transactions_new,
+                //         total_transactions_old
+                //     ));
+                // }
                 _ => {}
             }
 
@@ -201,16 +246,16 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: 
             }
         }
         "token" => {
-            let token_address = parts[2];
-	    let key = parts[1];
+            let token_address = parts[1];
+            let key = parts[2];
 
             match key {
-                "trade_volume" => {
+                "trade" => {
                     let trade_volume_new: String = proto_decode_to_string!(delta.new_value, "0.0");
                     let trade_volume_old: String = proto_decode_to_string!(delta.old_value, "0.0");
                     field = Some(field!("trade_volume", trade_volume_new, trade_volume_old));
                 }
-                "trade_volume_usd" => {
+                "trade_usd" => {
                     let trade_volume_usd_new: String =
                         proto_decode_to_string!(delta.new_value, "0.0");
                     let trade_volume_usd_old: String =
@@ -221,17 +266,17 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: 
                         trade_volume_usd_old
                     ));
                 }
-                "total_transactions" => {
-                    let total_transactions_new: String =
-                        proto_decode_to_string!(delta.new_value, "0");
-                    let total_transactions_old: String =
-                        proto_decode_to_string!(delta.old_value, "0");
-                    field = Some(field!(
-                        "total_transactions",
-                        total_transactions_new,
-                        total_transactions_old
-                    ));
-                }
+                // "total_transactions" => {
+                //     let total_transactions_new: String =
+                //         proto_decode_to_string!(delta.new_value, "0");
+                //     let total_transactions_old: String =
+                //         proto_decode_to_string!(delta.old_value, "0");
+                //     field = Some(field!(
+                //         "total_transactions",
+                //         total_transactions_new,
+                //         total_transactions_old
+                //     ));
+                // }
                 _ => {}
             }
 
@@ -247,8 +292,9 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: 
             }
         }
         "global" => {
+            let key = parts[1];
             match key {
-                "total_volume_usd" => {
+                "usd" => {
                     let total_volume_usd_new: String =
                         proto_decode_to_string!(delta.new_value, "0.0");
                     let total_volume_usd_old: String =
@@ -259,7 +305,7 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: 
                         total_volume_usd_old
                     ));
                 }
-                "total_volume_bnb" => {
+                "bnb" => {
                     let total_volume_bnb_new: String =
                         proto_decode_to_string!(delta.new_value, "0.0");
                     let total_volume_bnb_old: String =
@@ -270,17 +316,17 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: 
                         total_volume_bnb_old
                     ));
                 }
-                "total_transactions" => {
-                    let total_transactions_new: String =
-                        proto_decode_to_string!(delta.new_value, "0");
-                    let total_transactions_old: String =
-                        proto_decode_to_string!(delta.old_value, "0");
-                    field = Some(field!(
-                        "total_transactions",
-                        total_transactions_new,
-                        total_transactions_old
-                    ));
-                }
+                // "total_transactions" => {
+                //     let total_transactions_new: String =
+                //         proto_decode_to_string!(delta.new_value, "0");
+                //     let total_transactions_old: String =
+                //         proto_decode_to_string!(delta.old_value, "0");
+                //     field = Some(field!(
+                //         "total_transactions",
+                //         total_transactions_new,
+                //         total_transactions_old
+                //     ));
+                // }
                 _ => {}
             }
             if field.is_some() {

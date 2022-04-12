@@ -74,7 +74,7 @@ pub extern "C" fn build_pairs_state(pairs_ptr: *mut u8, pairs_len: usize) {
         state::set(
             pair.log_ordinal as i64,
             format!("pair:{}", pair.address),
-            proto::encode(&pair).unwrap(),
+            &proto::encode(&pair).unwrap(),
         );
         state::set(
             pair.log_ordinal as i64,
@@ -85,7 +85,7 @@ pub extern "C" fn build_pairs_state(pairs_ptr: *mut u8, pairs_len: usize) {
                     pair.token1_address.as_str(),
                 )
             ),
-            Vec::from(pair.address),
+            &Vec::from(pair.address),
         )
     }
 }
@@ -106,7 +106,7 @@ pub extern "C" fn map_reserves(
     for trx in blk.transaction_traces {
         for log in trx.receipt.unwrap().logs {
             let addr = address_pretty(&log.address);
-            match state::get_last(pairs_store_idx, format!("pair:{}", addr)) {
+            match state::get_last(pairs_store_idx, &format!("pair:{}", addr)) {
                 None => continue,
                 Some(pair_bytes) => {
                     let sig = hex::encode(&log.topics[0]);
@@ -160,7 +160,7 @@ pub extern "C" fn build_reserves_state(
     let reserves: pb::pcs::Reserves = proto::decode_ptr(reserves_ptr, reserves_len).unwrap();
 
     for reserve in reserves.reserves {
-        match state::get_last(pairs_store_idx, format!("pair:{}", reserve.pair_address)) {
+        match state::get_last(pairs_store_idx, &format!("pair:{}", reserve.pair_address)) {
             None => continue,
             Some(pair_bytes) => {
                 let pair: pb::pcs::Pair = proto::decode(pair_bytes).unwrap();
@@ -168,22 +168,22 @@ pub extern "C" fn build_reserves_state(
                 state::set(
                     reserve.log_ordinal as i64,
                     format!("price:{}:{}", pair.token0_address, pair.token1_address),
-                    Vec::from(reserve.token0_price),
+                    &Vec::from(reserve.token0_price),
                 );
                 state::set(
                     reserve.log_ordinal as i64,
                     format!("price:{}:{}", pair.token1_address, pair.token0_address),
-                    Vec::from(reserve.token1_price),
+                    &Vec::from(reserve.token1_price),
                 );
                 state::set(
                     reserve.log_ordinal as i64,
                     format!("reserve:{}:{}", reserve.pair_address, pair.token0_address),
-                    Vec::from(reserve.reserve0),
+                    &Vec::from(reserve.reserve0),
                 );
                 state::set(
                     reserve.log_ordinal as i64,
                     format!("reserve:{}:{}", reserve.pair_address, pair.token1_address),
-                    Vec::from(reserve.reserve1),
+                    &Vec::from(reserve.reserve1),
                 );
             }
         }
@@ -202,7 +202,7 @@ pub extern "C" fn build_prices_state(
     let reserves: pb::pcs::Reserves = proto::decode_ptr(reserves_ptr, reserves_len).unwrap();
 
     for reserve in reserves.reserves {
-        match state::get_last(pairs_store_idx, format!("pair:{}", reserve.pair_address)) {
+        match state::get_last(pairs_store_idx, &format!("pair:{}", reserve.pair_address)) {
             None => continue,
             Some(pair_bytes) => {
                 let pair: pb::pcs::Pair = proto::decode(pair_bytes).unwrap();
@@ -216,7 +216,7 @@ pub extern "C" fn build_prices_state(
                     state::set(
                         reserve.log_ordinal as i64,
                         format!("dprice:usd:bnb"),
-                        Vec::from(latest_usd_price.to_string()),
+                        &Vec::from(latest_usd_price.to_string()),
                     )
                 }
 
@@ -256,7 +256,7 @@ pub extern "C" fn build_prices_state(
                     state::set(
                         reserve.log_ordinal.clone() as i64,
                         format!("dprice:{}:bnb", token_addr),
-                        Vec::from(token_derived_bnb_price.clone().unwrap().to_string()),
+                        &Vec::from(token_derived_bnb_price.clone().unwrap().to_string()),
                     );
                     let reserve_in_bnb = BigDecimal::from_str(reserve_amount.as_str())
                         .unwrap()
@@ -264,7 +264,7 @@ pub extern "C" fn build_prices_state(
                     state::set(
                         reserve.log_ordinal.clone() as i64,
                         format!("dreserve:{}:{}:bnb", reserve.pair_address, token_addr),
-                        Vec::from(reserve_in_bnb.clone().to_string()),
+                        &Vec::from(reserve_in_bnb.clone().to_string()),
                     );
 
                     if usd_price_valid {
@@ -274,13 +274,13 @@ pub extern "C" fn build_prices_state(
                         state::set(
                             reserve.log_ordinal.clone() as i64,
                             format!("dprice:{}:usd", token_addr),
-                            Vec::from(derived_usd_price.to_string()),
+                            &Vec::from(derived_usd_price.to_string()),
                         );
                         let reserve_in_usd = reserve_in_bnb.clone().mul(latest_usd_price.clone());
                         state::set(
                             reserve.log_ordinal.clone() as i64,
                             format!("dreserve:{}:{}:usd", reserve.pair_address, token_addr),
-                            Vec::from(reserve_in_usd.to_string()),
+                            &Vec::from(reserve_in_usd.to_string()),
                         );
                     }
 
@@ -303,7 +303,7 @@ pub extern "C" fn build_prices_state(
                     state::set(
                         reserve.log_ordinal as i64,
                         format!("dreserves:{}:bnb", reserve.pair_address),
-                        Vec::from(reserves_bnb_sum.to_string()),
+                        &Vec::from(reserves_bnb_sum.to_string()),
                     );
                 }
             }
@@ -343,7 +343,7 @@ pub extern "C" fn map_mint_burn_swaps(
             let pair_addr = eth::address_pretty(call.address.as_slice());
 
             let pair: pcs::Pair;
-            match state::get_last(pairs_store_idx, format!("pair:{}", pair_addr)) {
+            match state::get_last(pairs_store_idx, &format!("pair:{}", pair_addr)) {
                 None => continue,
                 Some(pair_bytes) => pair = proto::decode(pair_bytes).unwrap(),
             }
@@ -602,21 +602,21 @@ pub extern "C" fn build_volumes_state(
     for event in events.events {
         if event.r#type.is_some() {
             match event.r#type.unwrap() {
-		Type::Mint(mint) => {
-		    // sum("global:liquidity_usd", mint.amount_usd)
-		    // sum("token:{}:liquidity_usd", mint.to)
-		},
-		Type::Burn(burn) => {
-		    // sum("global:liquidity_usd", /* NEGATIVE */ -burn.amount_usd)
-		    // sum(token:{}:liquidity_usd", /* NEGATIVE */ burn.to)
-		},
+                Type::Mint(mint) => {
+                    // sum("global:liquidity_usd", mint.amount_usd)
+                    // sum("token:{}:liquidity_usd", mint.to)
+                }
+                Type::Burn(burn) => {
+                    // sum("global:liquidity_usd", /* NEGATIVE */ -burn.amount_usd)
+                    // sum(token:{}:liquidity_usd", /* NEGATIVE */ burn.to)
+                }
                 Type::Swap(swap) => {
                     if swap.amount_usd.is_empty() {
                         continue;
                     }
 
-		    // TODO: Make all those variables refs, and tweak `sum_bigfloat()` to use refs.
-		   
+                    // TODO: Make all those variables refs, and tweak `sum_bigfloat()` to use refs.
+
                     let amount_usd = BigDecimal::from_str(swap.amount_usd.as_str()).unwrap();
                     if amount_usd.eq(&zero_big_decimal()) {
                         continue;
@@ -631,29 +631,29 @@ pub extern "C" fn build_volumes_state(
                     state::sum_bigfloat(
                         event.log_ordinal as i64,
                         format!("pair_day:{}:{}:usd", day_id, event.pair_address),
-                        amount_usd.clone(),
+                        &amount_usd,
                     );
                     state::sum_bigfloat(
                         event.log_ordinal as i64,
                         format!("pair_hour:{}:{}:usd", hour_id, event.pair_address),
-                        amount_usd.clone(),
+                        &amount_usd,
                     );
                     state::sum_bigfloat(
                         event.log_ordinal as i64,
                         format!("pair:{}:usd", event.pair_address),
-                        amount_usd,
+                        &amount_usd,
                     );
                     state::sum_bigfloat(
                         event.log_ordinal as i64,
                         format!("pair:{}:token0", event.pair_address),
-                        amount_0_total,
+                        &amount_0_total,
                     );
                     state::sum_bigfloat(
                         event.log_ordinal as i64,
                         format!("pair:{}:token1", event.pair_address),
-                        amount_1_total,
+                        &amount_1_total,
                     );
-                    // state::sum_int64(
+                    // state::sum_int64( //fixme: do we remove this??
                     //     event.log_ordinal as i64,
                     //     format!("pair:{}:total_transactions", event.pair_address),
                     //     1,
@@ -661,33 +661,33 @@ pub extern "C" fn build_volumes_state(
                     state::sum_bigfloat(
                         event.log_ordinal as i64,
                         format!("token_day:{}:{}:usd", day_id, event.token0),
-                        amount_usd,
+                        &amount_usd,
                     );
                     state::sum_bigfloat(
                         event.log_ordinal as i64,
                         format!("token_day:{}:{}:usd", day_id, event.token1),
-                        amount_usd,
+                        &amount_usd,
                     );
-		    
+
                     state::sum_bigfloat(
                         event.log_ordinal as i64,
                         format!("token:{}:trade", event.token0),
-                        BigDecimal::from_str(swap.trade_volume0.as_str()).unwrap(),
+                        &BigDecimal::from_str(swap.trade_volume0.as_str()).unwrap(),
                     );
                     state::sum_bigfloat(
                         event.log_ordinal as i64,
                         format!("token:{}:trade", event.token1),
-                        BigDecimal::from_str(swap.trade_volume1.as_str()).unwrap(),
+                        &BigDecimal::from_str(swap.trade_volume1.as_str()).unwrap(),
                     );
                     state::sum_bigfloat(
                         event.log_ordinal as i64,
                         format!("token:{}:trade_usd", event.token0),
-                        BigDecimal::from_str(swap.trade_volume_usd0.as_str()).unwrap(),
+                        &BigDecimal::from_str(swap.trade_volume_usd0.as_str()).unwrap(),
                     );
                     state::sum_bigfloat(
                         event.log_ordinal as i64,
                         format!("token:{}:trade_usd", event.token1),
-                        BigDecimal::from_str(swap.trade_volume_usd1.as_str()).unwrap(),
+                        &BigDecimal::from_str(swap.trade_volume_usd1.as_str()).unwrap(),
                     );
                     // state::sum_int64(
                     //     event.log_ordinal as i64,
@@ -706,18 +706,18 @@ pub extern "C" fn build_volumes_state(
                     //     1,
                     // );
 
-		    // global_day:{}:bnb
-		    // global_day:{}:usd
+                    // global_day:{}:bnb
+                    // global_day:{}:usd
 
-		    state::sum_bigfloat(
+                    state::sum_bigfloat(
                         event.log_ordinal as i64,
                         "global:usd".to_string(),
-                        amount_usd,
+                        &amount_usd,
                     );
                     state::sum_bigfloat(
                         event.log_ordinal as i64,
                         "global:bnb".to_string(),
-                        amount_bnb,
+                        &amount_bnb,
                     );
                     // state::sum_int64(
                     //     event.log_ordinal as i64,
@@ -730,10 +730,10 @@ pub extern "C" fn build_volumes_state(
         }
     }
 
-    state::delete_prefix("pair_day:{}:", day_id - 1);
-    state::delete_prefix("token_day:{}:", day_id - 1);
-    state::delete_prefix("pair_hour:{}:", hour_id - 1);
-    state::delete_prefix("global_day:{}:", day_id - 1);
+    // state::delete_prefix("pair_day:{}:", day_id - 1);
+    // state::delete_prefix("token_day:{}:", day_id - 1);
+    // state::delete_prefix("pair_hour:{}:", hour_id - 1);
+    // state::delete_prefix("global_day:{}:", day_id - 1);
 }
 
 #[no_mangle]
@@ -925,6 +925,6 @@ pub extern "C" fn build_tokens_state(tokens_ptr: *mut u8, tokens_len: usize) {
 
     for token in tokens.tokens {
         let key = format!("token:{}", token.address);
-        state::set(1, key, proto::encode(&token).unwrap()); //todo: what about the log ordinal
+        state::set(1, key, &proto::encode(&token).unwrap()); //todo: what about the log ordinal
     }
 }
