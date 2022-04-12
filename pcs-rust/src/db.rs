@@ -9,7 +9,7 @@ use substreams::{log, proto};
 
 use crate::pb::eth::Block;
 use crate::pcs::{Burn, Event, Events, Mint, Reserve, Reserves, Swap};
-use crate::{field, pb, pcs, proto_decode_to_string, utils, Type};
+use crate::{field, field_create_string, pb, pcs, proto_decode_to_string, utils, Type};
 
 const PANCAKE_FACTORY: &str = "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73";
 
@@ -68,47 +68,50 @@ fn handle_pair_delta(
     changes: &mut DatabaseChanges,
     tokens_idx: u32,
 ) {
-    if delta.operation == store_delta::Operation::Create as i32 {
-        let pair: pcs::Pair = proto::decode(delta.new_value).unwrap();
-
-        let token0 = utils::get_last_token(tokens_idx, pair.token0_address.as_str());
-        let token1 = utils::get_last_token(tokens_idx, pair.token1_address.as_str());
-
-        changes.table_changes.push(TableChange {
-            table: "pair".to_string(),
-            pk: pair.address.clone(),
-            block_num: block.number,
-            ordinal: delta.ordinal,
-            operation: Operation::Create as i32,
-            fields: vec![
-                field!("id", pair.address.clone(), ""),
-                field!("name", format!("{}-{}", token0.symbol, token1.symbol), ""),
-                field!("block", block.number, ""),
-                field!("timestamp", block.timestamp(), ""),
-            ],
-        });
+    if delta.operation != store_delta::Operation::Create as i32 {
+        return;
     }
-    // fixme: is there an update ?
+
+    let pair: pcs::Pair = proto::decode(delta.new_value).unwrap();
+
+    let token0 = utils::get_last_token(tokens_idx, pair.token0_address.as_str());
+    let token1 = utils::get_last_token(tokens_idx, pair.token1_address.as_str());
+
+    changes.table_changes.push(TableChange {
+        table: "pair".to_string(),
+        pk: pair.address.clone(),
+        block_num: block.number,
+        ordinal: delta.ordinal,
+        operation: delta.operation,
+        fields: vec![
+            field!("id", pair.address.clone(), ""),
+            field!("name", format!("{}-{}", token0.symbol, token1.symbol), ""),
+            field!("block", block.number, ""),
+            field!("timestamp", block.timestamp(), ""),
+        ],
+    });
 }
 
 fn handle_token_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &Block) {
-    if delta.operation == store_delta::Operation::Create as i32 {
-        let token: pb::tokens::Token = proto::decode(delta.new_value).unwrap();
-
-        changes.table_changes.push(TableChange {
-            table: "token".to_string(),
-            pk: token.address.clone(),
-            block_num: block.number,
-            ordinal: delta.ordinal,
-            operation: Operation::Create as i32,
-            fields: vec![
-                field!("id", token.address, ""),
-                field!("name", token.name, ""),
-                field!("symbol", token.symbol, ""),
-                field!("decimals", token.decimals, ""),
-            ],
-        });
+    if delta.operation != store_delta::Operation::Create as i32 {
+        return;
     }
+
+    let token: pb::tokens::Token = proto::decode(delta.new_value).unwrap();
+
+    changes.table_changes.push(TableChange {
+        table: "token".to_string(),
+        pk: token.address.clone(),
+        block_num: block.number,
+        ordinal: delta.ordinal,
+        operation: Operation::Create as i32,
+        fields: vec![
+            field!("id", token.address, ""),
+            field!("name", token.name, ""),
+            field!("symbol", token.symbol, ""),
+            field!("decimals", token.decimals, ""),
+        ],
+    });
 }
 
 fn handle_total_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &Block) {
@@ -117,7 +120,44 @@ fn handle_total_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &
 
     match table {
         "pair" => {
-            // !todo?
+            let pk = parts[1];
+            let key = parts[2];
+
+            match key {
+                "total_transactions" => changes.table_changes.push(TableChange {
+                    table: "pair".to_string(),
+                    pk: pk.to_string(),
+                    block_num: block.number,
+                    ordinal: delta.ordinal,
+                    operation: delta.operation,
+                    fields: vec![field!(
+                        key,
+                        String::from_utf8_lossy(delta.new_value.as_slice()),
+                        String::from_utf8_lossy(delta.old_value.as_slice())
+                    )],
+                }),
+                _ => {}
+            }
+        }
+        "token" => {
+            let pk = parts[1];
+            let key = parts[2];
+
+            match key {
+                "total_transactions" => changes.table_changes.push(TableChange {
+                    table: "token".to_string(),
+                    pk: pk.to_string(),
+                    block_num: block.number,
+                    ordinal: delta.ordinal,
+                    operation: delta.operation,
+                    fields: vec![field!(
+                        key,
+                        String::from_utf8_lossy(delta.new_value.as_slice()),
+                        String::from_utf8_lossy(delta.old_value.as_slice())
+                    )],
+                }),
+                _ => {}
+            }
         }
         "global" => changes.table_changes.push(TableChange {
             table: "pancake_factory".to_string(),
@@ -129,6 +169,18 @@ fn handle_total_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &
                 "total_pairs",
                 proto_decode_to_string!(delta.new_value, "0"),
                 proto_decode_to_string!(delta.old_value, "0")
+            )],
+        }),
+        "global_day" => changes.table_changes.push(TableChange {
+            table: "pancake_day_data".to_string(),
+            pk: PANCAKE_FACTORY.to_string(),
+            block_num: block.number,
+            ordinal: delta.ordinal,
+            operation: Operation::Update as i32,
+            fields: vec![field!(
+                "total_transactions",
+                String::from_utf8_lossy(delta.new_value.as_slice()),
+                String::from_utf8_lossy(delta.old_value.as_slice())
             )],
         }),
         _ => {}
@@ -143,80 +195,94 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: 
     //todo: fix the proto_decode_to_string stuff, because we do not proto_encode the
     // fields, we only put them in base 10
     match table {
-        // "pair_day" => {
-        //     // todo
-        //     let day = parts[1];
-        //     let pair_address = parts[2];
-        //     let key = parts[3];
-        //
-        //     match key {
-        //         "usd" => {}
-        //         _ => {}
-        //     }
-        //
-        //     if field.is_some() {
-        //         let pk = format!("{}-{}", pair_address, day);
-        //         changes.table_changes.push(TableChange {
-        //             table: "pair_day_data".to_string(),
-        //             pk,
-        //             block_num: block.number,
-        //             ordinal: delta.ordinal,
-        //             operation: Operation::Update as i32,
-        //             fields: vec![field.unwrap()],
-        //         })
-        //     }
-        // }
-        // "pair_hour" => {
-        //     // todo
-        //     let hour = parts[1];
-        //     let pair_address = parts[2];
-        //     let key = parts[3];
-        //
-        //     match key {
-        //         "usd" => {
-        //             field = Some(field!("", "", ""));
-        //         }
-        //         _ => {}
-        //     }
-        //
-        //     if field.is_some() {
-        //         let pk = format!("{}-{}", pair_address, hour);
-        //         changes.table_changes.push(TableChange {
-        //             table: "pair_hour_data".to_string(),
-        //             pk,
-        //             block_num: block.number,
-        //             ordinal: delta.ordinal,
-        //             operation: Operation::Update as i32,
-        //             fields: vec![field.unwrap()],
-        //         })
-        //     }
-        // }
+        "pair_day" => {
+            if delta.operation == Operation::Delete as i32 {
+                return; // todo: add for token and global where we ignore the delete operation
+            }
+
+            // todo
+            let day = parts[1];
+            let pair_address = parts[2];
+            let key = parts[3];
+
+            match key {
+                "usd" => {}
+                _ => {}
+            }
+
+            if field.is_some() {
+                let pk = format!("{}-{}", pair_address, day);
+                changes.table_changes.push(TableChange {
+                    table: "pair_day_data".to_string(),
+                    pk,
+                    block_num: block.number,
+                    ordinal: delta.ordinal,
+                    operation: delta.operation,
+                    fields: vec![field.unwrap()],
+                })
+            }
+        }
+        "pair_hour" => {
+            // todo
+            let hour = parts[1];
+            let pair_address = parts[2];
+            let key = parts[3];
+
+            match key {
+                "usd" => {
+                    field = Some(field!("", "", ""));
+                }
+                _ => {}
+            }
+
+            if field.is_some() {
+                let pk = format!("{}-{}", pair_address, hour);
+                changes.table_changes.push(TableChange {
+                    table: "pair_hour_data".to_string(),
+                    pk,
+                    block_num: block.number,
+                    ordinal: delta.ordinal,
+                    operation: Operation::Update as i32,
+                    fields: vec![field.unwrap()],
+                })
+            }
+        }
         "pair" => {
             let pair_address = parts[1];
             let field_name = parts[2];
 
+            // changes.table_changes.push(TableChange {
+            //     table: "pair".to_string(),
+            //     pk: swap.log_address.to_string(),
+            //     block_num: block.number,
+            //     ordinal: event.log_ordinal,
+            //     operation: Operation::Update as i32,
+            //     fields: vec![
+            //         field!("volume_token_0", swap.volume_token0, ""),
+            //         field!("volume_token_1", swap.volume_token1, ""),
+            //         field!("volume_usd", swap.volume_usd, ""),
+            //     ],
+            // });
             match field_name {
                 "usd" => {
-                    let volume_usd_new: String = proto_decode_to_string!(delta.new_value, "0.0");
-                    let volume_usd_old: String = proto_decode_to_string!(delta.old_value, "0.0");
-                    field = Some(field!("volume_usd", volume_usd_new, volume_usd_old));
+                    field = Some(field!(
+                        "volume_usd",
+                        String::from_utf8_lossy(delta.new_value.as_slice()),
+                        String::from_utf8_lossy(delta.old_value.as_slice())
+                    ));
                 }
                 "token0" => {
-                    let volume_token0_new: String = proto_decode_to_string!(delta.new_value, "0.0");
-                    let volume_token0_old: String = proto_decode_to_string!(delta.old_value, "0.0");
                     field = Some(field!(
                         "volume_token0",
-                        volume_token0_new,
-                        volume_token0_old
+                        String::from_utf8_lossy(delta.new_value.as_slice()),
+                        String::from_utf8_lossy(delta.old_value.as_slice())
                     ));
                 }
                 "token1" => {
-                    let volume_token1_new: String = proto_decode_to_string!(delta.new_value, "0.0");
-                    let volume_token1_old: String = proto_decode_to_string!(delta.old_value, "0.0");
                     field = Some(field!(
                         "volume_token1",
-                        volume_token1_new,
-                        volume_token1_old
+                        String::from_utf8_lossy(delta.new_value.as_slice()),
+                        String::from_utf8_lossy(delta.old_value.as_slice())
                     ));
                 }
                 // "total_transactions" => {
@@ -345,7 +411,9 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: 
 }
 
 fn handle_reserves(reserve: Reserve, changes: &mut DatabaseChanges) {
-    // todo
+    //todo: handle all the pairDayData.Reserve0, Reserve1 and ReserveUsd
+    // same with all the pairHourData.Reserve0, Reserve1 and ReserveUsd
+    // prices?
 }
 
 fn handle_events(event: Event, changes: &mut DatabaseChanges, block: &Block) {
@@ -364,33 +432,21 @@ fn handle_swap_event(swap: &Swap, event: &Event, changes: &mut DatabaseChanges, 
         ordinal: event.log_ordinal,
         operation: Operation::Create as i32,
         fields: vec![
-            field!("id", swap.id, ""),
-            field!("transaction", event.transaction_id, ""),
-            field!("timestamp", event.timestamp, ""),
-            field!("pair", event.pair_address, ""),
-            field!("token_0", event.token0, ""),
-            field!("token_1", event.token1, ""),
-            field!("sender", swap.sender, ""),
-            field!("from", swap.from, ""),
-            field!("amount_0_in", swap.amount0_in, ""),
-            field!("amount_1_in", swap.amount1_in, ""),
-            field!("amount_0_out", swap.amount0_out, ""),
-            field!("amount_1_out", swap.amount1_out, ""),
-            field!("to", swap.to, ""),
-            field!("amount_usd", swap.amount_usd, ""),
-            field!("log_index", event.log_ordinal, ""),
-        ],
-    });
-    changes.table_changes.push(TableChange {
-        table: "pair".to_string(),
-        pk: swap.log_address.to_string(),
-        block_num: block.number,
-        ordinal: event.log_ordinal,
-        operation: Operation::Update as i32,
-        fields: vec![
-            field!("volume_token_0", swap.volume_token0, ""),
-            field!("volume_token_1", swap.volume_token1, ""),
-            field!("volume_usd", swap.volume_usd, ""),
+            field_create_string!("id", swap.id),
+            field_create_string!("transaction", event.transaction_id),
+            field_create_string!("timestamp", event.timestamp),
+            field_create_string!("pair", event.pair_address),
+            field_create_string!("token_0", event.token0),
+            field_create_string!("token_1", event.token1),
+            field_create_string!("sender", swap.sender),
+            field_create_string!("from", swap.from),
+            field_create_string!("amount_0_in", swap.amount0_in),
+            field_create_string!("amount_1_in", swap.amount1_in),
+            field_create_string!("amount_0_out", swap.amount0_out),
+            field_create_string!("amount_1_out", swap.amount1_out),
+            field_create_string!("to", swap.to),
+            field_create_string!("amount_usd", swap.amount_usd),
+            field_create_string!("log_index", event.log_ordinal),
         ],
     });
     changes.table_changes.push(TableChange {

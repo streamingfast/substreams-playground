@@ -94,6 +94,7 @@ modules:
       file: ./pcs-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
       entrypoint: build_totals_state
     inputs:
+      - source: sf.ethereum.type.v1.Block
       - map: block_to_pairs
       - map: mint_burn_swaps_extractor
 

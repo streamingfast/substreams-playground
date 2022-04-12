@@ -1,4 +1,5 @@
 use std::io::Result;
+
 fn main() -> Result<()> {
     let mut prost_build = prost_build::Config::new();
     prost_build.out_dir("./src/pb");
@@ -6,7 +7,7 @@ fn main() -> Result<()> {
         &[
             "proto/codec_eth.proto",
             "proto/pcs.proto",
-            "proto/tokens.proto"
+            "proto/tokens.proto",
         ],
         &["src/"],
     )
