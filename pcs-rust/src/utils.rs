@@ -54,7 +54,7 @@ pub fn compute_usd_price(reserve: &pb::pcs::Reserve, reserves_store_idx: u32) ->
     match state::get_at(
         reserves_store_idx,
         reserve.log_ordinal as i64,
-        format!("reserve:{}:{}", BUSD_WBNB_PAIR, WBNB_ADDRESS),
+        &format!("reserve:{}:{}", BUSD_WBNB_PAIR, WBNB_ADDRESS),
     ) {
         None => busd_bnb_reserve_big_decimal = zero_big_decimal(),
         Some(reserve_bytes) => {
@@ -65,7 +65,7 @@ pub fn compute_usd_price(reserve: &pb::pcs::Reserve, reserves_store_idx: u32) ->
     match state::get_at(
         reserves_store_idx,
         reserve.log_ordinal as i64,
-        format!("reserve:{}:{}", USDT_WBNB_PAIR, WBNB_ADDRESS),
+        &format!("reserve:{}:{}", USDT_WBNB_PAIR, WBNB_ADDRESS),
     ) {
         None => usdt_bnb_reserve_big_decimal = zero_big_decimal(),
         Some(reserve_bytes) => {
@@ -91,7 +91,7 @@ pub fn compute_usd_price(reserve: &pb::pcs::Reserve, reserves_store_idx: u32) ->
         return match state::get_at(
             reserves_store_idx,
             reserve.log_ordinal as i64,
-            USDT_PRICE_KEY.to_string(),
+            &USDT_PRICE_KEY.to_string(),
         ) {
             None => zero,
             Some(reserve_bytes) => decode_reserve_bytes_to_big_decimal(reserve_bytes),
@@ -100,7 +100,7 @@ pub fn compute_usd_price(reserve: &pb::pcs::Reserve, reserves_store_idx: u32) ->
         return match state::get_at(
             reserves_store_idx,
             reserve.log_ordinal as i64,
-            BUSD_PRICE_KEY.to_string(),
+            &BUSD_PRICE_KEY.to_string(),
         ) {
             None => zero,
             Some(reserve_bytes) => decode_reserve_bytes_to_big_decimal(reserve_bytes),
@@ -118,7 +118,7 @@ pub fn compute_usd_price(reserve: &pb::pcs::Reserve, reserves_store_idx: u32) ->
     let busd_price = match state::get_at(
         reserves_store_idx,
         reserve.log_ordinal as i64,
-        USDT_PRICE_KEY.to_string(),
+        &USDT_PRICE_KEY.to_string(),
     ) {
         None => zero_big_decimal(),
         Some(reserve_bytes) => decode_reserve_bytes_to_big_decimal(reserve_bytes),
@@ -127,7 +127,7 @@ pub fn compute_usd_price(reserve: &pb::pcs::Reserve, reserves_store_idx: u32) ->
     let usdt_price = match state::get_at(
         reserves_store_idx,
         reserve.log_ordinal as i64,
-        BUSD_PRICE_KEY.to_string(),
+        &BUSD_PRICE_KEY.to_string(),
     ) {
         None => zero_big_decimal(),
         Some(reserve_bytes) => decode_reserve_bytes_to_big_decimal(reserve_bytes),
@@ -155,7 +155,7 @@ pub fn find_bnb_price_per_token(
 
     let direct_to_bnb_price = match state::get_last(
         reserves_store_idx,
-        format!("price:{}:{}", WBNB_ADDRESS, erc20_token_address),
+        &format!("price:{}:{}", WBNB_ADDRESS, erc20_token_address),
     ) {
         None => zero_big_decimal(),
         Some(reserve_bytes) => decode_reserve_bytes_to_big_decimal(reserve_bytes),
@@ -170,7 +170,7 @@ pub fn find_bnb_price_per_token(
         let tiny_to_major_pair = match state::get_at(
             pairs_store_idx,
             *log_ordinal as i64,
-            format!(
+            &format!(
                 "tokens:{}",
                 generate_tokens_key(erc20_token_address, major_token)
             ),
@@ -182,7 +182,7 @@ pub fn find_bnb_price_per_token(
         let major_to_bnb_price = match state::get_at(
             reserves_store_idx,
             *log_ordinal as i64,
-            format!("price:{}:{}", major_token, WBNB_ADDRESS),
+            &format!("price:{}:{}", major_token, WBNB_ADDRESS),
         ) {
             None => continue,
             Some(reserve_bytes) => decode_reserve_bytes_to_big_decimal(reserve_bytes),
@@ -191,7 +191,7 @@ pub fn find_bnb_price_per_token(
         let tiny_to_major_price = match state::get_at(
             reserves_store_idx,
             *log_ordinal as i64,
-            format!("price:{}:{}", erc20_token_address, major_token),
+            &format!("price:{}:{}", erc20_token_address, major_token),
         ) {
             None => continue,
             Some(reserve_bytes) => decode_reserve_bytes_to_big_decimal(reserve_bytes),
@@ -199,7 +199,7 @@ pub fn find_bnb_price_per_token(
 
         let major_reserve =
             //todo: not sure about tiny_to_major_pair.erc20_token0.addr, maybe its the token1 ?
-            match state::get_at(reserves_store_idx, *log_ordinal as i64, format!("reserve:{}:{}", tiny_to_major_pair, major_token)) {
+            match state::get_at(reserves_store_idx, *log_ordinal as i64, &format!("reserve:{}:{}", tiny_to_major_pair, major_token)) {
                 None => continue,
                 Some(reserve_bytes) => decode_reserve_bytes_to_big_decimal(reserve_bytes)
             };
@@ -237,7 +237,7 @@ pub fn get_ordinal(all: &Wrapper) -> i64 {
 }
 
 pub fn get_last_token(tokens_store_idx: u32, token_address: &str) -> pb::tokens::Token {
-    proto::decode(state::get_last(tokens_store_idx, format!("token:{}", token_address)).unwrap())
+    proto::decode(state::get_last(tokens_store_idx, &format!("token:{}", token_address)).unwrap())
         .unwrap()
 }
 
