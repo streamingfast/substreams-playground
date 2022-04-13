@@ -1,8 +1,6 @@
 #[macro_export]
 macro_rules! field {
     ($a:expr, $b:expr, $c:expr) => {
-        //todo: send delta object entirely instead of sending old and new value
-        // as seperate arguments and add casting
         Field {
             name: $a.to_string(),
             new_value: $b.to_string(),
