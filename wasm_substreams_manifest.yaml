@@ -54,6 +54,7 @@ modules:
       file: ./pcs-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
       entrypoint: build_reserves_state
     inputs:
+      - source: sf.ethereum.type.v1.Block
       - map: block_to_reserves
       - store: pairs
 
@@ -66,6 +67,7 @@ modules:
       file: ./pcs-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
       entrypoint: build_prices_state
     inputs:
+      - source: sf.ethereum.type.v1.Block
       - map: block_to_reserves
       - store: pairs
       - store: reserves
@@ -151,6 +153,7 @@ modules:
       - store: volumes
         mode: deltas
       - map: reserves_extractor
+        mode: deltas
       - map: mint_burn_swaps_extractor
       - store: tokens
     output:

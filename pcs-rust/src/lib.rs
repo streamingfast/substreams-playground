@@ -815,59 +815,6 @@ pub extern "C" fn build_volumes_state(
 }
 
 #[no_mangle]
-pub extern "C" fn map_to_database(
-    block_ptr: *mut u8,
-    block_len: usize,
-    tokens_deltas_ptr: *mut u8,
-    tokens_deltas_len: usize,
-    pairs_deltas_ptr: *mut u8,
-    pairs_deltas_len: usize,
-    totals_deltas_ptr: *mut u8,
-    totals_deltas_len: usize,
-    volumes_deltas_ptr: *mut u8,
-    volumes_deltas_len: usize,
-    reserves_deltas_ptr: *mut u8,
-    reserves_deltas_len: usize,
-    events_ptr: *mut u8,
-    events_len: usize,
-    tokens_idx: u32,
-) {
-    substreams::register_panic_hook();
-
-    let block: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
-
-    let token_deltas: substreams::pb::substreams::StoreDeltas =
-        proto::decode_ptr(tokens_deltas_ptr, tokens_deltas_len).unwrap();
-
-    let pair_deltas: substreams::pb::substreams::StoreDeltas =
-        proto::decode_ptr(pairs_deltas_ptr, pairs_deltas_len).unwrap();
-
-    let totals_deltas: substreams::pb::substreams::StoreDeltas =
-        proto::decode_ptr(totals_deltas_ptr, totals_deltas_len).unwrap();
-
-    let volumes_deltas: substreams::pb::substreams::StoreDeltas =
-        proto::decode_ptr(volumes_deltas_ptr, volumes_deltas_len).unwrap();
-
-    let reserves_deltas: substreams::pb::substreams::StoreDeltas =
-        proto::decode_ptr(reserves_deltas_ptr, reserves_deltas_len).unwrap();
-
-    let events: pb::pcs::Events = proto::decode_ptr(events_ptr, events_len).unwrap();
-
-    let changes = db::process(
-        &block,
-        pair_deltas,
-        token_deltas,
-        totals_deltas,
-        volumes_deltas,
-        reserves_deltas,
-        events,
-        tokens_idx,
-    );
-
-    substreams::output(changes);
-}
-
-#[no_mangle]
 pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
     substreams::register_panic_hook();
 
@@ -969,4 +916,57 @@ pub extern "C" fn build_tokens_state(tokens_ptr: *mut u8, tokens_len: usize) {
         let key = format!("token:{}", token.address);
         state::set(1, key, &proto::encode(&token).unwrap()); //todo: what about the log ordinal
     }
+}
+
+#[no_mangle]
+pub extern "C" fn map_to_database(
+    block_ptr: *mut u8,
+    block_len: usize,
+    tokens_deltas_ptr: *mut u8,
+    tokens_deltas_len: usize,
+    pairs_deltas_ptr: *mut u8,
+    pairs_deltas_len: usize,
+    totals_deltas_ptr: *mut u8,
+    totals_deltas_len: usize,
+    volumes_deltas_ptr: *mut u8,
+    volumes_deltas_len: usize,
+    reserves_deltas_ptr: *mut u8,
+    reserves_deltas_len: usize,
+    events_ptr: *mut u8,
+    events_len: usize,
+    tokens_idx: u32,
+) {
+    substreams::register_panic_hook();
+
+    let block: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
+
+    let token_deltas: substreams::pb::substreams::StoreDeltas =
+        proto::decode_ptr(tokens_deltas_ptr, tokens_deltas_len).unwrap();
+
+    let pair_deltas: substreams::pb::substreams::StoreDeltas =
+        proto::decode_ptr(pairs_deltas_ptr, pairs_deltas_len).unwrap();
+
+    let totals_deltas: substreams::pb::substreams::StoreDeltas =
+        proto::decode_ptr(totals_deltas_ptr, totals_deltas_len).unwrap();
+
+    let volumes_deltas: substreams::pb::substreams::StoreDeltas =
+        proto::decode_ptr(volumes_deltas_ptr, volumes_deltas_len).unwrap();
+
+    let reserves_deltas: substreams::pb::substreams::StoreDeltas =
+        proto::decode_ptr(reserves_deltas_ptr, reserves_deltas_len).unwrap();
+
+    let events: pb::pcs::Events = proto::decode_ptr(events_ptr, events_len).unwrap();
+
+    let changes = db::process(
+        &block,
+        pair_deltas,
+        token_deltas,
+        totals_deltas,
+        volumes_deltas,
+        reserves_deltas,
+        events,
+        tokens_idx,
+    );
+
+    substreams::output(changes);
 }

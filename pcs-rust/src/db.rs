@@ -832,7 +832,7 @@ fn join_sort_deltas(
 
     for delta in reserves_delta.deltas {
         items.push(SortableItem {
-            ordinal: delta.log_ordinal,
+            ordinal: delta.ordinal,
             item: Item::ReserveDelta(delta),
         })
     }
