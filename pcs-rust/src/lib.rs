@@ -617,6 +617,8 @@ pub extern "C" fn build_totals_state(
                         format!("token:{}:transaction_count", event.token0),
                         format!("token:{}:transaction_count", event.token1),
                         format!("pair:{}:transaction_count", event.pair_address),
+                        format!("global_day:{}:transaction_count", day_id),
+                        format!("global:transaction_count"),
                     ],
                     1,
                 );
@@ -631,11 +633,6 @@ pub extern "C" fn build_totals_state(
                             event.log_ordinal,
                             &vec![
                                 format!("pair:{}:swap_count", event.pair_address),
-                                format!("pair:{}:total_transactions", event.pair_address),
-                                format!("token:{}:total_transactions", event.token0),
-                                format!("token:{}:total_transactions", event.token1),
-                                format!("global_day:{}:total_transactions", day_id),
-                                format!("global:total_transactions"),
                             ],
                             1,
                         );
