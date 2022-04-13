@@ -4,7 +4,6 @@ description: Test WASM substream
 protoFiles:
   - ./proto/pcs.proto
   - ./proto/tokens.proto
-  - /Users/eduardvoiculescu/git/streamingFast/substreams/proto/sf/substreams/v1/substreams.proto
 
 modules:
   - name: block_to_pairs
