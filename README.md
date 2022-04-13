@@ -69,7 +69,7 @@ sseth wasm_substreams_manifest.yaml pairs 2000 -s 6831000
 
 ## Current layout
 
-For `native_substreams_manifest.yaml`:
+For `wasm_substreams_manifest.yaml`:
 
 ```mermaid
 graph TD;
@@ -77,6 +77,7 @@ graph TD;
   block_to_pairs -- "map:block_to_pairs" --> pairs
   sf.ethereum.type.v1.Block -- "source:sf.ethereum.type.v1.Block" --> block_to_reserves
   pairs -- "store:pairs:get" --> block_to_reserves
+  tokens -- "store:tokens:get" --> block_to_reserves
   block_to_reserves -- "map:block_to_reserves" --> reserves
   pairs -- "store:pairs:get" --> reserves
   block_to_reserves -- "map:block_to_reserves" --> prices
@@ -85,26 +86,21 @@ graph TD;
   sf.ethereum.type.v1.Block -- "source:sf.ethereum.type.v1.Block" --> mint_burn_swaps_extractor
   pairs -- "store:pairs:get" --> mint_burn_swaps_extractor
   prices -- "store:prices:get" --> mint_burn_swaps_extractor
+  tokens -- "store:tokens:get" --> mint_burn_swaps_extractor
   block_to_pairs -- "map:block_to_pairs" --> totals
   mint_burn_swaps_extractor -- "map:mint_burn_swaps_extractor" --> totals
-  sf.ethereum.type.v1.Block -- "source:sf.ethereum.type.v1.Block" --> volumes
+  sf.ethereum.type.v1.block -- "source:sf.ethereum.type.v1.block" --> volumes
   mint_burn_swaps_extractor -- "map:mint_burn_swaps_extractor" --> volumes
-  volumes -- "store:volumes:get" --> database_output
-  volumes -- "store:volumes:deltas" --> database_output
-  mint_burn_swaps_extractor -- "map:mint_burn_swaps_extractor" --> database_output
-```
-
-For `wasm_substreams_manifest.yaml`:
-
-```mermaid
-graph TD;
-  sf.ethereum.type.v1.Block -- "source:sf.ethereum.type.v1.Block" --> pair_extractor
-  pair_extractor -- "map:pair_extractor" --> pairs
-  sf.ethereum.type.v1.Block -- "source:sf.ethereum.type.v1.Block" --> reserves_extractor
-  pairs -- "store:pairs:get" --> reserves_extractor
-  reserves_extractor -- "map:reserves_extractor" --> db_out
+  sf.ethereum.type.v1.Block -- "source:sf.ethereum.type.v1.Block" --> block_to_tokens
+  block_to_tokens -- "map:block_to_tokens" --> tokens
+  sf.ethereum.type.v1.Block -- "source:sf.ethereum.type.v1.Block" --> db_out
+  tokens -- "store:tokens:deltas" --> db_out
   pairs -- "store:pairs:deltas" --> db_out
-  pairs -- "store:pairs:get" --> db_out
+  totals -- "store:totals:deltas" --> db_out
+  volumes -- "store:volumes:deltas" --> db_out
+  reserves_extractor -- "map:reserves_extractor" --> db_out
+  mint_burn_swaps_extractor -- "map:mint_burn_swaps_extractor" --> db_out
+  tokens -- "store:tokens:get" --> db_out
 ```
 
 ## References
