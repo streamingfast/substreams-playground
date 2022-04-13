@@ -183,19 +183,22 @@ pub extern "C" fn build_reserves_state(
 
                 state::set(
                     reserve.log_ordinal as i64,
-                    format!("price:{}:token0", pair.address),
+                    format!("price:{}:{}:token0", pair.address, pair.token0_address),
                     &Vec::from(reserve.token0_price),
                 );
                 state::set(
                     reserve.log_ordinal as i64,
-                    format!("price:{}:token1", pair.address),
+                    format!("price:{}:{}:token1", pair.address, pair.token1_address),
                     &Vec::from(reserve.token1_price),
                 );
 
                 state_helper::set_many(
                     reserve.log_ordinal,
                     &vec![
-                        format!("reserve:{}:{}", reserve.pair_address, pair.token0_address),
+                        format!(
+                            "reserve:{}:{}:reserve0",
+                            reserve.pair_address, pair.token0_address
+                        ),
                         format!("pair_day:{}:{}:reserve0", day_id, pair.token0_address),
                         format!("pair_hour:{}:{}:reserve0", hour_id, pair.token0_address),
                     ],
@@ -205,7 +208,10 @@ pub extern "C" fn build_reserves_state(
                 state_helper::set_many(
                     reserve.log_ordinal,
                     &vec![
-                        format!("reserve:{}:{}", reserve.pair_address, pair.token1_address),
+                        format!(
+                            "reserve:{}:{}:reserve1",
+                            reserve.pair_address, pair.token1_address
+                        ),
                         format!("pair_day:{}:{}:reserve1", day_id, pair.token1_address),
                         format!("pair_hour:{}:{}:reserve1", hour_id, pair.token1_address),
                     ],

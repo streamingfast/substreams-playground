@@ -621,19 +621,19 @@ fn handle_reserves_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block
             }
         }
         "price" => {
-            let key = parts[2];
+            let key = parts[3];
 
             match key {
                 "token0" => {
                     field = Some(field!(
-                        "token_0",
+                        "token_0_price",
                         String::from_utf8_lossy(delta.new_value.as_slice()),
                         String::from_utf8_lossy(delta.old_value.as_slice())
                     ));
                 }
                 "token1" => {
                     field = Some(field!(
-                        "token_1",
+                        "token_1_price",
                         String::from_utf8_lossy(delta.new_value.as_slice()),
                         String::from_utf8_lossy(delta.old_value.as_slice())
                     ));
@@ -653,7 +653,39 @@ fn handle_reserves_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block
                 })
             }
         }
-        "reserve" => {}
+        "reserve" => {
+            let key = parts[3];
+
+            match key {
+                "reserve0" => {
+                    field = Some(field!(
+                        "reserve_0",
+                        String::from_utf8_lossy(delta.new_value.as_slice()),
+                        String::from_utf8_lossy(delta.old_value.as_slice())
+                    ))
+                }
+                "reserve1" => {
+                    field = Some(field!(
+                        "reserve_1",
+                        String::from_utf8_lossy(delta.new_value.as_slice()),
+                        String::from_utf8_lossy(delta.old_value.as_slice())
+                    ))
+                }
+                _ => {}
+            }
+
+            if field.is_some() {
+                let pk = parts[1];
+                changes.table_changes.push(TableChange {
+                    table: "pair".to_string(),
+                    pk: pk.to_string(),
+                    block_num: block.number,
+                    ordinal: delta.ordinal,
+                    operation: delta.operation,
+                    fields: vec![field.unwrap()],
+                })
+            }
+        }
         _ => {}
     }
 }
