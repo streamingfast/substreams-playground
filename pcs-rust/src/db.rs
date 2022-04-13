@@ -104,7 +104,7 @@ fn handle_token_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &
         pk: token.address.clone(),
         block_num: block.number,
         ordinal: delta.ordinal,
-        operation: Operation::Create as i32,
+        operation: delta.operation,
         fields: vec![
             field!("id", token.address, ""),
             field!("name", token.name, ""),
@@ -125,7 +125,7 @@ fn handle_total_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &
 
             match key {
                 "total_transactions" => changes.table_changes.push(TableChange {
-                    table: "pair".to_string(),
+                    table: table.to_string(),
                     pk: pk.to_string(),
                     block_num: block.number,
                     ordinal: delta.ordinal,
@@ -136,16 +136,25 @@ fn handle_total_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &
                         String::from_utf8_lossy(delta.old_value.as_slice())
                     )],
                 }),
+                "swap_count" => {
+                    // todo: what does here ? up the colum of pancake_factory.swap[] ?
+                }
+                "mint_count" => {
+                    // todo: what does here ? up the colum of pancake_factory.mint[] ?
+                }
+                "burn_count" => {
+                    // todo: what does here ? up the colum of pancake_factory.burn[] ?
+                }
                 _ => {}
             }
         }
         "token" => {
             let pk = parts[1];
-            let key = parts[2];
+            let key = parts[2]; // will take in account token0 addr and token1 addr
 
             match key {
                 "total_transactions" => changes.table_changes.push(TableChange {
-                    table: "token".to_string(),
+                    table: table.to_string(),
                     pk: pk.to_string(),
                     block_num: block.number,
                     ordinal: delta.ordinal,
@@ -159,18 +168,37 @@ fn handle_total_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &
                 _ => {}
             }
         }
-        "global" => changes.table_changes.push(TableChange {
-            table: "pancake_factory".to_string(),
-            pk: PANCAKE_FACTORY.to_string(),
-            block_num: block.number,
-            ordinal: delta.ordinal,
-            operation: Operation::Update as i32,
-            fields: vec![field!(
-                "total_pairs",
-                proto_decode_to_string!(delta.new_value, "0"),
-                proto_decode_to_string!(delta.old_value, "0")
-            )],
-        }),
+        "global" => {
+            let key = parts[1];
+
+            match key {
+                "total_transactions" => changes.table_changes.push(TableChange {
+                    table: "pancake_factory".to_string(),
+                    pk: PANCAKE_FACTORY.to_string(),
+                    block_num: block.number,
+                    ordinal: delta.ordinal,
+                    operation: Operation::Update as i32,
+                    fields: vec![field!(
+                        "total_transactions",
+                        String::from_utf8_lossy(delta.new_value.as_slice()),
+                        String::from_utf8_lossy(delta.old_value.as_slice())
+                    )],
+                }),
+                "pair_count" => changes.table_changes.push(TableChange {
+                    table: "pancake_factory".to_string(),
+                    pk: PANCAKE_FACTORY.to_string(),
+                    block_num: block.number,
+                    ordinal: delta.ordinal,
+                    operation: Operation::Update as i32,
+                    fields: vec![field!(
+                        "total_pairs",
+                        String::from_utf8_lossy(delta.new_value.as_slice()),
+                        String::from_utf8_lossy(delta.old_value.as_slice())
+                    )],
+                }),
+                _ => {}
+            }
+        }
         "global_day" => changes.table_changes.push(TableChange {
             table: "pancake_day_data".to_string(),
             pk: PANCAKE_FACTORY.to_string(),
@@ -192,21 +220,24 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: 
     let table = parts[0];
     let mut field: Option<Field> = None;
 
-    //todo: fix the proto_decode_to_string stuff, because we do not proto_encode the
-    // fields, we only put them in base 10
     match table {
         "pair_day" => {
             if delta.operation == Operation::Delete as i32 {
-                return; // todo: add for token and global where we ignore the delete operation
+                return;
             }
 
-            // todo
             let day = parts[1];
             let pair_address = parts[2];
             let key = parts[3];
 
             match key {
-                "usd" => {}
+                "usd" => {
+                    field = Some(field!(
+                        "daily_volume_usd",
+                        String::from_utf8_lossy(delta.new_value),
+                        String::from_utf8_lossy(delta.old_value)
+                    ));
+                }
                 _ => {}
             }
 
@@ -223,15 +254,24 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: 
             }
         }
         "pair_hour" => {
-            // todo
+            if delta.operation == Operation::Delete as i32 {
+                return;
+            }
+
             let hour = parts[1];
             let pair_address = parts[2];
             let key = parts[3];
 
             match key {
                 "usd" => {
-                    field = Some(field!("", "", ""));
+                    field = Some(field!(
+                        "hourly_volume_usd",
+                        String::from_utf8_lossy(delta.new_value),
+                        String::from_utf8_lossy(delta.old_value)
+                    ));
                 }
+                "token0" => {}
+                "token1" => {}
                 _ => {}
             }
 
@@ -406,14 +446,18 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: 
                 });
             }
         }
+        "global_day" => {
+            if delta.operation == Operation::Delete as i32 {
+                return;
+            }
+        }
         _ => {}
     }
 }
 
 fn handle_reserves(reserve: Reserve, changes: &mut DatabaseChanges) {
-    //todo: handle all the pairDayData.Reserve0, Reserve1 and ReserveUsd
+    //todo:  handle all the pairDayData.Reserve0, Reserve1 and ReserveUsd
     // same with all the pairHourData.Reserve0, Reserve1 and ReserveUsd
-    // prices?
 }
 
 fn handle_events(event: Event, changes: &mut DatabaseChanges, block: &Block) {

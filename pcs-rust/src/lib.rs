@@ -1,6 +1,6 @@
 extern crate core;
 
-use std::ops::{Add, Mul};
+use std::ops::{Add, Mul, Neg};
 use std::str::FromStr;
 
 use bigdecimal::BigDecimal;
@@ -604,19 +604,13 @@ pub extern "C" fn build_totals_state(
     for el in all_pairs_and_events {
         match el {
             Wrapper::Event(event) => {
-                state::sum_int64(
-                    event.log_ordinal as i64,
-                    format!("token:{}:transaction_count", event.token0),
-                    1,
-                );
-                state::sum_int64(
-                    event.log_ordinal as i64,
-                    format!("token:{}:transaction_count", event.token1),
-                    1,
-                );
-                state::sum_int64(
-                    event.log_ordinal as i64,
-                    format!("pair:{}:transaction_count", event.pair_address),
+                state_helper::sum_int64_many(
+                    event.log_ordinal,
+                    &vec![
+                        format!("token:{}:transaction_count", event.token0),
+                        format!("token:{}:transaction_count", event.token1),
+                        format!("pair:{}:transaction_count", event.pair_address),
+                    ],
                     1,
                 );
 
@@ -628,7 +622,7 @@ pub extern "C" fn build_totals_state(
 
                         state_helper::sum_int64_many(
                             event.log_ordinal,
-                            &&vec![
+                            &vec![
                                 format!("pair:{}:swap_count", event.pair_address),
                                 format!("pair:{}:total_transactions", event.pair_address),
                                 format!("token:{}:total_transactions", event.token0),
@@ -692,14 +686,44 @@ pub extern "C" fn build_volumes_state(
         if event.r#type.is_some() {
             match event.r#type.unwrap() {
                 Type::Mint(mint) => {
-                    // state::sum("global:liquidity_usd", mint.amount_usd)
-                    // sum("token:{}:liquidity_usd", mint.to)
-                    //state::sum_bigfloat(event.log_ordinal as i32, format!("pair:{}:total_supply", event.pair_address), mint.liquidity)
+                    let amount_usd = BigDecimal::from_str(mint.amount_usd.as_str()).unwrap();
+                    if amount_usd.eq(&zero_big_decimal()) {
+                        continue;
+                    }
+                    state::sum_bigfloat(
+                        event.log_ordinal as i64,
+                        format!("global:liquidity_usd"),
+                        &amount_usd,
+                    );
+
+                    state_helper::sum_bigfloat_many(
+                        event.log_ordinal,
+                        &vec![
+                            format!("token:{}:liquidity_usd", mint.to),
+                            format!("pair:{}:total_supply", event.pair_address),
+                        ],
+                        &BigDecimal::from_str(mint.liquidity.as_str()).unwrap(),
+                    );
                 }
                 Type::Burn(burn) => {
-                    // sum("global:liquidity_usd", /* NEGATIVE */ -burn.amount_usd)
-                    // sum(token:{}:liquidity_usd", /* NEGATIVE */ burn.to)
-                    //state::sum_bigfloat(event.log_ordinal as i32, format!("pair:{}:total_supply", event.pair_address), mint.liquidity) samue but negative
+                    let amount_usd = BigDecimal::from_str(burn.amount_usd.as_str()).unwrap();
+                    if amount_usd.eq(&zero_big_decimal()) {
+                        continue;
+                    }
+                    state::sum_bigfloat(
+                        event.log_ordinal as i64,
+                        format!("global:liquidity_usd"),
+                        &amount_usd.neg(),
+                    );
+
+                    state_helper::sum_bigfloat_many(
+                        event.log_ordinal,
+                        &vec![
+                            format!("token:{}:liquidity_usd", burn.to),
+                            format!("pair:{}:total_supply", event.pair_address),
+                        ],
+                        &BigDecimal::from_str(burn.liquidity.as_str()).unwrap().neg(),
+                    );
                 }
                 Type::Swap(swap) => {
                     if swap.amount_usd.is_empty() {
@@ -719,9 +743,9 @@ pub extern "C" fn build_volumes_state(
                     state_helper::sum_bigfloat_many(
                         event.log_ordinal,
                         &vec![
-                            format!("pair_day:{}:{}:usd", day_id, event.pair_address),
-                            format!("pair_hour:{}:{}:usd", hour_id, event.pair_address),
                             format!("pair:{}:usd", event.pair_address),
+                            format!("pair_day:{}:{}:usd", day_id, event.pair_address), //done
+                            format!("pair_hour:{}:{}:usd", hour_id, event.pair_address), //done
                             format!("token_day:{}:{}:usd", day_id, event.token0),
                             format!("token_day:{}:{}:usd", day_id, event.token1),
                             format!("global:usd"),
@@ -736,16 +760,26 @@ pub extern "C" fn build_volumes_state(
                         &amount_bnb,
                     );
 
-                    state::sum_bigfloat(
-                        event.log_ordinal as i64,
-                        format!("pair:{}:token0", event.pair_address),
+                    state_helper::sum_bigfloat_many(
+                        event.log_ordinal,
+                        &vec![
+                            format!("pair:{}:token0", event.pair_address),
+                            format!("pair_day:{}:{}:token0", day_id, event.pair_address),
+                            format!("pair_hour:{}:{}:token0", day_id, event.pair_address),
+                        ],
                         &amount_0_total,
                     );
-                    state::sum_bigfloat(
-                        event.log_ordinal as i64,
-                        format!("pair:{}:token1", event.pair_address),
+
+                    state_helper::sum_bigfloat_many(
+                        event.log_ordinal,
+                        &vec![
+                            format!("pair:{}:token1", event.pair_address),
+                            format!("pair_day:{}:{}:token1", day_id, event.pair_address),
+                            format!("pair_hour:{}:{}:token1", day_id, event.pair_address),
+                        ],
                         &amount_1_total,
                     );
+
                     state::sum_bigfloat(
                         event.log_ordinal as i64,
                         format!("token:{}:trade", event.token0),
