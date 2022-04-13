@@ -137,7 +137,7 @@ pub extern "C" fn map_reserves(
                     reserves.reserves.push(pb::pcs::Reserve {
                         pair_address: pair.address,
                         reserve0: reserve0.to_string(),
-                        reserve1: reserve1.to_string(), // need to trim leading zeros
+                        reserve1: reserve1.to_string(),
                         log_ordinal: log.block_index as u64,
                         token0_price: token0_price.to_string(),
                         token1_price: token1_price.to_string(),
@@ -183,12 +183,12 @@ pub extern "C" fn build_reserves_state(
 
                 state::set(
                     reserve.log_ordinal as i64,
-                    format!("price:{}:{}", pair.token0_address, pair.token1_address),
+                    format!("price:{}:token0", pair.address),
                     &Vec::from(reserve.token0_price),
                 );
                 state::set(
                     reserve.log_ordinal as i64,
-                    format!("price:{}:{}", pair.token1_address, pair.token0_address),
+                    format!("price:{}:token1", pair.address),
                     &Vec::from(reserve.token1_price),
                 );
 
@@ -196,8 +196,8 @@ pub extern "C" fn build_reserves_state(
                     reserve.log_ordinal,
                     &vec![
                         format!("reserve:{}:{}", reserve.pair_address, pair.token0_address),
-                        format!("pair_day:{}:{}:reserve", day_id, pair.token0_address),
-                        format!("pair_hour:{}:{}:reserve", hour_id, pair.token0_address),
+                        format!("pair_day:{}:{}:reserve0", day_id, pair.token0_address),
+                        format!("pair_hour:{}:{}:reserve0", hour_id, pair.token0_address),
                     ],
                     &Vec::from(reserve.reserve0),
                 );
@@ -206,8 +206,8 @@ pub extern "C" fn build_reserves_state(
                     reserve.log_ordinal,
                     &vec![
                         format!("reserve:{}:{}", reserve.pair_address, pair.token1_address),
-                        format!("pair_day:{}:{}:reserve", day_id, pair.token1_address),
-                        format!("pair_hour:{}:{}:reserve", hour_id, pair.token1_address),
+                        format!("pair_day:{}:{}:reserve1", day_id, pair.token1_address),
+                        format!("pair_hour:{}:{}:reserve1", hour_id, pair.token1_address),
                     ],
                     &Vec::from(reserve.reserve1),
                 )
@@ -820,8 +820,8 @@ pub extern "C" fn map_to_database(
     totals_deltas_len: usize,
     volumes_deltas_ptr: *mut u8,
     volumes_deltas_len: usize,
-    reserves_ptr: *mut u8,
-    reserves_len: usize,
+    reserves_deltas_ptr: *mut u8,
+    reserves_deltas_len: usize,
     events_ptr: *mut u8,
     events_len: usize,
     tokens_idx: u32,
@@ -842,7 +842,8 @@ pub extern "C" fn map_to_database(
     let volumes_deltas: substreams::pb::substreams::StoreDeltas =
         proto::decode_ptr(volumes_deltas_ptr, volumes_deltas_len).unwrap();
 
-    let reserves: pb::pcs::Reserves = proto::decode_ptr(reserves_ptr, reserves_len).unwrap();
+    let reserves_deltas: substreams::pb::substreams::StoreDeltas =
+        proto::decode_ptr(reserves_deltas_ptr, reserves_deltas_len).unwrap();
 
     let events: pb::pcs::Events = proto::decode_ptr(events_ptr, events_len).unwrap();
 
@@ -852,47 +853,10 @@ pub extern "C" fn map_to_database(
         token_deltas,
         totals_deltas,
         volumes_deltas,
-        reserves,
+        reserves_deltas,
         events,
         tokens_idx,
     );
-
-    //todo: call join_sort_deltas
-    //todo: loop all NameDeltas in a single loop with a huge match statements
-
-    //
-    //
-    // for pair_delta in pair_deltas.deltas {
-    // }
-    //
-    // for delta in total_deltas {
-    //     if startwith(delta.key:"pairs") {
-    //         // // TODO: should we do on client side or create a new store ??
-    //         // database_changes.table_changes.push(TableChange {
-    //         //     table: "pancake_factory".to_string(),
-    //         //     pk: "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73".to_string(),
-    //         //     operation: Operation::Update as i32,
-    //         //     fields: vec![
-    //         //         Field {
-    //         //             key: "total_pairs".to_string(),
-    //         //             new_value: "10".to_string(),
-    //         //             old_value: "11".to_string()
-    //         //         }
-    //         //     ]
-    //         // });
-    //     }
-    // }
-    //
-    //
-    //
-    // }
-
-    // for reserve in reserves.reserves {
-    //     log::println(format!(
-    //         "Reserve: {} {} {} {}",
-    //         reserve.pair_address, reserve.log_ordinal, reserve.reserve0, reserve.reserve1
-    //     ));
-    // }
 
     substreams::output(changes);
 }

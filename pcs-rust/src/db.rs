@@ -20,6 +20,7 @@ enum Item {
     TokenDelta(StoreDelta),
     TotalDelta(StoreDelta),
     VolumeDelta(StoreDelta),
+    ReserveDelta(StoreDelta),
     Reserve(Reserve),
     Event(Event),
 }
@@ -30,7 +31,7 @@ pub fn process(
     token_deltas: StoreDeltas,
     total_deltas: StoreDeltas,
     volumes_deltas: StoreDeltas,
-    reserves: Reserves,
+    reserves_deltas: StoreDeltas,
     events: Events,
     tokens_idx: u32,
 ) -> DatabaseChanges {
@@ -39,7 +40,7 @@ pub fn process(
         token_deltas,
         total_deltas,
         volumes_deltas,
-        reserves,
+        reserves_deltas,
         events,
     );
 
@@ -55,7 +56,8 @@ pub fn process(
             Item::TokenDelta(delta) => handle_token_delta(delta, &mut database_changes, block),
             Item::TotalDelta(delta) => handle_total_delta(delta, &mut database_changes, block),
             Item::VolumeDelta(delta) => handle_volume_delta(delta, &mut database_changes, block),
-            Item::Reserve(reserve) => handle_reserves(reserve, &mut database_changes),
+            Item::ReserveDelta(delta) => handle_reserves_delta(delta, &mut database_changes, block),
+            Item::Reserve(_) => {} //todo: to remove
             Item::Event(event) => handle_events(event, &mut database_changes, block),
         }
     }
@@ -118,6 +120,7 @@ fn handle_token_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &
 fn handle_total_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &Block) {
     let parts: Vec<&str> = delta.key.split(":").collect();
     let table = parts[0];
+    let mut field: Option<Field> = None;
 
     match table {
         "pair" => {
@@ -125,18 +128,13 @@ fn handle_total_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &
             let key = parts[2];
 
             match key {
-                "total_transactions" => changes.table_changes.push(TableChange {
-                    table: table.to_string(),
-                    pk: pk.to_string(),
-                    block_num: block.number,
-                    ordinal: delta.ordinal,
-                    operation: delta.operation,
-                    fields: vec![field!(
+                "total_transactions" => {
+                    field = Some(field!(
                         key,
                         String::from_utf8_lossy(delta.new_value.as_slice()),
                         String::from_utf8_lossy(delta.old_value.as_slice())
-                    )],
-                }),
+                    ));
+                }
                 "swap_count" => {
                     // todo: what does here ? up the colum of pancake_factory.swap[] ?
                 }
@@ -148,56 +146,74 @@ fn handle_total_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &
                 }
                 _ => {}
             }
+
+            if field.is_some() {
+                changes.table_changes.push(TableChange {
+                    table: table.to_string(),
+                    pk: pk.to_string(),
+                    block_num: block.number,
+                    ordinal: delta.ordinal,
+                    operation: delta.operation,
+                    fields: vec![field.unwrap()],
+                })
+            }
         }
         "token" => {
             let pk = parts[1];
             let key = parts[2]; // will take in account token0 addr and token1 addr
 
             match key {
-                "total_transactions" => changes.table_changes.push(TableChange {
+                "total_transactions" => {
+                    field = Some(field!(
+                        key,
+                        String::from_utf8_lossy(delta.new_value.as_slice()),
+                        String::from_utf8_lossy(delta.old_value.as_slice())
+                    ))
+                }
+                _ => {}
+            }
+
+            if field.is_some() {
+                changes.table_changes.push(TableChange {
                     table: table.to_string(),
                     pk: pk.to_string(),
                     block_num: block.number,
                     ordinal: delta.ordinal,
                     operation: delta.operation,
-                    fields: vec![field!(
-                        key,
-                        String::from_utf8_lossy(delta.new_value.as_slice()),
-                        String::from_utf8_lossy(delta.old_value.as_slice())
-                    )],
-                }),
-                _ => {}
+                    fields: vec![field.unwrap()],
+                })
             }
         }
         "global" => {
             let key = parts[1];
 
             match key {
-                "total_transactions" => changes.table_changes.push(TableChange {
-                    table: "pancake_factory".to_string(),
-                    pk: PANCAKE_FACTORY.to_string(),
-                    block_num: block.number,
-                    ordinal: delta.ordinal,
-                    operation: Operation::Update as i32,
-                    fields: vec![field!(
+                "total_transactions" => {
+                    field = Some(field!(
                         "total_transactions",
                         String::from_utf8_lossy(delta.new_value.as_slice()),
                         String::from_utf8_lossy(delta.old_value.as_slice())
-                    )],
-                }),
-                "pair_count" => changes.table_changes.push(TableChange {
+                    ));
+                }
+                "pair_count" => {
+                    field = Some(field!(
+                        "total_pairs",
+                        String::from_utf8_lossy(delta.new_value.as_slice()),
+                        String::from_utf8_lossy(delta.old_value.as_slice())
+                    ));
+                }
+                _ => {}
+            }
+
+            if field.is_some() {
+                changes.table_changes.push(TableChange {
                     table: "pancake_factory".to_string(),
                     pk: PANCAKE_FACTORY.to_string(),
                     block_num: block.number,
                     ordinal: delta.ordinal,
                     operation: Operation::Update as i32,
-                    fields: vec![field!(
-                        "total_pairs",
-                        String::from_utf8_lossy(delta.new_value.as_slice()),
-                        String::from_utf8_lossy(delta.old_value.as_slice())
-                    )],
-                }),
-                _ => {}
+                    fields: vec![field.unwrap()],
+                })
             }
         }
         "global_day" => {
@@ -518,9 +534,128 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: 
     }
 }
 
-fn handle_reserves(reserve: Reserve, changes: &mut DatabaseChanges) {
+fn handle_reserves_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &Block) {
     //todo:  handle all the pairDayData.Reserve0, Reserve1 and ReserveUsd
     // same with all the pairHourData.Reserve0, Reserve1 and ReserveUsd
+    let parts: Vec<&str> = delta.key.split(":").collect();
+    let table = parts[0];
+    let mut field: Option<Field> = None;
+
+    match table {
+        "pair_day" => {
+            if delta.operation == Operation::Delete as i32 {
+                return;
+            }
+
+            let day = parts[1];
+            let pair_address = parts[2];
+            let key = parts[3];
+
+            match key {
+                "reserve0" => {
+                    field = Some(field!(
+                        "reserve_0".to_string(),
+                        String::from_utf8_lossy(delta.new_value.as_slice()),
+                        String::from_utf8_lossy(delta.old_value.as_slice())
+                    ))
+                }
+                "reserve1" => {
+                    field = Some(field!(
+                        "reserve_1".to_string(),
+                        String::from_utf8_lossy(delta.new_value.as_slice()),
+                        String::from_utf8_lossy(delta.old_value.as_slice())
+                    ))
+                }
+                _ => {}
+            }
+
+            if field.is_some() {
+                let pk = format!("{}-{}", pair_address, day);
+                changes.table_changes.push(TableChange {
+                    table: "pair_day_data".to_string(),
+                    pk: pk.to_string(),
+                    block_num: block.number,
+                    ordinal: delta.ordinal,
+                    operation: delta.operation,
+                    fields: vec![field.unwrap()],
+                })
+            }
+        }
+        "pair_hour" => {
+            if delta.operation == Operation::Delete as i32 {
+                return;
+            }
+
+            let hour = parts[1];
+            let pair_address = parts[2];
+            let key = parts[3];
+
+            match key {
+                "reserve0" => {
+                    field = Some(field!(
+                        "reserve_0".to_string(),
+                        String::from_utf8_lossy(delta.new_value.as_slice()),
+                        String::from_utf8_lossy(delta.old_value.as_slice())
+                    ))
+                }
+                "reserve1" => {
+                    field = Some(field!(
+                        "reserve_1".to_string(),
+                        String::from_utf8_lossy(delta.new_value.as_slice()),
+                        String::from_utf8_lossy(delta.old_value.as_slice())
+                    ))
+                }
+                _ => {}
+            }
+
+            if field.is_some() {
+                let pk = format!("{}-{}", pair_address, hour);
+                changes.table_changes.push(TableChange {
+                    table: "pair_hour_data".to_string(),
+                    pk: pk.to_string(),
+                    block_num: block.number,
+                    ordinal: delta.ordinal,
+                    operation: delta.operation,
+                    fields: vec![field.unwrap()],
+                })
+            }
+        }
+        "price" => {
+            let key = parts[2];
+
+            match key {
+                "token0" => {
+                    field = Some(field!(
+                        "token_0",
+                        String::from_utf8_lossy(delta.new_value.as_slice()),
+                        String::from_utf8_lossy(delta.old_value.as_slice())
+                    ));
+                }
+                "token1" => {
+                    field = Some(field!(
+                        "token_1",
+                        String::from_utf8_lossy(delta.new_value.as_slice()),
+                        String::from_utf8_lossy(delta.old_value.as_slice())
+                    ));
+                }
+                _ => {}
+            }
+
+            if field.is_some() {
+                let pk = parts[1];
+                changes.table_changes.push(TableChange {
+                    table: "pair".to_string(),
+                    pk: pk.to_string(),
+                    block_num: block.number,
+                    ordinal: delta.ordinal,
+                    operation: delta.operation,
+                    fields: vec![],
+                })
+            }
+        }
+        "reserve" => {}
+        _ => {}
+    }
 }
 
 fn handle_events(event: Event, changes: &mut DatabaseChanges, block: &Block) {
@@ -625,7 +760,7 @@ fn join_sort_deltas(
     token_deltas: StoreDeltas,
     total_deltas: StoreDeltas,
     volumes_deltas: StoreDeltas,
-    reserves: Reserves,
+    reserves_delta: StoreDeltas,
     events: Events,
 ) -> Vec<Item> {
     struct SortableItem {
@@ -663,10 +798,10 @@ fn join_sort_deltas(
         })
     }
 
-    for reserve in reserves.reserves {
+    for delta in reserves_delta.deltas {
         items.push(SortableItem {
-            ordinal: reserve.log_ordinal,
-            item: Item::Reserve(reserve),
+            ordinal: delta.log_ordinal,
+            item: Item::ReserveDelta(delta),
         })
     }
 
