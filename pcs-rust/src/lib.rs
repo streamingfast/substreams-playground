@@ -699,7 +699,7 @@ pub extern "C" fn build_volumes_state(
                     state_helper::sum_bigfloat_many(
                         event.log_ordinal,
                         &vec![
-                            format!("token:{}:liquidity_usd", mint.to),
+                            format!("token:{}:liquidity", mint.to),
                             format!("pair:{}:total_supply", event.pair_address),
                         ],
                         &BigDecimal::from_str(mint.liquidity.as_str()).unwrap(),
@@ -719,7 +719,7 @@ pub extern "C" fn build_volumes_state(
                     state_helper::sum_bigfloat_many(
                         event.log_ordinal,
                         &vec![
-                            format!("token:{}:liquidity_usd", burn.to),
+                            format!("token:{}:liquidity", burn.to),
                             format!("pair:{}:total_supply", event.pair_address),
                         ],
                         &BigDecimal::from_str(burn.liquidity.as_str()).unwrap().neg(),
@@ -744,8 +744,8 @@ pub extern "C" fn build_volumes_state(
                         event.log_ordinal,
                         &vec![
                             format!("pair:{}:usd", event.pair_address),
-                            format!("pair_day:{}:{}:usd", day_id, event.pair_address), //done
-                            format!("pair_hour:{}:{}:usd", hour_id, event.pair_address), //done
+                            format!("pair_day:{}:{}:usd", day_id, event.pair_address),
+                            format!("pair_hour:{}:{}:usd", hour_id, event.pair_address),
                             format!("token_day:{}:{}:usd", day_id, event.token0),
                             format!("token_day:{}:{}:usd", day_id, event.token1),
                             format!("global:usd"),
@@ -800,6 +800,8 @@ pub extern "C" fn build_volumes_state(
                         format!("token:{}:trade_usd", event.token1),
                         &BigDecimal::from_str(swap.trade_volume_usd1.as_str()).unwrap(),
                     );
+
+                    //todo: token[0,1]Day.dailyVolumeToken, tokenDay[0,1].dailyVolumeBnb ? what about these
                 }
             }
         }
