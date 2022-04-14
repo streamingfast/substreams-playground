@@ -8,7 +8,7 @@ require (
 	github.com/streamingfast/eth-go v0.0.0-20220405184903-d026e066f29d
 	github.com/streamingfast/jsonpb v0.0.0-20210811021341-3670f0aa02d0
 	github.com/streamingfast/logging v0.0.0-20220304214715-bc750a74b424
-	github.com/streamingfast/substreams v0.0.0-20220411171715-c658bf3d912d
+	github.com/streamingfast/substreams v0.0.0-20220411174348-7adc8bf531de
 	github.com/stretchr/testify v1.7.1-0.20210427113832-6241f9ab9942
 	go.uber.org/zap v1.21.0
 	google.golang.org/protobuf v1.27.1
