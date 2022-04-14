@@ -8,7 +8,7 @@ protoFiles:
 modules:
   - name: block_to_pairs
     kind: map
-    startblock: 6680000
+    startBlock: 6680000
     code:
       type: wasm/rust-v1
       file: ./pcs-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
@@ -20,7 +20,7 @@ modules:
 
   - name: pairs
     kind: store
-    startblock: 6680000
+    startBlock: 6680000
     updatePolicy: replace
     valueType: proto:pcs.types.v1.Pair
     code:
@@ -32,7 +32,7 @@ modules:
 
   - name: block_to_reserves
     kind: map
-    startblock: 6680000
+    startBlock: 6680000
     code:
       type: wasm/rust-v1
       file: ./pcs-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
@@ -53,7 +53,6 @@ modules:
       file: ./pcs-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
       entrypoint: build_reserves_state
     inputs:
-      - source: sf.ethereum.type.v1.Block
       - map: block_to_reserves
       - store: pairs
 
@@ -73,7 +72,7 @@ modules:
 
   - name: mint_burn_swaps_extractor
     kind: map
-    startblock: 6680000
+    startBlock: 6680000
     code:
       type: wasm/rust-v1
       file: ./pcs-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
@@ -113,7 +112,7 @@ modules:
 
   - name: block_to_tokens
     kind: map
-    startblock: 6680000
+    startBlock: 0
     code:
       type: wasm/rust-v1
       file: ./pcs-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
@@ -136,7 +135,7 @@ modules:
 
   - name: db_out
     kind: map
-    startblock: 6680000
+    startBlock: 6680000
     code:
       type: wasm/rust-v1
       file: ./pcs-rust/pkg/pcs_substreams_bg.wasm
