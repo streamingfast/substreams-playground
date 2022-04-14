@@ -2,13 +2,10 @@ package pcs
 
 import (
 	"bytes"
-	"fmt"
-	"math/big"
 
 	eth "github.com/streamingfast/eth-go"
 	pbcodec "github.com/streamingfast/substream-pancakeswap/pb/sf/ethereum/codec/v1"
 	imports "github.com/streamingfast/substreams/native-imports"
-	pbsubstreams "github.com/streamingfast/substreams/pb/sf/ethereum/substreams/v1"
 )
 
 type PairExtractor struct {
@@ -36,22 +33,22 @@ func (p *PairExtractor) Map(block *pbcodec.Block) (pairs *Pairs, err error) {
 				continue
 			}
 
-			erc20Token0, err := p.getToken(ev.Token0)
-			if err != nil {
-				return nil, err
-			}
-
-			erc20Token1, err := p.getToken(ev.Token1)
-			if err != nil {
-				return nil, err
-			}
+			//erc20Token0, err := p.getToken(ev.Token0)
+			//if err != nil {
+			//	return nil, err
+			//}
+			//
+			//erc20Token1, err := p.getToken(ev.Token1)
+			//if err != nil {
+			//	return nil, err
+			//}
 
 			ord := uint64(log.BlockIndex)
 
 			pairs.Pairs = append(pairs.Pairs, &Pair{
 				Address:               ev.Pair.Pretty(),
-				Erc20Token0:           erc20Token0,
-				Erc20Token1:           erc20Token1,
+				Token0Address:         ev.Token0.Pretty(),
+				Token1Address:         ev.Token1.Pretty(),
 				CreationTransactionId: eth.Hash(trx.Hash).Pretty(),
 				BlockNum:              block.Number,
 
@@ -72,63 +69,63 @@ var nameMethodSig = nameMethod.MethodID()
 var symbolMethod = eth.MustNewMethodDef("symbol() (string)")
 var symbolMethodSig = symbolMethod.MethodID()
 
-func (p *PairExtractor) getToken(addr eth.Address) (*ERC20Token, error) {
-	addrBytes := addr.Bytes()
-	calls := &pbsubstreams.RpcCalls{
-		Calls: []*pbsubstreams.RpcCall{
-			{
-				ToAddr:          addrBytes,
-				MethodSignature: decimalsMethodSig,
-			},
-			{
-				ToAddr:          addrBytes,
-				MethodSignature: nameMethodSig,
-			},
-			{
-				ToAddr:          addrBytes,
-				MethodSignature: symbolMethodSig,
-			},
-		},
-	}
-
-	resps := p.RPC(calls)
-
-	token := &ERC20Token{Address: addr.Pretty()}
-
-	decimalsResponse := resps.Responses[0]
-	if !decimalsResponse.Failed {
-		decoded, err := decimalsMethod.DecodeOutput(decimalsResponse.Raw)
-		if err != nil {
-			return nil, fmt.Errorf("decoding token decimals() response: %w", err)
-		}
-
-		token.Decimals = uint64(decoded[0].(*big.Int).Uint64())
-	}
-
-	nameResponse := resps.Responses[1]
-	if !nameResponse.Failed {
-		decoded, err := nameMethod.DecodeOutput(nameResponse.Raw)
-		if err != nil {
-			return nil, fmt.Errorf("decoding token name() response: %w", err)
-		}
-		token.Name = decoded[0].(string)
-	} else {
-		token.Name = "unknown"
-	}
-
-	symbolResponse := resps.Responses[2]
-	if !symbolResponse.Failed {
-		decoded, err := symbolMethod.DecodeOutput(symbolResponse.Raw)
-		if err != nil {
-			return nil, fmt.Errorf("decoding token symbol() response: %w", err)
-		}
-		token.Symbol = decoded[0].(string)
-	} else {
-		token.Symbol = "unknown"
-	}
-
-	return token, nil
-}
+//func (p *PairExtractor) getToken(addr eth.Address) (*ERC20Token, error) {
+//	addrBytes := addr.Bytes()
+//	calls := &pbsubstreams.RpcCalls{
+//		Calls: []*pbsubstreams.RpcCall{
+//			{
+//				ToAddr:          addrBytes,
+//				MethodSignature: decimalsMethodSig,
+//			},
+//			{
+//				ToAddr:          addrBytes,
+//				MethodSignature: nameMethodSig,
+//			},
+//			{
+//				ToAddr:          addrBytes,
+//				MethodSignature: symbolMethodSig,
+//			},
+//		},
+//	}
+//
+//	resps := p.RPC(calls)
+//
+//	token := &ERC20Token{Address: addr.Pretty()}
+//
+//	decimalsResponse := resps.Responses[0]
+//	if !decimalsResponse.Failed {
+//		decoded, err := decimalsMethod.DecodeOutput(decimalsResponse.Raw)
+//		if err != nil {
+//			return nil, fmt.Errorf("decoding token decimals() response: %w", err)
+//		}
+//
+//		token.Decimals = uint64(decoded[0].(*big.Int).Uint64())
+//	}
+//
+//	nameResponse := resps.Responses[1]
+//	if !nameResponse.Failed {
+//		decoded, err := nameMethod.DecodeOutput(nameResponse.Raw)
+//		if err != nil {
+//			return nil, fmt.Errorf("decoding token name() response: %w", err)
+//		}
+//		token.Name = decoded[0].(string)
+//	} else {
+//		token.Name = "unknown"
+//	}
+//
+//	symbolResponse := resps.Responses[2]
+//	if !symbolResponse.Failed {
+//		decoded, err := symbolMethod.DecodeOutput(symbolResponse.Raw)
+//		if err != nil {
+//			return nil, fmt.Errorf("decoding token symbol() response: %w", err)
+//		}
+//		token.Symbol = decoded[0].(string)
+//	} else {
+//		token.Symbol = "unknown"
+//	}
+//
+//	return token, nil
+//}
 
 func ssCodecLogToEthLog(l *pbcodec.Log) *eth.Log {
 	return &eth.Log{
