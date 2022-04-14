@@ -5,10 +5,10 @@ go 1.17
 require (
 	github.com/golang/protobuf v1.5.2
 	github.com/streamingfast/bstream v0.0.2-0.20220330132237-248bc2d8ea7e
-	github.com/streamingfast/eth-go v0.0.0-20220405184903-d026e066f29d
+	github.com/streamingfast/eth-go v0.0.0-20220412135558-30a3403b6c8f
 	github.com/streamingfast/jsonpb v0.0.0-20210811021341-3670f0aa02d0
 	github.com/streamingfast/logging v0.0.0-20220304214715-bc750a74b424
-	github.com/streamingfast/substreams v0.0.0-20220411174348-7adc8bf531de
+	github.com/streamingfast/substreams v0.0.0-20220413205310-a8bd20caa6cc
 	github.com/stretchr/testify v1.7.1-0.20210427113832-6241f9ab9942
 	go.uber.org/zap v1.21.0
 	google.golang.org/protobuf v1.27.1
@@ -34,6 +34,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1 // indirect
+	github.com/drone/envsubst v1.0.2 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/go-cmp v0.5.7 // indirect
@@ -42,8 +43,13 @@ require (
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
+	github.com/iancoleman/strcase v0.2.0 // indirect
+	github.com/jhump/protoreflect v1.12.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
+	github.com/jmoiron/sqlx v1.3.4 // indirect
+	github.com/jszwec/csvutil v1.6.0 // indirect
 	github.com/klauspost/compress v1.10.2 // indirect
+	github.com/lib/pq v1.10.5 // indirect
 	github.com/logrusorgru/aurora v2.0.3+incompatible // indirect
 	github.com/mattn/go-ieproxy v0.0.1 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
@@ -66,6 +72,8 @@ require (
 	github.com/tidwall/gjson v1.6.5 // indirect
 	github.com/tidwall/match v1.0.3 // indirect
 	github.com/tidwall/pretty v1.0.2 // indirect
+	github.com/wasmerio/wasmer-go v1.0.4 // indirect
+	github.com/yourbasic/graph v0.0.0-20210606180040-8ecfec1c2869 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
