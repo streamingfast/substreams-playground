@@ -4,11 +4,12 @@ description: Test WASM substream
 protoFiles:
   - ./proto/pcs.proto
   - ./proto/tokens.proto
+  - /Users/eduardvoiculescu/git/streamingFast/substreams/proto/sf/substreams/v1/substreams.proto
 
 modules:
   - name: block_to_pairs
     kind: map
-    startBlock: 6680000
+    startBlock: 6810706
     code:
       type: wasm/rust-v1
       file: ./pcs-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
@@ -53,6 +54,7 @@ modules:
       file: ./pcs-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
       entrypoint: build_reserves_state
     inputs:
+      - source: sf.ethereum.type.v1.Block
       - map: block_to_reserves
       - store: pairs
 
@@ -83,10 +85,11 @@ modules:
       - store: prices
       - store: tokens
     output:
-      type: proto:pcs.types.v1.MintBurnSwaps
+      type: proto:pcs.types.v1.Events
 
   - name: totals
     kind: store
+    startBlock: 6810706
     updatePolicy: sum
     valueType: int64
     code:
@@ -124,6 +127,7 @@ modules:
 
   - name: tokens
     kind: store
+    startBlock: 6810706
     updatePolicy: replace
     valueType: bytes
     code:
@@ -132,6 +136,19 @@ modules:
       entrypoint: build_tokens_state
     inputs:
       - map: block_to_tokens
+
+  - name: build_pcs_token_state
+    kind: store
+    startBlock: 6810706
+    updatePolicy: replace
+    valueType: bytes
+    code:
+      type: wasm/rust-v1
+      file: ./pcs-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
+      entrypoint: build_pcs_token_state
+    inputs:
+      - map: block_to_pairs
+      - store: tokens
 
   - name: db_out
     kind: map

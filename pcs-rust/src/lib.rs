@@ -12,6 +12,7 @@ use eth::{address_pretty, decode_string, decode_uint32};
 use crate::event::pcs_event::Event;
 use crate::event::{PcsEvent, Wrapper};
 use crate::pb::pcs;
+use crate::pb::tokens::Token;
 use crate::pcs::event::Type;
 use crate::utils::zero_big_decimal;
 
@@ -73,17 +74,6 @@ pub extern "C" fn build_pairs_state(pairs_ptr: *mut u8, pairs_len: usize) {
             format!("pair:{}", pair.address),
             &proto::encode(&pair).unwrap(),
         );
-        state::set(
-            pair.log_ordinal as i64,
-            format!(
-                "tokens:{}",
-                utils::generate_tokens_key(
-                    pair.token0_address.as_str(),
-                    pair.token1_address.as_str(),
-                )
-            ),
-            &Vec::from(pair.address),
-        )
     }
 }
 
@@ -113,7 +103,7 @@ pub extern "C" fn map_reserves(
                     }
 
                     // Unmarshall pair
-                    let pair: pb::pcs::Pair = proto::decode(pair_bytes).unwrap();
+                    let pair: pb::pcs::Pair = proto::decode(&pair_bytes).unwrap();
 
                     // reserve
                     let token0: pb::tokens::Token =
@@ -174,7 +164,7 @@ pub extern "C" fn build_reserves_state(
         match state::get_last(pairs_store_idx, &format!("pair:{}", reserve.pair_address)) {
             None => continue,
             Some(pair_bytes) => {
-                let pair: pb::pcs::Pair = proto::decode(pair_bytes).unwrap();
+                let pair: pb::pcs::Pair = proto::decode(&pair_bytes).unwrap();
 
                 state::set(
                     reserve.log_ordinal as i64,
@@ -247,7 +237,7 @@ pub extern "C" fn build_prices_state(
         match state::get_last(pairs_store_idx, &format!("pair:{}", reserve.pair_address)) {
             None => continue,
             Some(pair_bytes) => {
-                let pair: pb::pcs::Pair = proto::decode(pair_bytes).unwrap();
+                let pair: pb::pcs::Pair = proto::decode(&pair_bytes).unwrap();
 
                 let latest_usd_price: BigDecimal =
                     utils::compute_usd_price(&reserve, reserves_store_idx);
@@ -404,7 +394,7 @@ pub extern "C" fn map_mint_burn_swaps(
             let pair: pcs::Pair;
             match state::get_last(pairs_store_idx, &format!("pair:{}", pair_addr)) {
                 None => continue,
-                Some(pair_bytes) => pair = proto::decode(pair_bytes).unwrap(),
+                Some(pair_bytes) => pair = proto::decode(&pair_bytes).unwrap(),
             }
 
             let mut pcs_events: Vec<PcsEvent> = Vec::new();
@@ -429,6 +419,7 @@ pub extern "C" fn map_mint_burn_swaps(
                     .seconds as u64,
                 r#type: None,
             };
+
             if pcs_events.len() == 4 {
                 let ev_tr1 = match pcs_events[0].event.as_ref().unwrap() {
                     Event::PairTransferEvent(pair_transfer_event) => Some(pair_transfer_event),
@@ -625,9 +616,7 @@ pub extern "C" fn build_totals_state(
 
                         state_helper::sum_int64_many(
                             event.log_ordinal,
-                            &vec![
-                                format!("pair:{}:swap_count", event.pair_address),
-                            ],
+                            &vec![format!("pair:{}:swap_count", event.pair_address)],
                             1,
                         );
 
@@ -856,7 +845,7 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
                 let rpc_responses_marshalled: Vec<u8> =
                     substreams::rpc::eth_call(substreams::proto::encode(&rpc_calls).unwrap());
                 let rpc_responses_unmarshalled: substreams::pb::eth::RpcResponses =
-                    substreams::proto::decode(rpc_responses_marshalled).unwrap();
+                    substreams::proto::decode(&rpc_responses_marshalled).unwrap();
 
                 if rpc_responses_unmarshalled.responses[0].failed
                     || rpc_responses_unmarshalled.responses[1].failed
@@ -917,6 +906,37 @@ pub extern "C" fn build_tokens_state(tokens_ptr: *mut u8, tokens_len: usize) {
     for token in tokens.tokens {
         let key = format!("token:{}", token.address);
         state::set(1, key, &proto::encode(&token).unwrap()); //todo: what about the log ordinal
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn build_pcs_token_state(pairs_ptr: *mut u8, pairs_len: usize, tokens_idx: u32) {
+    substreams::register_panic_hook();
+
+    log::println(format!("tokens_idx: {}", tokens_idx));
+
+    let pairs: pb::pcs::Pairs = proto::decode_ptr(pairs_ptr, pairs_len).unwrap();
+
+    for pair in pairs.pairs {
+        let token0: Token = proto::decode(
+            &state::get_last(tokens_idx, &format!("token:{}", pair.token0_address)).unwrap(),
+        )
+        .unwrap();
+        let token1: Token = proto::decode(
+            &state::get_last(tokens_idx, &format!("token:{}", pair.token1_address)).unwrap(),
+        )
+        .unwrap();
+
+        state::set_if_not_exists(
+            pair.log_ordinal as i64,
+            format!("token:{}", token0.address),
+            &proto::encode(&token0).unwrap(),
+        );
+        state::set_if_not_exists(
+            pair.log_ordinal as i64,
+            format!("token:{}", token1.address),
+            &proto::encode(&token1).unwrap(),
+        );
     }
 }
 
