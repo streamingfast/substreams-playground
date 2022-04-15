@@ -237,7 +237,7 @@ pub fn get_ordinal(all: &Wrapper) -> i64 {
 }
 
 pub fn get_last_token(tokens_store_idx: u32, token_address: &str) -> pb::tokens::Token {
-    proto::decode(state::get_last(tokens_store_idx, &format!("token:{}", token_address)).unwrap())
+    proto::decode(&state::get_last(tokens_store_idx, &format!("token:{}", token_address)).unwrap())
         .unwrap()
 }
 
