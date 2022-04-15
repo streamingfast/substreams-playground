@@ -1,10 +1,10 @@
-use std::process::exit;
+use std::error::Error;
 use std::string::String;
 
 use bigdecimal::BigDecimal;
 use substreams::pb::substreams::{
-    store_delta, table_change::Operation, DatabaseChanges, Field, StoreDelta, StoreDeltas,
-    TableChange,
+    store_delta, table_change, table_change::Operation, DatabaseChanges, Field, StoreDelta,
+    StoreDeltas, TableChange,
 };
 use substreams::{log, proto};
 
@@ -14,9 +14,9 @@ use crate::{
     field, field_create_string, field_from_strings, pb, pcs, proto_decode_to_string, utils, Type,
 };
 
-const PANCAKE_FACTORY: &str = "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73";
+const PANCAKE_FACTORY: &str = "ca143ce32fe78f1f7019d7d551a6402fc5350c73";
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 enum Item {
     PairDelta(StoreDelta),
     TokenDelta(StoreDelta),
@@ -77,7 +77,7 @@ fn handle_pair_delta(
         return;
     }
 
-    let pair: pcs::Pair = proto::decode(delta.new_value).unwrap();
+    let pair: pcs::Pair = proto::decode(&delta.new_value).unwrap();
 
     let token0 = utils::get_last_token(tokens_idx, pair.token0_address.as_str());
     let token1 = utils::get_last_token(tokens_idx, pair.token1_address.as_str());
@@ -87,7 +87,7 @@ fn handle_pair_delta(
         pk: pair.address.clone(),
         block_num: block.number,
         ordinal: delta.ordinal,
-        operation: delta.operation,
+        operation: convert_store_operation(&delta),
         fields: vec![
             field!("id", pair.address.clone(), ""),
             field!("name", format!("{}-{}", token0.symbol, token1.symbol), ""),
@@ -102,14 +102,14 @@ fn handle_token_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &
         return;
     }
 
-    let token: pb::tokens::Token = proto::decode(delta.new_value).unwrap();
+    let token: pb::tokens::Token = proto::decode(&delta.new_value).unwrap();
 
     changes.table_changes.push(TableChange {
         table: "token".to_string(),
         pk: token.address.clone(),
         block_num: block.number,
         ordinal: delta.ordinal,
-        operation: delta.operation,
+        operation: convert_store_operation(&delta),
         fields: vec![
             field!("id", token.address, ""),
             field!("name", token.name, ""),
@@ -181,9 +181,9 @@ fn handle_total_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &
     changes.table_changes.push(TableChange {
         block_num: block.number,
         ordinal: delta.ordinal,
-        operation: delta.operation as i32,
+        operation: convert_store_operation(&delta),
         table: table.to_string(),
-        pk: table.to_string(),
+        pk: pk.to_string(),
         fields,
     })
 }
@@ -319,8 +319,8 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: 
 
     changes.table_changes.push(TableChange {
         block_num: block.number,
-        ordinal: delta.ordinal.clone(), // fixme: fix this clone
-        operation: delta.operation.clone() as i32, // fixme: fix this clone
+        ordinal: delta.ordinal,
+        operation: convert_store_operation(&delta),
         table: table.to_string(),
         pk: pk.to_string(),
         fields,
@@ -406,7 +406,7 @@ fn handle_reserves_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block
         pk: pk.to_string(),
         block_num: block.number,
         ordinal: delta.ordinal,
-        operation: delta.operation,
+        operation: convert_store_operation(&delta),
         fields,
     })
 }
@@ -528,7 +528,7 @@ fn join_sort_deltas(
     for delta in total_deltas.deltas {
         items.push(SortableItem {
             ordinal: delta.ordinal,
-            item: Item::TokenDelta(delta),
+            item: Item::TotalDelta(delta),
         })
     }
 
@@ -555,4 +555,15 @@ fn join_sort_deltas(
 
     items.sort_by(|a, b| a.ordinal.cmp(&b.ordinal));
     return items.iter().map(|item| item.item.clone()).collect();
+}
+
+fn convert_store_operation(delta: &StoreDelta) -> i32 {
+    let operation = match delta.operation {
+        op if op == store_delta::Operation::Create as i32 => Some(table_change::Operation::Create),
+        op if op == store_delta::Operation::Update as i32 => Some(table_change::Operation::Update),
+        op if op == store_delta::Operation::Delete as i32 => Some(table_change::Operation::Delete),
+        _ => None,
+    };
+
+    return operation.unwrap() as i32;
 }
