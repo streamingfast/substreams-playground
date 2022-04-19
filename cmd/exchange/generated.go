@@ -8,7 +8,7 @@ import (
 	"math/big"
 
 	eth "github.com/streamingfast/eth-go"
-	pbcodec "github.com/streamingfast/substream-pancakeswap/pb/sf/ethereum/codec/v1"
+	pbcodec "github.com/streamingfast/sf-ethereum/pb/sf/ethereum/codec/v1"
 	graphnode "github.com/streamingfast/substreams/graph-node"
 	"github.com/streamingfast/substreams/graph-node/subgraph"
 )
@@ -1109,7 +1109,7 @@ type TokenDayData @entity {
 	},
 	New: func(base subgraph.Base) subgraph.Subgraph {
 		return &Subgraph{
-			Base:               base,
+			Base: base,
 		}
 	},
 }
@@ -1154,7 +1154,15 @@ func NewPancakeFactory(id string) *PancakeFactory {
 		TotalLiquidityBNB:  FL(0),
 	}
 }
-
+func (f *PancakeFactory) Default() {
+	f.TotalPairs = IL(0)
+	f.TotalTransactions = IL(0)
+	f.TotalVolumeUSD = FL(0)
+	f.TotalVolumeBNB = FL(0)
+	f.UntrackedVolumeUSD = FL(0)
+	f.TotalLiquidityUSD = FL(0)
+	f.TotalLiquidityBNB = FL(0)
+}
 func (_ *PancakeFactory) SkipDBLookup() bool {
 	return false
 }
@@ -1188,6 +1196,9 @@ func NewBundle(id string) *Bundle {
 		BnbPrice: FL(0),
 	}
 }
+func (b *Bundle) Default() {
+	b.BnbPrice = FL(0)
+}
 
 func (_ *Bundle) SkipDBLookup() bool {
 	return false
@@ -1203,8 +1214,8 @@ func (next *Bundle) Merge(step int, cached *Bundle) {
 // Token
 type Token struct {
 	graphnode.Base
-	Name               string        `db:"name" csv:"name"`
-	Symbol             string        `db:"symbol" csv:"symbol"`
+	Name               string           `db:"name" csv:"name"`
+	Symbol             string           `db:"symbol" csv:"symbol"`
 	Decimals           graphnode.Int    `db:"decimals" csv:"decimals"`
 	TradeVolume        graphnode.Float  `db:"trade_volume" csv:"trade_volume"`
 	TradeVolumeUSD     graphnode.Float  `db:"trade_volume_usd" csv:"trade_volume_usd"`
@@ -1225,6 +1236,16 @@ func NewToken(id string) *Token {
 		TotalTransactions:  IL(0),
 		TotalLiquidity:     FL(0),
 	}
+}
+
+func (t *Token) Default() {
+	t.Decimals = IL(0)
+	t.TradeVolume = FL(0)
+	t.TradeVolumeUSD = FL(0)
+	t.UntrackedVolumeUSD = FL(0)
+	t.TotalTransactions = IL(0)
+	t.TotalLiquidity = FL(0)
+
 }
 
 func (_ *Token) SkipDBLookup() bool {
@@ -1258,9 +1279,9 @@ func (next *Token) Merge(step int, cached *Token) {
 // Pair
 type Pair struct {
 	graphnode.Base
-	Name               string       `db:"name" csv:"name"`
-	Token0             string       `db:"token_0" csv:"token_0"`
-	Token1             string       `db:"token_1" csv:"token_1"`
+	Name               string          `db:"name" csv:"name"`
+	Token0             string          `db:"token_0" csv:"token_0"`
+	Token1             string          `db:"token_1" csv:"token_1"`
 	Reserve0           graphnode.Float `db:"reserve_0" csv:"reserve_0"`
 	Reserve1           graphnode.Float `db:"reserve_1" csv:"reserve_1"`
 	TotalSupply        graphnode.Float `db:"total_supply" csv:"total_supply"`
@@ -1297,6 +1318,24 @@ func NewPair(id string) *Pair {
 		Block:              IL(0),
 		Timestamp:          IL(0),
 	}
+}
+
+func (p *Pair) Default() {
+	p.Reserve0 = FL(0)
+	p.Reserve1 = FL(0)
+	p.TotalSupply = FL(0)
+	p.ReserveBNB = FL(0)
+	p.ReserveUSD = FL(0)
+	p.TrackedReserveBNB = FL(0)
+	p.Token0Price = FL(0)
+	p.Token1Price = FL(0)
+	p.VolumeToken0 = FL(0)
+	p.VolumeToken1 = FL(0)
+	p.VolumeUSD = FL(0)
+	p.UntrackedVolumeUSD = FL(0)
+	p.TotalTransactions = IL(0)
+	p.Block = IL(0)
+	p.Timestamp = IL(0)
 }
 
 func (_ *Pair) SkipDBLookup() bool {
@@ -1355,7 +1394,10 @@ func NewTransaction(id string) *Transaction {
 		Timestamp: IL(0),
 	}
 }
-
+func (t *Transaction) Default() {
+	t.Block = IL(0)
+	t.Timestamp = IL(0)
+}
 func (_ *Transaction) SkipDBLookup() bool {
 	return true
 }
@@ -1371,19 +1413,19 @@ func (next *Transaction) Merge(step int, cached *Transaction) {
 // Mint
 type Mint struct {
 	graphnode.Base
-	Transaction  string        `db:"transaction" csv:"transaction"`
+	Transaction  string           `db:"transaction" csv:"transaction"`
 	Timestamp    graphnode.Int    `db:"timestamp" csv:"timestamp"`
-	Pair         string        `db:"pair" csv:"pair"`
-	Token0       string        `db:"token_0" csv:"token_0"`
-	Token1       string        `db:"token_1" csv:"token_1"`
-	To           string        `db:"to" csv:"to"`
+	Pair         string           `db:"pair" csv:"pair"`
+	Token0       string           `db:"token_0" csv:"token_0"`
+	Token1       string           `db:"token_1" csv:"token_1"`
+	To           string           `db:"to" csv:"to"`
 	Liquidity    graphnode.Float  `db:"liquidity" csv:"liquidity"`
-	Sender       *string       `db:"sender,nullable" csv:"sender"`
+	Sender       *string          `db:"sender,nullable" csv:"sender"`
 	Amount0      *graphnode.Float `db:"amount_0,nullable" csv:"amount_0"`
 	Amount1      *graphnode.Float `db:"amount_1,nullable" csv:"amount_1"`
 	LogIndex     *graphnode.Int   `db:"log_index,nullable" csv:"log_index"`
 	AmountUSD    *graphnode.Float `db:"amount_usd,nullable" csv:"amount_usd"`
-	FeeTo        *string       `db:"fee_to,nullable" csv:"fee_to"`
+	FeeTo        *string          `db:"fee_to,nullable" csv:"fee_to"`
 	FeeLiquidity *graphnode.Float `db:"fee_liquidity,nullable" csv:"fee_liquidity"`
 }
 
@@ -1393,6 +1435,11 @@ func NewMint(id string) *Mint {
 		Timestamp: IL(0),
 		Liquidity: FL(0),
 	}
+}
+
+func (m *Mint) Default() {
+	m.Timestamp = IL(0)
+	m.Liquidity = FL(0)
 }
 
 func (_ *Mint) SkipDBLookup() bool {
@@ -1422,20 +1469,20 @@ func (next *Mint) Merge(step int, cached *Mint) {
 // Burn
 type Burn struct {
 	graphnode.Base
-	Transaction   string        `db:"transaction" csv:"transaction"`
+	Transaction   string           `db:"transaction" csv:"transaction"`
 	Timestamp     graphnode.Int    `db:"timestamp" csv:"timestamp"`
-	Pair          string        `db:"pair" csv:"pair"`
-	Token0        string        `db:"token_0" csv:"token_0"`
-	Token1        string        `db:"token_1" csv:"token_1"`
+	Pair          string           `db:"pair" csv:"pair"`
+	Token0        string           `db:"token_0" csv:"token_0"`
+	Token1        string           `db:"token_1" csv:"token_1"`
 	Liquidity     graphnode.Float  `db:"liquidity" csv:"liquidity"`
-	Sender        *string       `db:"sender,nullable" csv:"sender"`
+	Sender        *string          `db:"sender,nullable" csv:"sender"`
 	Amount0       *graphnode.Float `db:"amount_0,nullable" csv:"amount_0"`
 	Amount1       *graphnode.Float `db:"amount_1,nullable" csv:"amount_1"`
-	To            *string       `db:"to,nullable" csv:"to"`
+	To            *string          `db:"to,nullable" csv:"to"`
 	LogIndex      *graphnode.Int   `db:"log_index,nullable" csv:"log_index"`
 	AmountUSD     *graphnode.Float `db:"amount_usd,nullable" csv:"amount_usd"`
 	NeedsComplete graphnode.Bool   `db:"needs_complete" csv:"needs_complete"`
-	FeeTo         *string       `db:"fee_to,nullable" csv:"fee_to"`
+	FeeTo         *string          `db:"fee_to,nullable" csv:"fee_to"`
 	FeeLiquidity  *graphnode.Float `db:"fee_liquidity,nullable" csv:"fee_liquidity"`
 }
 
@@ -1445,6 +1492,11 @@ func NewBurn(id string) *Burn {
 		Timestamp: IL(0),
 		Liquidity: FL(0),
 	}
+}
+
+func (b *Burn) Default() {
+	b.Timestamp = IL(0)
+	b.Liquidity = FL(0)
 }
 
 func (_ *Burn) SkipDBLookup() bool {
@@ -1475,18 +1527,18 @@ func (next *Burn) Merge(step int, cached *Burn) {
 // Swap
 type Swap struct {
 	graphnode.Base
-	Transaction string       `db:"transaction" csv:"transaction"`
+	Transaction string          `db:"transaction" csv:"transaction"`
 	Timestamp   graphnode.Int   `db:"timestamp" csv:"timestamp"`
-	Pair        string       `db:"pair" csv:"pair"`
-	Token0      string       `db:"token_0" csv:"token_0"`
-	Token1      string       `db:"token_1" csv:"token_1"`
-	Sender      string       `db:"sender" csv:"sender"`
-	From        string       `db:"from" csv:"from"`
+	Pair        string          `db:"pair" csv:"pair"`
+	Token0      string          `db:"token_0" csv:"token_0"`
+	Token1      string          `db:"token_1" csv:"token_1"`
+	Sender      string          `db:"sender" csv:"sender"`
+	From        string          `db:"from" csv:"from"`
 	Amount0In   graphnode.Float `db:"amount_0_in" csv:"amount_0_in"`
 	Amount1In   graphnode.Float `db:"amount_1_in" csv:"amount_1_in"`
 	Amount0Out  graphnode.Float `db:"amount_0_out" csv:"amount_0_out"`
 	Amount1Out  graphnode.Float `db:"amount_1_out" csv:"amount_1_out"`
-	To          string       `db:"to" csv:"to"`
+	To          string          `db:"to" csv:"to"`
 	LogIndex    *graphnode.Int  `db:"log_index,nullable" csv:"log_index"`
 	AmountUSD   graphnode.Float `db:"amount_usd" csv:"amount_usd"`
 }
@@ -1501,6 +1553,14 @@ func NewSwap(id string) *Swap {
 		Amount1Out: FL(0),
 		AmountUSD:  FL(0),
 	}
+}
+func (s *Swap) Default() {
+	s.Timestamp = IL(0)
+	s.Amount0In = FL(0)
+	s.Amount1In = FL(0)
+	s.Amount0Out = FL(0)
+	s.Amount1Out = FL(0)
+	s.AmountUSD = FL(0)
 }
 
 func (_ *Swap) SkipDBLookup() bool {
@@ -1530,7 +1590,7 @@ func (next *Swap) Merge(step int, cached *Swap) {
 // PancakeDayData
 type PancakeDayData struct {
 	graphnode.Base
-	Date                 int64        `db:"date" csv:"date"`
+	Date                 int64           `db:"date" csv:"date"`
 	DailyVolumeBNB       graphnode.Float `db:"daily_volume_bnb" csv:"daily_volume_bnb"`
 	DailyVolumeUSD       graphnode.Float `db:"daily_volume_usd" csv:"daily_volume_usd"`
 	DailyVolumeUntracked graphnode.Float `db:"daily_volume_untracked" csv:"daily_volume_untracked"`
@@ -1555,6 +1615,18 @@ func NewPancakeDayData(id string) *PancakeDayData {
 	}
 }
 
+func (d *PancakeDayData) Default() {
+	d.DailyVolumeBNB = FL(0)
+	d.DailyVolumeUSD = FL(0)
+	d.DailyVolumeUntracked = FL(0)
+	d.TotalVolumeBNB = FL(0)
+	d.TotalLiquidityBNB = FL(0)
+	d.TotalVolumeUSD = FL(0)
+	d.TotalLiquidityUSD = FL(0)
+	d.TotalTransactions = IL(0)
+
+}
+
 func (_ *PancakeDayData) SkipDBLookup() bool {
 	return false
 }
@@ -1577,8 +1649,8 @@ func (next *PancakeDayData) Merge(step int, cached *PancakeDayData) {
 // PairHourData
 type PairHourData struct {
 	graphnode.Base
-	HourStartUnix      int64        `db:"hour_start_unix" csv:"hour_start_unix"`
-	Pair               string       `db:"pair" csv:"pair"`
+	HourStartUnix      int64           `db:"hour_start_unix" csv:"hour_start_unix"`
+	Pair               string          `db:"pair" csv:"pair"`
 	Reserve0           graphnode.Float `db:"reserve_0" csv:"reserve_0"`
 	Reserve1           graphnode.Float `db:"reserve_1" csv:"reserve_1"`
 	TotalSupply        graphnode.Float `db:"total_supply" csv:"total_supply"`
@@ -1603,6 +1675,18 @@ func NewPairHourData(id string) *PairHourData {
 	}
 }
 
+func (d *PairHourData) Default() {
+	d.Reserve0 = FL(0)
+	d.Reserve1 = FL(0)
+	d.TotalSupply = FL(0)
+	d.ReserveUSD = FL(0)
+	d.HourlyVolumeToken0 = FL(0)
+	d.HourlyVolumeToken1 = FL(0)
+	d.HourlyVolumeUSD = FL(0)
+	d.HourlyTxns = IL(0)
+
+}
+
 func (_ *PairHourData) SkipDBLookup() bool {
 	return false
 }
@@ -1625,10 +1709,10 @@ func (next *PairHourData) Merge(step int, cached *PairHourData) {
 // PairDayData
 type PairDayData struct {
 	graphnode.Base
-	Date              int64        `db:"date" csv:"date"`
-	PairAddress       string       `db:"pair_address" csv:"pair_address"`
-	Token0            string       `db:"token_0" csv:"token_0"`
-	Token1            string       `db:"token_1" csv:"token_1"`
+	Date              int64           `db:"date" csv:"date"`
+	PairAddress       string          `db:"pair_address" csv:"pair_address"`
+	Token0            string          `db:"token_0" csv:"token_0"`
+	Token1            string          `db:"token_1" csv:"token_1"`
 	Reserve0          graphnode.Float `db:"reserve_0" csv:"reserve_0"`
 	Reserve1          graphnode.Float `db:"reserve_1" csv:"reserve_1"`
 	TotalSupply       graphnode.Float `db:"total_supply" csv:"total_supply"`
@@ -1651,6 +1735,18 @@ func NewPairDayData(id string) *PairDayData {
 		DailyVolumeUSD:    FL(0),
 		DailyTxns:         IL(0),
 	}
+}
+
+func (d *PairDayData) Default() {
+	d.Reserve0 = FL(0)
+	d.Reserve1 = FL(0)
+	d.TotalSupply = FL(0)
+	d.ReserveUSD = FL(0)
+	d.DailyVolumeToken0 = FL(0)
+	d.DailyVolumeToken1 = FL(0)
+	d.DailyVolumeUSD = FL(0)
+	d.DailyTxns = IL(0)
+
 }
 
 func (_ *PairDayData) SkipDBLookup() bool {
@@ -1678,8 +1774,8 @@ func (next *PairDayData) Merge(step int, cached *PairDayData) {
 // TokenDayData
 type TokenDayData struct {
 	graphnode.Base
-	Date                int64        `db:"date" csv:"date"`
-	Token               string       `db:"token" csv:"token"`
+	Date                int64           `db:"date" csv:"date"`
+	Token               string          `db:"token" csv:"token"`
 	DailyVolumeToken    graphnode.Float `db:"daily_volume_token" csv:"daily_volume_token"`
 	DailyVolumeBNB      graphnode.Float `db:"daily_volume_bnb" csv:"daily_volume_bnb"`
 	DailyVolumeUSD      graphnode.Float `db:"daily_volume_usd" csv:"daily_volume_usd"`
@@ -1704,6 +1800,18 @@ func NewTokenDayData(id string) *TokenDayData {
 	}
 }
 
+func (d *TokenDayData) Default() {
+	d.DailyVolumeToken = FL(0)
+	d.DailyVolumeBNB = FL(0)
+	d.DailyVolumeUSD = FL(0)
+	d.DailyTxns = IL(0)
+	d.TotalLiquidityToken = FL(0)
+	d.TotalLiquidityBNB = FL(0)
+	d.TotalLiquidityUSD = FL(0)
+	d.PriceUSD = FL(0)
+
+}
+
 func (_ *TokenDayData) SkipDBLookup() bool {
 	return false
 }
@@ -1724,7 +1832,6 @@ func (next *TokenDayData) Merge(step int, cached *TokenDayData) {
 	}
 }
 
-
 func codecLogToEthLog(l *pbcodec.Log, idx uint32) *eth.Log {
 	return &eth.Log{
 		Address:    l.Address,
@@ -1734,7 +1841,6 @@ func codecLogToEthLog(l *pbcodec.Log, idx uint32) *eth.Log {
 		BlockIndex: idx,
 	}
 }
-
 
 type DDL struct {
 	createTables map[string]string

@@ -111,7 +111,7 @@ func (l *Loader) Flush(cursor string, blockNum uint64, blockID string, blockTime
 }
 
 func (l *Loader) ReturnHandler(output *pbsubstreams.Output, step bstream.StepType, cursor *bstream.Cursor) error {
-	var databaseChanges *pbsubstreams.DatabaseChanges
+	databaseChanges := &pbsubstreams.DatabaseChanges{}
 
 	l.current = make(map[string]map[string]graphnode.Entity)
 	l.updates = make(map[string]map[string]graphnode.Entity)
@@ -133,10 +133,13 @@ func (l *Loader) ReturnHandler(output *pbsubstreams.Output, step bstream.StepTyp
 		if !ok {
 			return fmt.Errorf("unknown entity for table %s", change.Table)
 		}
-
+		ent.SetID(change.Pk)
 		err = l.load(ent, output.BlockNum)
 		if err != nil {
-			return fmt.Errorf("loading entity %w", err)
+			return fmt.Errorf("loading entity: %w", err)
+		}
+		if !ent.Exists() {
+			ent.Default()
 		}
 
 		err := graphnode.ApplyTableChange(change, ent)

@@ -1,3 +1,0 @@
-generate.sh - Thu  3 Mar 2022 00:05:47 EST - abourget
-streamingfast/proto revision: a63a401e156bc2b2487146adf2ce53945a9b2e91
-streamingfast/proto-ethereum revision: ede1f59fa2a0fb9bf47b61e23019b873b89c144a

@@ -4,10 +4,12 @@ go 1.17
 
 require (
 	github.com/golang/protobuf v1.5.2
-	github.com/streamingfast/bstream v0.0.2-0.20220330132237-248bc2d8ea7e
+	github.com/streamingfast/bstream v0.0.2-0.20220418185022-87972b944a53
 	github.com/streamingfast/eth-go v0.0.0-20220412135558-30a3403b6c8f
 	github.com/streamingfast/jsonpb v0.0.0-20210811021341-3670f0aa02d0
-	github.com/streamingfast/logging v0.0.0-20220304214715-bc750a74b424
+	github.com/streamingfast/logging v0.0.0-20220405224725-2755dab2ce75
+	github.com/streamingfast/sf-ethereum v0.10.3-0.20220418185120-af48875b0cd5
+	github.com/streamingfast/sf-ethereum/pb v0.0.0-20220418185120-af48875b0cd5
 	github.com/streamingfast/substreams v0.0.0-20220413205310-a8bd20caa6cc
 	github.com/stretchr/testify v1.7.1-0.20210427113832-6241f9ab9942
 	go.uber.org/zap v1.21.0
@@ -16,7 +18,7 @@ require (
 
 require (
 	cloud.google.com/go v0.100.2 // indirect
-	cloud.google.com/go/compute v1.3.0 // indirect
+	cloud.google.com/go/compute v1.5.0 // indirect
 	cloud.google.com/go/iam v0.3.0 // indirect
 	cloud.google.com/go/monitoring v1.4.0 // indirect
 	cloud.google.com/go/storage v1.21.0 // indirect
@@ -62,32 +64,32 @@ require (
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/streamingfast/atm v0.0.0-20220131151839-18c87005e680 // indirect
 	github.com/streamingfast/dbin v0.0.0-20210809205249-73d5eca35dc5 // indirect
-	github.com/streamingfast/dgrpc v0.0.0-20220301153539-536adf71b594 // indirect
-	github.com/streamingfast/dmetrics v0.0.0-20210811180524-8494aeb34447 // indirect
-	github.com/streamingfast/dstore v0.1.1-0.20220307201418-3ad32e685451 // indirect
-	github.com/streamingfast/dtracing v0.0.0-20210811175635-d55665d3622a // indirect
+	github.com/streamingfast/dgrpc v0.0.0-20220307180102-b2d417ac8da7 // indirect
+	github.com/streamingfast/dmetrics v0.0.0-20220307162521-2389094ab4a1 // indirect
+	github.com/streamingfast/dstore v0.1.1-0.20220413192207-2fee479ed742 // indirect
+	github.com/streamingfast/dtracing v0.0.0-20220301163030-15ce3f71dd1c // indirect
 	github.com/streamingfast/opaque v0.0.0-20210811180740-0c01d37ea308 // indirect
-	github.com/streamingfast/pbgo v0.0.6-0.20220228185940-1bbaafec7d8a // indirect
+	github.com/streamingfast/pbgo v0.0.6-0.20220304191603-f73822f471ff // indirect
 	github.com/streamingfast/shutter v1.5.0 // indirect
-	github.com/tidwall/gjson v1.6.5 // indirect
-	github.com/tidwall/match v1.0.3 // indirect
-	github.com/tidwall/pretty v1.0.2 // indirect
+	github.com/tidwall/gjson v1.12.1 // indirect
+	github.com/tidwall/match v1.1.1 // indirect
+	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/wasmerio/wasmer-go v1.0.4 // indirect
 	github.com/yourbasic/graph v0.0.0-20210606180040-8ecfec1c2869 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
-	go.uber.org/multierr v1.6.0 // indirect
+	go.uber.org/multierr v1.8.0 // indirect
 	golang.org/x/crypto v0.0.0-20220214200702-86341886e292 // indirect
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
-	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
+	golang.org/x/oauth2 v0.0.0-20220223155221-ee480838109b // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.0.0-20220209214540-3681064d5158 // indirect
+	golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/api v0.70.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20220222213610-43724f9ea8cf // indirect
+	google.golang.org/genproto v0.0.0-20220304144024-325a89244dc8 // indirect
 	google.golang.org/grpc v1.44.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )

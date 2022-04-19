@@ -39,6 +39,8 @@ pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
             continue;
         }
 
+        log::println("FOUND PAIRS".to_string());
+
         for log in trx.receipt.unwrap().logs {
             let sig = hex::encode(&log.topics[0]);
 
@@ -74,6 +76,32 @@ pub extern "C" fn build_pairs_state(pairs_ptr: *mut u8, pairs_len: usize) {
             format!("pair:{}", pair.address),
             &proto::encode(&pair).unwrap(),
         );
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn build_token_state(pairs_ptr: *mut u8, pairs_len: usize) {
+    substreams::register_panic_hook();
+
+    let pairs: pb::pcs::Pairs = proto::decode_ptr(pairs_ptr, pairs_len).unwrap();
+
+    for pair in pairs.pairs {
+        state::set(
+            pair.log_ordinal as i64,
+            format!("pair:{}", pair.address),
+            &proto::encode(&pair).unwrap(),
+        );
+        state::set(
+            pair.log_ordinal as i64,
+            format!(
+                "tokens:{}",
+                utils::generate_tokens_key(
+                    pair.token0_address.as_str(),
+                    pair.token1_address.as_str(),
+                )
+            ),
+            &Vec::from(pair.address),
+        )
     }
 }
 
