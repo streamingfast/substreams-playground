@@ -562,6 +562,7 @@ fn convert_store_operation(delta: &StoreDelta) -> i32 {
         op if op == store_delta::Operation::Create as i32 => Some(table_change::Operation::Create),
         op if op == store_delta::Operation::Update as i32 => Some(table_change::Operation::Update),
         op if op == store_delta::Operation::Delete as i32 => Some(table_change::Operation::Delete),
+        op if op == store_delta::Operation::Unset as i32 => panic!("uninitialized delta"),
         _ => None,
     };
 
