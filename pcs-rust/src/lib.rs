@@ -25,6 +25,11 @@ mod rpc;
 mod state_helper;
 mod utils;
 
+// todo: add extern "build_psc_token_state" with params (pairs_ptr: *mut u8, pairs_len: usize, token_store_idx: u32)
+// todo: for each token of each pair we we query the token_store_idx
+// todo: then we call the state::SetIfNotExist for each token.
+// todo: modify "map_to_database" and friends to handle the new pcs_token_store change.
+
 #[no_mangle]
 pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
     substreams::register_panic_hook();
