@@ -4,13 +4,14 @@ go 1.17
 
 require (
 	github.com/golang/protobuf v1.5.2
+	github.com/spf13/cobra v1.3.0
+	github.com/spf13/pflag v1.0.5
 	github.com/streamingfast/bstream v0.0.2-0.20220418185022-87972b944a53
 	github.com/streamingfast/eth-go v0.0.0-20220412135558-30a3403b6c8f
 	github.com/streamingfast/jsonpb v0.0.0-20210811021341-3670f0aa02d0
 	github.com/streamingfast/logging v0.0.0-20220405224725-2755dab2ce75
-	github.com/streamingfast/sf-ethereum v0.10.3-0.20220418185120-af48875b0cd5
 	github.com/streamingfast/sf-ethereum/pb v0.0.0-20220418185120-af48875b0cd5
-	github.com/streamingfast/substreams v0.0.0-20220413205310-a8bd20caa6cc
+	github.com/streamingfast/substreams v0.0.0-20220419153251-515e8307a80e
 	github.com/stretchr/testify v1.7.1-0.20210427113832-6241f9ab9942
 	go.uber.org/zap v1.21.0
 	google.golang.org/protobuf v1.27.1
@@ -32,6 +33,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blendle/zapdriver v1.3.1 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.1.1 // indirect
+	github.com/btcsuite/btcd/chaincfg/chainhash v1.0.1 // indirect
 	github.com/census-instrumentation/opencensus-proto v0.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -46,6 +48,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
 	github.com/iancoleman/strcase v0.2.0 // indirect
+	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jhump/protoreflect v1.12.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/jmoiron/sqlx v1.3.4 // indirect
@@ -66,8 +69,9 @@ require (
 	github.com/streamingfast/dbin v0.0.0-20210809205249-73d5eca35dc5 // indirect
 	github.com/streamingfast/dgrpc v0.0.0-20220307180102-b2d417ac8da7 // indirect
 	github.com/streamingfast/dmetrics v0.0.0-20220307162521-2389094ab4a1 // indirect
-	github.com/streamingfast/dstore v0.1.1-0.20220413192207-2fee479ed742 // indirect
+	github.com/streamingfast/dstore v0.1.1-0.20220419122426-72c87c8ca668 // indirect
 	github.com/streamingfast/dtracing v0.0.0-20220301163030-15ce3f71dd1c // indirect
+	github.com/streamingfast/firehose v0.1.1-0.20220331194041-2bf2b9689682 // indirect
 	github.com/streamingfast/opaque v0.0.0-20210811180740-0c01d37ea308 // indirect
 	github.com/streamingfast/pbgo v0.0.6-0.20220304191603-f73822f471ff // indirect
 	github.com/streamingfast/shutter v1.5.0 // indirect
@@ -78,6 +82,7 @@ require (
 	github.com/yourbasic/graph v0.0.0-20210606180040-8ecfec1c2869 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
+	go.uber.org/goleak v1.1.12 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	golang.org/x/crypto v0.0.0-20220214200702-86341886e292 // indirect
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
