@@ -1,4 +1,5 @@
 extern crate core;
+extern crate core;
 
 use std::ops::{Add, Mul, Neg};
 use std::str::FromStr;
@@ -831,6 +832,7 @@ pub extern "C" fn build_volumes_state(
 #[no_mangle]
 pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
     substreams::register_panic_hook();
+    log::println("I am here".to_string());
 
     let mut tokens = pb::tokens::Tokens { tokens: vec![] };
     let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
@@ -868,12 +870,13 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
                     continue;
                 }
 
-                if address_pretty(&call.caller) == "0x0000000000004946c0e9f43f4dee607b0ef1fa1c"
-                    || address_pretty(&call.caller) == "0x00000000687f5b66638856396bee28c1db0178d1"
+                //fixme: what is this? because the decimal is 0 ? it is valid
+                if caller_address == "0x0000000000004946c0e9f43f4dee607b0ef1fa1c"
+                    || caller_address == "0x00000000687f5b66638856396bee28c1db0178d1"
                 {
                     continue;
                 }
-                let rpc_calls = rpc::create_rpc_calls(call.clone().address);
+                let rpc_calls = rpc::create_rpc_calls(&call.address);
 
                 let rpc_responses_marshalled: Vec<u8> =
                     substreams::rpc::eth_call(substreams::proto::encode(&rpc_calls).unwrap());
@@ -916,7 +919,7 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
                     decode_string(rpc_responses_unmarshalled.responses[2].raw.as_ref());
 
                 let token = pb::tokens::Token {
-                    address: decoded_address.clone(),
+                    address: decoded_address,
                     name: decoded_name,
                     symbol: decoded_symbol,
                     decimals: decoded_decimals as u64,
@@ -946,25 +949,68 @@ pub extern "C" fn build_tokens_state(tokens_ptr: *mut u8, tokens_len: usize) {
 pub extern "C" fn build_pcs_token_state(pairs_ptr: *mut u8, pairs_len: usize, tokens_idx: u32) {
     substreams::register_panic_hook();
 
-    log::println(format!("tokens_idx: {}", tokens_idx));
-
     let pairs: pb::pcs::Pairs = proto::decode_ptr(pairs_ptr, pairs_len).unwrap();
 
+    let mut token0_retry: bool = false;
+    let mut token0: Token = Token {
+        address: "".to_string(),
+        name: "".to_string(),
+        symbol: "".to_string(),
+        decimals: 0,
+    };
+    let mut token1_retry: bool = false;
+    let mut token1: Token = Token {
+        address: "".to_string(),
+        name: "".to_string(),
+        symbol: "".to_string(),
+        decimals: 0,
+    };
+
     for pair in pairs.pairs {
-        let token0: Token = proto::decode(
-            &state::get_last(tokens_idx, &format!("token:{}", pair.token0_address)).unwrap(),
-        )
-        .unwrap();
-        let token1: Token = proto::decode(
-            &state::get_last(tokens_idx, &format!("token:{}", pair.token1_address)).unwrap(),
-        )
-        .unwrap();
+        let token0_option: Option<Vec<u8>> =
+            state::get_last(tokens_idx, &format!("token:{}", pair.token0_address));
+        if token0_option.is_none() {
+            log::println(format!(
+                "token {} is not in the store, retrying rpc calls...",
+                pair.token0_address
+            ));
+            token0 = rpc::retry_rpc_calls(&pair.token0_address);
+            token0_retry = true;
+            log::println(format!(
+                "successfully found token {} after rpc calls...",
+                pair.token0_address
+            ));
+        }
+
+        if !token0_retry {
+            token0 = proto::decode(&token0_option.unwrap()).unwrap();
+        }
 
         state::set_if_not_exists(
             pair.log_ordinal as i64,
             format!("token:{}", token0.address),
             &proto::encode(&token0).unwrap(),
         );
+
+        let token1_option: Option<Vec<u8>> =
+            state::get_last(tokens_idx, &format!("token:{}", pair.token1_address));
+        if token1_option.is_none() {
+            log::println(format!(
+                "token {} is not in the store, retrying rpc calls...",
+                pair.token1_address
+            ));
+            token1 = rpc::retry_rpc_calls(&pair.token1_address);
+            token1_retry = true;
+            log::println(format!(
+                "successfully found token {} after rpc calls...",
+                pair.token1_address
+            ));
+        }
+
+        if !token1_retry {
+            token1 = proto::decode(&token1_option.unwrap()).unwrap();
+        }
+
         state::set_if_not_exists(
             pair.log_ordinal as i64,
             format!("token:{}", token1.address),
