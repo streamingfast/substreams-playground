@@ -1,5 +1,4 @@
 extern crate core;
-extern crate core;
 
 use std::ops::{Add, Mul, Neg};
 use std::str::FromStr;
@@ -839,20 +838,15 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
 
     for trx in blk.transaction_traces {
         for call in trx.calls {
-            if call.call_type == pb::eth::CallType::Create as i32 && !call.state_reverted {
-                let mut code_change_len = 0;
-                for code_change in &call.code_changes {
-                    code_change_len += code_change.new_code.len()
-                }
+            //todo: need to implement a way to pick up the proxy contract creation
+            // also need to filter the tokens as un some cases the tokens appear
+            // numerous times (why? maybe because it is a call call_type)
+            if (call.call_type == pb::eth::CallType::Create as i32
+                || call.call_type == pb::eth::CallType::Call as i32) // CallType::Call is for the proxy contract creation use-case
+                && !call.state_reverted
+            {
                 let contract_address = address_pretty(&call.address);
                 let caller_address = address_pretty(&call.caller);
-                log::println(format!(
-                    "found contract creation: {}, caller {}, code change {}, input {}",
-                    contract_address,
-                    caller_address,
-                    code_change_len,
-                    call.input.len(),
-                ));
 
                 //pancake v1 and v2
                 if caller_address == "0xca143ce32fe78f1f7019d7d551a6402fc5350c73"
@@ -861,16 +855,36 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
                     continue;
                 }
 
-                if code_change_len <= 150 {
-                    // optimization to skip none viable SC
+                if call.call_type == pb::eth::CallType::Create as i32 {
+                    let mut code_change_len = 0;
+                    for code_change in &call.code_changes {
+                        code_change_len += code_change.new_code.len()
+                    }
+
                     log::println(format!(
-                        "skipping to small code to be a token contract: {}",
-                        address_pretty(&call.address)
+                        "found contract creation: {}, caller {}, code change {}, input {}",
+                        contract_address,
+                        caller_address,
+                        code_change_len,
+                        call.input.len(),
                     ));
-                    continue;
+
+                    if code_change_len <= 150 {
+                        // optimization to skip none viable SC
+                        log::println(format!(
+                            "skipping to small code to be a token contract: {}",
+                            address_pretty(&call.address)
+                        ));
+                        continue;
+                    }
+                } else if call.call_type == pb::eth::CallType::Call as i32 {
+                    log::println(format!(
+                        "found contract that may be a proxy contract: {}",
+                        caller_address
+                    ))
                 }
 
-                //fixme: what is this? because the decimal is 0 ? it is valid
+                //fixme: what is this again? because the decimal is 0 ? it is valid
                 if caller_address == "0x0000000000004946c0e9f43f4dee607b0ef1fa1c"
                     || caller_address == "0x00000000687f5b66638856396bee28c1db0178d1"
                 {
@@ -925,6 +939,7 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
                     decimals: decoded_decimals as u64,
                 };
 
+                // todo: need to push token if not already exists in the list...
                 tokens.tokens.push(token);
             }
         }
