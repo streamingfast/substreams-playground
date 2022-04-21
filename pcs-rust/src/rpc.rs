@@ -1,7 +1,5 @@
 use hex;
-use substreams::{log, pb};
 
-use crate::pcs::Pair;
 use crate::{address_decode, address_pretty, decode_string, decode_uint32, Token};
 
 pub fn create_rpc_calls(addr: &Vec<u8>) -> substreams::pb::eth::RpcCalls {

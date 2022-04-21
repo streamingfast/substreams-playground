@@ -833,22 +833,23 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
     let mut tokens = pb::tokens::Tokens { tokens: vec![] };
     let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
 
+    let initialize_method_hash: &str = "0x1459457a";
+
     for trx in blk.transaction_traces {
         for call in trx.calls {
             if call.call_type == pb::eth::CallType::Create as i32
-                // CallType::Call is for the proxy contract creation use-case
-                // || call.call_type == pb::eth::CallType::Call as i32
+                || call.call_type == pb::eth::CallType::Call as i32 // proxy contract creation
                 && !call.state_reverted
             {
                 let call_input_len = call.input.len();
-                // if call.call_type == pb::eth::CallType::Call as i32
-                //     && call_input_len < 4
-                //     && (call_input_len >= 4 && !hex::encode(call.input).starts_with("0x1459457a"))
-                // {
-                //     //fixme: not sure about the condition above, do we really want to do starts with ?
-                //     // or maybe contains is better or .eq ?, need to investigate this
-                //     continue;
-                // }
+
+                if call.call_type == pb::eth::CallType::Call as i32
+                    && (call_input_len < 4
+                        || !address_pretty(&call.input).starts_with(initialize_method_hash))
+                {
+                    continue;
+                }
+
                 let contract_address = address_pretty(&call.address);
                 let caller_address = address_pretty(&call.caller);
 
