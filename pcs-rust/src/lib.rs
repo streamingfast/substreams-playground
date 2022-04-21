@@ -1,5 +1,4 @@
 extern crate core;
-extern crate core;
 
 use std::ops::{Add, Mul, Neg};
 use std::str::FromStr;
@@ -832,7 +831,6 @@ pub extern "C" fn build_volumes_state(
 #[no_mangle]
 pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
     substreams::register_panic_hook();
-    log::println("I am here".to_string());
 
     let mut tokens = pb::tokens::Tokens { tokens: vec![] };
     let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
