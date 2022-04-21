@@ -7,7 +7,7 @@ use bigdecimal::BigDecimal;
 use hex;
 use substreams::{log, proto, state};
 
-use eth::{address_pretty, decode_string, decode_uint32};
+use eth::{address_decode, address_pretty, decode_string, decode_uint32};
 
 use crate::event::pcs_event::Event;
 use crate::event::{PcsEvent, Wrapper};
@@ -43,8 +43,6 @@ pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
         if hex::encode(&trx.to) != "ca143ce32fe78f1f7019d7d551a6402fc5350c73" {
             continue;
         }
-
-        log::println("FOUND PAIRS".to_string());
 
         for log in trx.receipt.unwrap().logs {
             let sig = hex::encode(&log.topics[0]);
@@ -831,20 +829,26 @@ pub extern "C" fn build_volumes_state(
 #[no_mangle]
 pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
     substreams::register_panic_hook();
-    log::println("I am here".to_string());
 
     let mut tokens = pb::tokens::Tokens { tokens: vec![] };
     let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
 
     for trx in blk.transaction_traces {
         for call in trx.calls {
-            //todo: need to implement a way to pick up the proxy contract creation
-            // also need to filter the tokens as un some cases the tokens appear
-            // numerous times (why? maybe because it is a call call_type)
-            if (call.call_type == pb::eth::CallType::Create as i32
-                || call.call_type == pb::eth::CallType::Call as i32) // CallType::Call is for the proxy contract creation use-case
+            if call.call_type == pb::eth::CallType::Create as i32
+                // CallType::Call is for the proxy contract creation use-case
+                // || call.call_type == pb::eth::CallType::Call as i32
                 && !call.state_reverted
             {
+                let call_input_len = call.input.len();
+                // if call.call_type == pb::eth::CallType::Call as i32
+                //     && call_input_len < 4
+                //     && (call_input_len >= 4 && !hex::encode(call.input).starts_with("0x1459457a"))
+                // {
+                //     //fixme: not sure about the condition above, do we really want to do starts with ?
+                //     // or maybe contains is better or .eq ?, need to investigate this
+                //     continue;
+                // }
                 let contract_address = address_pretty(&call.address);
                 let caller_address = address_pretty(&call.caller);
 
@@ -866,7 +870,7 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
                         contract_address,
                         caller_address,
                         code_change_len,
-                        call.input.len(),
+                        call_input_len, // fixme: clone ?
                     ));
 
                     if code_change_len <= 150 {
@@ -890,6 +894,7 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
                 {
                     continue;
                 }
+
                 let rpc_calls = rpc::create_rpc_calls(&call.address);
 
                 let rpc_responses_marshalled: Vec<u8> =
@@ -924,6 +929,7 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
                     address_pretty(&call.address),
                     decode_string(rpc_responses_unmarshalled.responses[1].raw.as_ref()),
                 ));
+
                 let decoded_address = address_pretty(&call.address);
                 let decoded_decimals =
                     decode_uint32(rpc_responses_unmarshalled.responses[0].raw.as_ref());
@@ -986,13 +992,13 @@ pub extern "C" fn build_pcs_token_state(pairs_ptr: *mut u8, pairs_len: usize, to
             state::get_last(tokens_idx, &format!("token:{}", pair.token0_address));
         if token0_option.is_none() {
             log::println(format!(
-                "token {} is not in the store, retrying rpc calls...",
+                "token {} is not in the store, retrying rpc calls",
                 pair.token0_address
             ));
             token0 = rpc::retry_rpc_calls(&pair.token0_address);
             token0_retry = true;
             log::println(format!(
-                "successfully found token {} after rpc calls...",
+                "successfully found token {} after rpc calls",
                 pair.token0_address
             ));
         }
@@ -1011,13 +1017,13 @@ pub extern "C" fn build_pcs_token_state(pairs_ptr: *mut u8, pairs_len: usize, to
             state::get_last(tokens_idx, &format!("token:{}", pair.token1_address));
         if token1_option.is_none() {
             log::println(format!(
-                "token {} is not in the store, retrying rpc calls...",
+                "token {} is not in the store, retrying rpc calls",
                 pair.token1_address
             ));
             token1 = rpc::retry_rpc_calls(&pair.token1_address);
             token1_retry = true;
             log::println(format!(
-                "successfully found token {} after rpc calls...",
+                "successfully found token {} after rpc calls",
                 pair.token1_address
             ));
         }

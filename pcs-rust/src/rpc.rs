@@ -1,8 +1,8 @@
 use hex;
-use substreams::pb;
+use substreams::{log, pb};
 
 use crate::pcs::Pair;
-use crate::{address_pretty, decode_string, decode_uint32, Token};
+use crate::{address_decode, address_pretty, decode_string, decode_uint32, Token};
 
 pub fn create_rpc_calls(addr: &Vec<u8>) -> substreams::pb::eth::RpcCalls {
     let decimals = hex::decode("313ce567").unwrap();
@@ -28,7 +28,7 @@ pub fn create_rpc_calls(addr: &Vec<u8>) -> substreams::pb::eth::RpcCalls {
 }
 
 pub fn retry_rpc_calls(pair_token_address: &String) -> Token {
-    let rpc_calls = create_rpc_calls(&Vec::from(pair_token_address.as_str()));
+    let rpc_calls = create_rpc_calls(&address_decode(pair_token_address));
 
     let rpc_responses_marshalled: Vec<u8> =
         substreams::rpc::eth_call(substreams::proto::encode(&rpc_calls).unwrap());
@@ -60,7 +60,6 @@ pub fn retry_rpc_calls(pair_token_address: &String) -> Token {
     let decoded_name = decode_string(rpc_responses_unmarshalled.responses[1].raw.as_ref());
     let decoded_symbol = decode_string(rpc_responses_unmarshalled.responses[2].raw.as_ref());
 
-    //fixme: returning token here
     Token {
         address: decoded_address,
         name: decoded_name,
