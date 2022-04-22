@@ -2,6 +2,7 @@ package exchange
 
 import (
 	"fmt"
+
 	"github.com/spf13/cobra"
 	"github.com/streamingfast/substream-pancakeswap/pancakeswap"
 	"github.com/streamingfast/substreams/graph-node/metrics"
@@ -14,6 +15,7 @@ func init() {
 	rootCmd.Flags().Uint64P("stop-block", "t", 0, "Stop block for blockchain firehose")
 
 	rootCmd.Flags().Bool("local", false, "run with local runtime")
+	rootCmd.Flags().Bool("no-return-handler", false, "Avoid printing output for module")
 
 	///local options
 	rootCmd.Flags().String("rpc-endpoint", "http://localhost:8546", "RPC endpoint of blockchain node")
@@ -22,8 +24,6 @@ func init() {
 	rootCmd.Flags().String("rpc-cache-store-url", "./rpc-cache", "URL of blocks store")
 	rootCmd.Flags().String("irr-indexes-url", "./localirr", "URL of blocks store")
 	rootCmd.Flags().Bool("partial", false, "Produce partial stores")
-	rootCmd.Flags().Bool("no-return-handler", false, "Avoid printing output for module")
-	rootCmd.Flags().Bool("disable-database-transactions", false, "Disable transactions in database for faster inserts.")
 
 	///remote options
 	rootCmd.Flags().String("firehose-endpoint", "api.streamingfast.io:443", "firehose GRPC endpoint")
