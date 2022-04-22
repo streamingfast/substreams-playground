@@ -2,6 +2,9 @@ package exchange
 
 import (
 	"fmt"
+	"github.com/streamingfast/bstream"
+
+	_ "github.com/streamingfast/sf-ethereum/types"
 
 	"github.com/spf13/cobra"
 	"github.com/streamingfast/substream-pancakeswap/pancakeswap"
@@ -35,7 +38,7 @@ func init() {
 	rootCmd.Flags().String("pg-dsn", "", "dsn for postgres database")
 	rootCmd.Flags().String("pg-schema", "", "postgres schema name")
 	rootCmd.Flags().Bool("pg-disable-transactions", false, "disable postgres transactions for faster inserts")
-	rootCmd.Flags().String("deployment", "", "subgraph deployment name")
+	rootCmd.Flags().String("pg-deployment", "", "subgraph deployment name")
 }
 
 // remoteCmd represents the base command when called without any subcommands
@@ -48,6 +51,11 @@ var rootCmd = &cobra.Command{
 }
 
 func runExchange(cmd *cobra.Command, args []string) error {
+	err := bstream.ValidateRegistry()
+	if err != nil {
+		return fmt.Errorf("bstream validate registry %w", err)
+	}
+
 	ctx := cmd.Context()
 
 	dsn := mustGetString(cmd, "pg-dsn")
@@ -72,7 +80,7 @@ func runExchange(cmd *cobra.Command, args []string) error {
 	config := &runtime.Config{
 		ManifestPath:     args[0],
 		OutputStreamName: args[1],
-		StartBlock:       mustGetUint64(cmd, "start-block"),
+		StartBlock:       uint64(mustGetInt64(cmd, "start-block")),
 		StopBlock:        mustGetUint64(cmd, "stop-block"),
 		PrintMermaid:     false,
 

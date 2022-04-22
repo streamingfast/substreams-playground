@@ -6,12 +6,12 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/spf13/cobra v1.3.0
 	github.com/spf13/pflag v1.0.5
-	github.com/streamingfast/bstream v0.0.2-0.20220418185022-87972b944a53
-	github.com/streamingfast/eth-go v0.0.0-20220412135558-30a3403b6c8f
+	github.com/streamingfast/bstream v0.0.2-0.20220419143921-1612cfa6b659
+	github.com/streamingfast/eth-go v0.0.0-20220421042603-ebe2c94fcc92
 	github.com/streamingfast/jsonpb v0.0.0-20210811021341-3670f0aa02d0
 	github.com/streamingfast/logging v0.0.0-20220405224725-2755dab2ce75
-	github.com/streamingfast/sf-ethereum/pb v0.0.0-20220418185120-af48875b0cd5
-	github.com/streamingfast/substreams v0.0.0-20220419153251-515e8307a80e
+	github.com/streamingfast/sf-ethereum/types v0.0.0-20220422143008-d40ff36b3c5c
+	github.com/streamingfast/substreams v0.0.0-20220422141826-f4bd4064f5b4
 	github.com/stretchr/testify v1.7.1-0.20210427113832-6241f9ab9942
 	go.uber.org/zap v1.21.0
 	google.golang.org/protobuf v1.27.1
@@ -32,7 +32,7 @@ require (
 	github.com/aws/aws-sdk-go v1.37.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blendle/zapdriver v1.3.1 // indirect
-	github.com/btcsuite/btcd/btcec/v2 v2.1.1 // indirect
+	github.com/btcsuite/btcd/btcec/v2 v2.1.3 // indirect
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.0.1 // indirect
 	github.com/census-instrumentation/opencensus-proto v0.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
@@ -69,7 +69,7 @@ require (
 	github.com/streamingfast/dbin v0.0.0-20210809205249-73d5eca35dc5 // indirect
 	github.com/streamingfast/dgrpc v0.0.0-20220307180102-b2d417ac8da7 // indirect
 	github.com/streamingfast/dmetrics v0.0.0-20220307162521-2389094ab4a1 // indirect
-	github.com/streamingfast/dstore v0.1.1-0.20220419122426-72c87c8ca668 // indirect
+	github.com/streamingfast/dstore v0.1.1-0.20220419183635-aad7bcb15b8e // indirect
 	github.com/streamingfast/dtracing v0.0.0-20220301163030-15ce3f71dd1c // indirect
 	github.com/streamingfast/firehose v0.1.1-0.20220331194041-2bf2b9689682 // indirect
 	github.com/streamingfast/opaque v0.0.0-20210811180740-0c01d37ea308 // indirect

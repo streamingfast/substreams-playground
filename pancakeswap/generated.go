@@ -8,7 +8,7 @@ import (
 	"math/big"
 
 	eth "github.com/streamingfast/eth-go"
-	pbcodec "github.com/streamingfast/sf-ethereum/pb/sf/ethereum/codec/v1"
+	pbeth "github.com/streamingfast/sf-ethereum/types/pb/sf/ethereum/type/v1"
 	graphnode "github.com/streamingfast/substreams/graph-node"
 	"github.com/streamingfast/substreams/graph-node/subgraph"
 )
@@ -1832,7 +1832,7 @@ func (next *TokenDayData) Merge(step int, cached *TokenDayData) {
 	}
 }
 
-func codecLogToEthLog(l *pbcodec.Log, idx uint32) *eth.Log {
+func codecLogToEthLog(l *pbeth.Log, idx uint32) *eth.Log {
 	return &eth.Log{
 		Address:    l.Address,
 		Topics:     l.Topics,
