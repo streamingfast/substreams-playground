@@ -53,13 +53,12 @@ pub fn retry_rpc_calls(pair_token_address: &String) -> Token {
         )
     };
 
-    let decoded_address = address_pretty(&pair_token_address.as_bytes());
     let decoded_decimals = decode_uint32(rpc_responses_unmarshalled.responses[0].raw.as_ref());
     let decoded_name = decode_string(rpc_responses_unmarshalled.responses[1].raw.as_ref());
     let decoded_symbol = decode_string(rpc_responses_unmarshalled.responses[2].raw.as_ref());
 
     Token {
-        address: decoded_address,
+        address: pair_token_address.to_string(),
         name: decoded_name,
         symbol: decoded_symbol,
         decimals: decoded_decimals as u64,
