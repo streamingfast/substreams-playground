@@ -106,6 +106,7 @@ graph TD;
 ## References
 
 Debezium format example: https://nightlies.apache.org/flink/flink-docs-master/docs/connectors/table/formats/debezium/#how-to-use-debezium-format
+
 Fluvio Smart Modules overview: https://www.fluvio.io/docs/smartmodules/overview/
 
 
