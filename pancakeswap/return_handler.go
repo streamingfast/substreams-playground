@@ -118,6 +118,8 @@ func (l *Loader) ReturnHandler(output *pbsubstreams.Output, step bstream.StepTyp
 
 	data := output.Value.GetValue()
 	err := proto.Unmarshal(data, databaseChanges)
+	zlog.Debug("unmarshalled database changes")
+
 	if err != nil {
 		return fmt.Errorf("unmarshaling database changes proto: %w", err)
 	}
@@ -127,6 +129,7 @@ func (l *Loader) ReturnHandler(output *pbsubstreams.Output, step bstream.StepTyp
 	if err != nil {
 		return fmt.Errorf("squashing database changes: %w", err)
 	}
+	zlog.Debug("squashed database changes")
 
 	for _, change := range databaseChanges.TableChanges {
 		ent, ok := l.registry.GetInterface(change.Table)
@@ -151,6 +154,7 @@ func (l *Loader) ReturnHandler(output *pbsubstreams.Output, step bstream.StepTyp
 		if err != nil {
 			return fmt.Errorf("saving entity: %w", err)
 		}
+		zlog.Debug("successfully saved change in database")
 	}
 
 	err = l.Flush(cursor.String(), output.BlockNum, output.BlockId, output.Timestamp.AsTime())

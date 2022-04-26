@@ -886,16 +886,13 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
 
                     log::println(format!(
                         "found contract creation: {}, caller {}, code change {}, input {}",
-                        contract_address,
-                        caller_address,
-                        code_change_len,
-                        call_input_len, // fixme: clone ?
+                        contract_address, caller_address, code_change_len, call_input_len,
                     ));
 
                     if code_change_len <= 150 {
                         // optimization to skip none viable SC
                         log::println(format!(
-                            "skipping to small code to be a token contract: {}",
+                            "skipping too small code to be a token contract: {}",
                             address_pretty(&call.address)
                         ));
                         continue;
@@ -907,7 +904,6 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
                     ))
                 }
 
-                //fixme: what is this again? because the decimal is 0 ? it is valid
                 if caller_address == "0x0000000000004946c0e9f43f4dee607b0ef1fa1c"
                     || caller_address == "0x00000000687f5b66638856396bee28c1db0178d1"
                 {
@@ -964,7 +960,6 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
                     decimals: decoded_decimals as u64,
                 };
 
-                // todo: need to push token if not already exists in the list...
                 tokens.tokens.push(token);
             }
         }
