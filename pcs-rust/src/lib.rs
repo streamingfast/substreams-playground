@@ -499,7 +499,10 @@ pub extern "C" fn map_mint_burn_swaps(
                                 .decimals,
                         );
                     }
-                    _ => log::println(format!("Error?! Events len is 4")), // fixme: maybe panic with a different message, not sure if this is good.
+                    _ => {
+                        log::println(format!("Error?! Events len is 4")); // fixme: should we panic here or just continue?
+                        continue;
+                    }
                 }
             } else if pcs_events.len() == 3 {
                 let ev_tr2 = match pcs_events[0].event.as_ref().unwrap() {
@@ -544,7 +547,10 @@ pub extern "C" fn map_mint_burn_swaps(
                                 .decimals,
                         );
                     }
-                    _ => log::println(format!("Error?! Events len is 3")), // fixme: maybe panic with a different message
+                    _ => {
+                        log::println(format!("Error?! Events len is 3")); // fixme: should we panic here or just continue?
+                        continue;
+                    }
                 }
             } else if pcs_events.len() == 2 {
                 match pcs_events[1].event.as_ref().unwrap() {
@@ -563,15 +569,20 @@ pub extern "C" fn map_mint_burn_swaps(
                             utils::get_last_token(tokens_store_idx, &pair.token1_address).decimals,
                         );
                     }
-                    _ => log::println(format!("Error?! Events len is 2")),
+                    _ => {
+                        log::println(format!("Error?! Events len is 2")); // fixme: should we panic here or just continue?
+                        continue;
+                    }
                 }
             } else if pcs_events.len() == 1 {
                 match pcs_events[0].event.as_ref().unwrap() {
                     Event::PairTransferEvent(_) => {
-                        log::println("Events len 1, PairTransferEvent".to_string())
+                        log::println("Events len 1, PairTransferEvent".to_string());
+                        continue;
                     } // do nothing
                     Event::PairApprovalEvent(_) => {
-                        log::println("Events len 1, PairApprovalEvent".to_string())
+                        log::println("Events len 1, PairApprovalEvent".to_string());
+                        continue;
                     } // do nothing
                     _ => panic!("unhandled event pattern, with 1 event"),
                 };
@@ -683,7 +694,14 @@ pub extern "C" fn build_volumes_state(
     substreams::register_panic_hook();
 
     let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
-    let timestamp_block_header: pb::eth::BlockHeader = blk.header.unwrap();
+    let timestamp_block_header: pb::eth::BlockHeader = match blk.header {
+        Some(block_header) => block_header,
+        None => {
+            log::println(format!("block id: {}", address_pretty(blk.hash.as_slice())));
+            log::println(format!("block number: {}", blk.number.to_string()));
+            panic!("MISSING HEADER")
+        }
+    };
     let timestamp = timestamp_block_header.timestamp.unwrap();
     let timestamp_seconds = timestamp.seconds;
     let day_id: i64 = timestamp_seconds / 86400;
