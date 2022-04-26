@@ -23,8 +23,8 @@ func init() {
 	localCmd.Flags().String("rpc-endpoint", "http://localhost:8546", "RPC endpoint of blockchain node")
 	localCmd.Flags().String("state-store-url", "./localdata", "URL of state store")
 	localCmd.Flags().String("blocks-store-url", "./localblocks", "URL of blocks store")
-	localCmd.Flags().String("rpc-cache-store-url", "./rpc-cache", "URL of blocks store")
-	localCmd.Flags().String("irr-indexes-url", "./localirr", "URL of blocks store")
+	localCmd.Flags().String("rpc-cache-store-url", "./rpc-cache", "URL of rpc cache")
+	localCmd.Flags().String("irr-indexes-url", "./localirr", "URL of irreversible blocks")
 	localCmd.Flags().Bool("partial", false, "Produce partial stores")
 
 	rootCmd.AddCommand(localCmd)
