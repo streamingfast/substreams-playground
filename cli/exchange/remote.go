@@ -67,7 +67,8 @@ func runRemote(cmd *cobra.Command, args []string) error {
 			StopBlock:        mustGetUint64(cmd, "stop-block"),
 			PrintMermaid:     false,
 
-			ReturnHandler: loader.ReturnHandler,
+			ReturnHandler:      loader.ReturnHandler,
+			StatesSaveInterval: uint64(10000),
 		},
 	}
 

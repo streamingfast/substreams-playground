@@ -26,6 +26,7 @@ func init() {
 	localCmd.Flags().String("rpc-cache-store-url", "./rpc-cache", "URL of rpc cache")
 	localCmd.Flags().String("irr-indexes-url", "./localirr", "URL of irreversible blocks")
 	localCmd.Flags().Bool("partial", false, "Produce partial stores")
+	localCmd.Flags().Uint64("states-save-interval", uint64(10000), "State size")
 
 	rootCmd.AddCommand(localCmd)
 }
@@ -73,7 +74,8 @@ func runLocal(cmd *cobra.Command, args []string) error {
 			StopBlock:        mustGetUint64(cmd, "stop-block"),
 			PrintMermaid:     false,
 
-			ReturnHandler: loader.ReturnHandler,
+			ReturnHandler:      loader.ReturnHandler,
+			StatesSaveInterval: mustGetUint64(cmd, "states-save-interval"),
 		},
 	}
 

@@ -3,6 +3,7 @@ package pancakeswap
 import (
 	"context"
 	"fmt"
+	"go.uber.org/zap"
 	"reflect"
 	"time"
 
@@ -118,7 +119,7 @@ func (l *Loader) ReturnHandler(output *pbsubstreams.Output, step bstream.StepTyp
 
 	data := output.Value.GetValue()
 	err := proto.Unmarshal(data, databaseChanges)
-	zlog.Debug("unmarshalled database changes")
+	zlog.Debug("unmarshalled database changes", zap.Int("number_of_db_changes", len(databaseChanges.TableChanges)))
 
 	if err != nil {
 		return fmt.Errorf("unmarshaling database changes proto: %w", err)
@@ -132,6 +133,8 @@ func (l *Loader) ReturnHandler(output *pbsubstreams.Output, step bstream.StepTyp
 	zlog.Debug("squashed database changes")
 
 	for _, change := range databaseChanges.TableChanges {
+		fmt.Println("change: ", change.Table, change.Pk, change.Fields)
+
 		ent, ok := l.registry.GetInterface(change.Table)
 		if !ok {
 			return fmt.Errorf("unknown entity for table %s", change.Table)
