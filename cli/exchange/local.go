@@ -57,17 +57,7 @@ func runLocal(cmd *cobra.Command, args []string) error {
 
 	loader := pancakeswap.NewLoader(storage, pancakeswap.Definition.Entities)
 
-	config := &runtime.Config{
-		ManifestPath:     args[0],
-		OutputStreamName: args[1],
-		StartBlock:       uint64(mustGetInt64(cmd, "start-block")),
-		StopBlock:        mustGetUint64(cmd, "stop-block"),
-		PrintMermaid:     false,
-
-		ReturnHandler: loader.ReturnHandler,
-	}
-
-	config.LocalConfig = &runtime.LocalConfig{
+	config := &runtime.LocalConfig{
 		BlocksStoreUrl: mustGetString(cmd, "blocks-store-url"),
 		IrrIndexesUrl:  mustGetString(cmd, "irr-indexes-url"),
 		StateStoreUrl:  mustGetString(cmd, "state-store-url"),
@@ -76,6 +66,15 @@ func runLocal(cmd *cobra.Command, args []string) error {
 		PartialMode:    mustGetBool(cmd, "partial"),
 
 		ProtobufBlockType: "sf.ethereum.type.v1.Block",
+		Config: &runtime.Config{
+			ManifestPath:     args[0],
+			OutputStreamName: args[1],
+			StartBlock:       uint64(mustGetInt64(cmd, "start-block")),
+			StopBlock:        mustGetUint64(cmd, "stop-block"),
+			PrintMermaid:     false,
+
+			ReturnHandler: loader.ReturnHandler,
+		},
 	}
 
 	err = runtime.LocalRun(ctx, config)

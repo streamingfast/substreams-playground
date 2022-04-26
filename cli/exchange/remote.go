@@ -55,21 +55,20 @@ func runRemote(cmd *cobra.Command, args []string) error {
 
 	loader := pancakeswap.NewLoader(storage, pancakeswap.Definition.Entities)
 
-	config := &runtime.Config{
-		ManifestPath:     args[0],
-		OutputStreamName: args[1],
-		StartBlock:       uint64(mustGetInt64(cmd, "start-block")),
-		StopBlock:        mustGetUint64(cmd, "stop-block"),
-		PrintMermaid:     false,
-
-		ReturnHandler: loader.ReturnHandler,
-	}
-
-	config.RemoteConfig = &runtime.RemoteConfig{
+	config := &runtime.RemoteConfig{
 		FirehoseEndpoint:     mustGetString(cmd, "firehose-endpoint"),
 		FirehoseApiKeyEnvVar: mustGetString(cmd, "firehose-api-key-envvar"),
 		InsecureMode:         mustGetBool(cmd, "insecure"),
 		Plaintext:            mustGetBool(cmd, "plaintext"),
+		Config: &runtime.Config{
+			ManifestPath:     args[0],
+			OutputStreamName: args[1],
+			StartBlock:       uint64(mustGetInt64(cmd, "start-block")),
+			StopBlock:        mustGetUint64(cmd, "stop-block"),
+			PrintMermaid:     false,
+
+			ReturnHandler: loader.ReturnHandler,
+		},
 	}
 
 	err = runtime.RemoteRun(ctx, config)
