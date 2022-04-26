@@ -10,6 +10,7 @@ import (
 	"github.com/streamingfast/substreams/runtime"
 )
 
+// localCmd represents the command to run pancakeswap exchange substream locally
 var localCmd = &cobra.Command{
 	Use:          "local [manifest] [module_name]",
 	Short:        "Run pancakeswap exchange substream locally",

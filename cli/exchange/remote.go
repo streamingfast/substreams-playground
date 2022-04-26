@@ -10,6 +10,7 @@ import (
 	"github.com/streamingfast/substreams/runtime"
 )
 
+// remoteCmd represents the command to run pancakeswap exchange substream remotely
 var remoteCmd = &cobra.Command{
 	Use:          "remote [manifest] [module_name]",
 	Short:        "Run pancakeswap exchange substream remotely",
