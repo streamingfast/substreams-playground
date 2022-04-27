@@ -9,13 +9,14 @@ crate-type = ["cdylib"]
 
 [dependencies]
 wasm-bindgen = "0.2.79"
-prost = { version = "0.6" }
-prost-types = "0.6"
+prost = { version = "0.10.1" }
+prost-types = "0.10.1"
 hex = "0.4.3"
 substreams = { git = "https://github.com/streamingfast/substreams", module = "rust/substreams", branch = "develop" }
+#substreams = { path = "../../substreams/rust/substreams" }
 num-bigint = "0.4"
 bigdecimal = "0.3"
 pad = "0.1"
 
 [build-dependencies]
-prost-build = "0.6"
+prost-build = "0.10.1"
