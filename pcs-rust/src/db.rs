@@ -89,7 +89,7 @@ fn handle_pair_delta(
         pk: pair.address.clone(),
         block_num: block.number,
         ordinal: delta.ordinal,
-        operation: convert_store_operation(&delta),
+        operation: delta.operation,
         fields: vec![
             field!("id", pair.address.clone(), ""),
             field!("name", format!("{}-{}", token0.symbol, token1.symbol), ""),
@@ -111,7 +111,7 @@ fn handle_token_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &
         pk: token.address.clone(),
         block_num: block.number,
         ordinal: delta.ordinal,
-        operation: convert_store_operation(&delta),
+        operation: delta.operation,
         fields: vec![
             field!("id", token.address, ""),
             field!("name", token.name, ""),
@@ -124,7 +124,7 @@ fn handle_token_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &
 fn handle_total_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &Block) {
     let parts: Vec<&str> = delta.key.split(":").collect();
     let prefix = parts[0];
-
+    let mut operation = delta.operation;
     let (table, pk, fields) = match prefix {
         "pair" => {
             let pair_address = parts[1];
@@ -155,7 +155,10 @@ fn handle_total_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &
             let field_name = parts[1];
 
             let field = match field_name {
-                "transaction_count" => field_from_strings!("total_transactions", delta),
+                "transaction_count" => {
+                    operation = Operation::Update as i32;
+                    field_from_strings!("total_transactions", delta)
+                }
                 "pair_count" => field_from_strings!("total_pairs", delta),
                 _ => return,
             };
@@ -169,7 +172,7 @@ fn handle_total_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &
 
             let day = parts[1];
             let field_name = parts[2];
-
+            operation = Operation::Update as i32;
             let field = match field_name {
                 "transaction_count" => field_from_strings!("total_transactions", delta),
                 _ => return,
@@ -183,7 +186,7 @@ fn handle_total_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &
     changes.table_changes.push(TableChange {
         block_num: block.number,
         ordinal: delta.ordinal,
-        operation: table_change::Operation::Update as i32,
+        operation,
         table: table.to_string(),
         pk: pk.to_string(),
         fields,
@@ -194,6 +197,7 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: 
     let parts: Vec<&str> = delta.key.split(":").collect();
     let prefix = parts[0];
 
+    let mut operation = delta.operation;
     let (table, pk, fields) = match prefix {
         "pair_day" => {
             if delta.operation == Operation::Delete as i32 {
@@ -210,7 +214,7 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: 
                 "token1" => field_from_strings!("daily_volume_token_1", delta),
                 _ => return,
             };
-
+            operation = Operation::Update as i32;
             (
                 "pair_day_data",
                 format!("{}-{}", pair_address, day),
@@ -232,7 +236,7 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: 
                 "token1" => field_from_strings!("hourly_volume_token_1", delta),
                 _ => return,
             };
-
+            operation = Operation::Update as i32;
             (
                 "pair_hour_data",
                 format!("{}-{}", pair_address, hour),
@@ -289,10 +293,9 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: 
         }
         "global" => {
             let key = parts[1];
-
+            operation = Operation::Update as i32;
             let field = match key {
                 "usd" => field_from_strings!("total_volume_usd", delta),
-
                 "bnb" => field_from_strings!("total_volume_bnb", delta),
                 "liquidity_usd" => field_from_strings!("total_liquidity_usd", delta),
                 _ => return,
@@ -308,13 +311,17 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: 
             let day = parts[1];
             let key = parts[2];
 
+            operation = Operation::Update as i32;
             let field = match key {
-                "usd" => field_from_strings!("daily_volume_usd", delta),
+                "usd" => {
+                    operation = delta.operation;
+                    field_from_strings!("daily_volume_usd", delta)
+                }
                 "bnb" => field_from_strings!("daily_volume_bnb", delta),
                 _ => return,
             };
 
-            (day, PANCAKE_FACTORY.to_string(), vec![field])
+            ("pancake_day_data", day.to_string(), vec![field])
         }
         _ => return,
     };
@@ -322,7 +329,7 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: 
     changes.table_changes.push(TableChange {
         block_num: block.number,
         ordinal: delta.ordinal,
-        operation: convert_store_operation(&delta),
+        operation,
         table: table.to_string(),
         pk: pk.to_string(),
         fields,
@@ -332,6 +339,8 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: 
 fn handle_reserves_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &Block) {
     let parts: Vec<&str> = delta.key.split(":").collect();
     let prefix = parts[0];
+
+    let mut operation = delta.operation;
 
     let (table, pk, fields) = match prefix {
         "pair_day" => {
@@ -345,7 +354,10 @@ fn handle_reserves_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block
 
             let field = match key {
                 "reserve0" => field_from_strings!("reserve_0", delta),
-                "reserve1" => field_from_strings!("reserve_1", delta),
+                "reserve1" => {
+                    operation = Operation::Update as i32;
+                    field_from_strings!("reserve_1", delta)
+                }
                 _ => return,
             };
 
@@ -366,7 +378,10 @@ fn handle_reserves_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block
 
             let field = match key {
                 "reserve0" => field_from_strings!("reserve_0", delta),
-                "reserve1" => field_from_strings!("reserve_1", delta),
+                "reserve1" => {
+                    operation = Operation::Update as i32;
+                    field_from_strings!("reserve_1", delta)
+                }
                 _ => return,
             };
 
@@ -408,7 +423,7 @@ fn handle_reserves_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block
         pk: pk.to_string(),
         block_num: block.number,
         ordinal: delta.ordinal,
-        operation: convert_store_operation(&delta),
+        operation,
         fields,
     })
 }
@@ -557,16 +572,4 @@ fn join_sort_deltas(
 
     items.sort_by(|a, b| a.ordinal.cmp(&b.ordinal));
     return items.iter().map(|item| item.item.clone()).collect();
-}
-
-fn convert_store_operation(delta: &StoreDelta) -> i32 {
-    let operation = match delta.operation {
-        op if op == store_delta::Operation::Create as i32 => Some(table_change::Operation::Create),
-        op if op == store_delta::Operation::Update as i32 => Some(table_change::Operation::Update),
-        op if op == store_delta::Operation::Delete as i32 => panic!("not supported"),
-        op if op == store_delta::Operation::Unset as i32 => panic!("uninitialized delta"),
-        _ => None,
-    };
-
-    return operation.unwrap() as i32;
 }
