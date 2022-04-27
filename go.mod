@@ -7,13 +7,14 @@ require (
 	github.com/spf13/cobra v1.3.0
 	github.com/spf13/pflag v1.0.5
 	github.com/streamingfast/bstream v0.0.2-0.20220419143921-1612cfa6b659
-	github.com/streamingfast/eth-go v0.0.0-20220421042603-ebe2c94fcc92
+	github.com/streamingfast/eth-go v0.0.0-20220426130813-8ceed63c0fd5
 	github.com/streamingfast/jsonpb v0.0.0-20210811021341-3670f0aa02d0
 	github.com/streamingfast/logging v0.0.0-20220405224725-2755dab2ce75
 	github.com/streamingfast/sf-ethereum/types v0.0.0-20220422143008-d40ff36b3c5c
-	github.com/streamingfast/substreams v0.0.0-20220422141826-f4bd4064f5b4
+	github.com/streamingfast/substreams v0.0.0-20220427071724-10cbc89e07df
 	github.com/stretchr/testify v1.7.1-0.20210427113832-6241f9ab9942
 	go.uber.org/zap v1.21.0
+	google.golang.org/grpc v1.44.0
 	google.golang.org/protobuf v1.27.1
 )
 
@@ -49,7 +50,6 @@ require (
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
 	github.com/iancoleman/strcase v0.2.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
-	github.com/jhump/protoreflect v1.12.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/jmoiron/sqlx v1.3.4 // indirect
 	github.com/jszwec/csvutil v1.6.0 // indirect
@@ -71,14 +71,10 @@ require (
 	github.com/streamingfast/dmetrics v0.0.0-20220307162521-2389094ab4a1 // indirect
 	github.com/streamingfast/dstore v0.1.1-0.20220419183635-aad7bcb15b8e // indirect
 	github.com/streamingfast/dtracing v0.0.0-20220301163030-15ce3f71dd1c // indirect
-	github.com/streamingfast/firehose v0.1.1-0.20220331194041-2bf2b9689682 // indirect
 	github.com/streamingfast/opaque v0.0.0-20210811180740-0c01d37ea308 // indirect
 	github.com/streamingfast/pbgo v0.0.6-0.20220304191603-f73822f471ff // indirect
 	github.com/streamingfast/shutter v1.5.0 // indirect
 	github.com/tidwall/gjson v1.12.1 // indirect
-	github.com/tidwall/match v1.1.1 // indirect
-	github.com/tidwall/pretty v1.2.0 // indirect
-	github.com/wasmerio/wasmer-go v1.0.4 // indirect
 	github.com/yourbasic/graph v0.0.0-20210606180040-8ecfec1c2869 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
@@ -95,6 +91,5 @@ require (
 	google.golang.org/api v0.70.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20220304144024-325a89244dc8 // indirect
-	google.golang.org/grpc v1.44.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )

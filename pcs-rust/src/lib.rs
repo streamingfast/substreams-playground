@@ -1,5 +1,6 @@
 extern crate core;
 
+use std::fmt::format;
 use std::ops::{Add, Mul, Neg};
 use std::str::FromStr;
 
@@ -1075,12 +1076,19 @@ pub extern "C" fn map_to_database(
     substreams::register_panic_hook();
 
     let block: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
+    log::println(format!("block {:?}:{}", block_ptr, block_len));
 
     let token_deltas: substreams::pb::substreams::StoreDeltas =
         proto::decode_ptr(tokens_deltas_ptr, tokens_deltas_len).unwrap();
 
     let pair_deltas: substreams::pb::substreams::StoreDeltas =
         proto::decode_ptr(pairs_deltas_ptr, pairs_deltas_len).unwrap();
+
+    log::println(format!(
+        "map_to_database: pairs deltas:{} {}",
+        tokens_deltas_len,
+        pair_deltas.deltas.len()
+    ));
 
     let totals_deltas: substreams::pb::substreams::StoreDeltas =
         proto::decode_ptr(totals_deltas_ptr, totals_deltas_len).unwrap();

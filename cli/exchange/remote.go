@@ -2,26 +2,31 @@ package exchange
 
 import (
 	"fmt"
+	"io"
+	"os"
+
 	"github.com/spf13/cobra"
 	"github.com/streamingfast/bstream"
 	"github.com/streamingfast/substream-pancakeswap/pancakeswap"
+	"github.com/streamingfast/substreams/client"
 	"github.com/streamingfast/substreams/graph-node/metrics"
 	"github.com/streamingfast/substreams/graph-node/storage/postgres"
-	"github.com/streamingfast/substreams/runtime"
+	"github.com/streamingfast/substreams/manifest"
+	pbsubstreams "github.com/streamingfast/substreams/pb/sf/substreams/v1"
 )
 
 // remoteCmd represents the command to run pancakeswap exchange substream remotely
 var remoteCmd = &cobra.Command{
-	Use:          "remote [manifest] [module_name]",
+	Use:          "remote [manifest]",
 	Short:        "Run pancakeswap exchange substream remotely",
 	RunE:         runRemote,
-	Args:         cobra.ExactArgs(2),
+	Args:         cobra.ExactArgs(1),
 	SilenceUsage: true,
 }
 
 func init() {
 	remoteCmd.Flags().String("firehose-endpoint", "api.streamingfast.io:443", "firehose GRPC endpoint")
-	remoteCmd.Flags().String("firehose-api-key-envvar", "FIREHOSE_API_KEY", "name of variable containing firehose authentication token (JWT)")
+	remoteCmd.Flags().String("substreams-api-key-envvar", "FIREHOSE_API_KEY", "name of variable containing firehose authentication token (JWT)")
 	remoteCmd.Flags().BoolP("insecure", "k", false, "Skip certificate validation on GRPC connection")
 	remoteCmd.Flags().BoolP("plaintext", "p", false, "Establish GRPC connection in plaintext")
 
@@ -55,28 +60,67 @@ func runRemote(cmd *cobra.Command, args []string) error {
 
 	loader := pancakeswap.NewLoader(storage, pancakeswap.Definition.Entities)
 
-	config := &runtime.RemoteConfig{
-		FirehoseEndpoint:     mustGetString(cmd, "firehose-endpoint"),
-		FirehoseApiKeyEnvVar: mustGetString(cmd, "firehose-api-key-envvar"),
-		InsecureMode:         mustGetBool(cmd, "insecure"),
-		Plaintext:            mustGetBool(cmd, "plaintext"),
-		Config: &runtime.Config{
-			ManifestPath:     args[0],
-			OutputStreamName: args[1],
-			StartBlock:       uint64(mustGetInt64(cmd, "start-block")),
-			StopBlock:        mustGetUint64(cmd, "stop-block"),
-			PrintMermaid:     false,
-
-			ReturnHandler:      loader.ReturnHandler,
-			StatesSaveInterval: uint64(10000),
-		},
-	}
-
-	err = runtime.RemoteRun(ctx, config)
-
+	manifestPath := args[0]
+	manif, err := manifest.New(manifestPath)
 	if err != nil {
-		err = fmt.Errorf("run failed: %w", err)
+		return fmt.Errorf("read manifest %q: %w", manifestPath, err)
 	}
 
-	return err
+	manif.PrintMermaid()
+
+	manifProto, err := manif.ToProto()
+	if err != nil {
+		return fmt.Errorf("parse manifest to proto%q: %w", manifestPath, err)
+	}
+
+	ssClient, callOpts, err := client.NewSubstreamsClient(
+		mustGetString(cmd, "firehose-endpoint"),
+		os.Getenv(mustGetString(cmd, "substreams-api-key-envvar")),
+		mustGetBool(cmd, "insecure"),
+		mustGetBool(cmd, "plaintext"),
+	)
+	if err != nil {
+		return fmt.Errorf("substreams client setup: %w", err)
+	}
+
+	req := &pbsubstreams.Request{
+		StartBlockNum: mustGetInt64(cmd, "start-block"),
+		StopBlockNum:  mustGetUint64(cmd, "stop-block"),
+		ForkSteps:     []pbsubstreams.ForkStep{pbsubstreams.ForkStep_STEP_IRREVERSIBLE},
+		Manifest:      manifProto,
+		OutputModules: []string{"db_out"},
+	}
+
+	stream, err := ssClient.Blocks(ctx, req, callOpts...)
+	if err != nil {
+		return fmt.Errorf("call sf.substreams.v1.Stream/Blocks: %w", err)
+	}
+
+	for {
+		resp, err := stream.Recv()
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			return err
+		}
+
+		switch r := resp.Message.(type) {
+		case *pbsubstreams.Response_Progress:
+			_ = r.Progress
+		case *pbsubstreams.Response_SnapshotData:
+			_ = r.SnapshotData
+		case *pbsubstreams.Response_SnapshotComplete:
+			_ = r.SnapshotComplete
+		case *pbsubstreams.Response_Data:
+
+			for _, output := range r.Data.Outputs {
+				if output.Name == "db_out" {
+					if err := loader.ReturnHandler(output.GetMapOutput().GetValue(), r.Data.Step, r.Data.Cursor, r.Data.Clock); err != nil {
+						fmt.Printf("RETURN HANDLER ERROR: %s\n", err)
+					}
+				}
+			}
+		}
+	}
 }
