@@ -126,7 +126,7 @@ pub fn process_mint(
         }
     }
 
-    base_event.r#type = Option::Some(Mint(mint));
+    base_event.r#type = Some(Mint(mint));
 }
 
 pub fn process_burn(
@@ -169,7 +169,7 @@ pub fn process_burn(
             convert_token_to_decimal(tr1.unwrap().value.as_slice(), &18).to_string();
     }
 
-    base_event.r#type = Option::Some(Burn(burn));
+    base_event.r#type = Some(Burn(burn));
     base_event.log_ordinal = log_ordinal;
 }
 
@@ -272,7 +272,7 @@ pub fn process_swap(
         log_address: String::from_utf8(swap_event.clone().log_address).unwrap(),
     };
 
-    base_event.r#type = Option::Some(Swap(swap));
+    base_event.r#type = Some(Swap(swap));
     base_event.log_ordinal = log_ordinal;
 }
 
@@ -460,14 +460,8 @@ fn new_pair_transfer_event(log: pb::eth::Log) -> PcsEvent {
 
 /* ---- Structs definition ---- */
 #[derive(Clone, PartialEq)]
-pub enum Wrapper {
-    Event(pb::pcs::Event),
-    Pair(pb::pcs::Pair),
-}
-
-#[derive(Clone, PartialEq)]
 pub struct PcsEvent {
-    pub event: ::std::option::Option<pcs_event::Event>,
+    pub event: Option<Event>,
 }
 
 pub mod pcs_event {
@@ -485,66 +479,66 @@ pub mod pcs_event {
 
 #[derive(Clone, PartialEq)]
 pub struct PairCreatedEvent {
-    pub log_address: std::vec::Vec<u8>,
+    pub log_address: Vec<u8>,
     pub log_index: u64,
-    pub token0: std::vec::Vec<u8>,
-    pub token1: std::vec::Vec<u8>,
-    pub pair: std::vec::Vec<u8>,
+    pub token0: Vec<u8>,
+    pub token1: Vec<u8>,
+    pub pair: Vec<u8>,
 }
 
 #[derive(Clone, PartialEq)]
 pub struct PairApprovalEvent {
-    pub log_address: std::vec::Vec<u8>,
+    pub log_address: Vec<u8>,
     pub log_index: u64,
-    pub owner: std::vec::Vec<u8>,
-    pub spender: std::vec::Vec<u8>,
-    pub value: std::vec::Vec<u8>,
+    pub owner: Vec<u8>,
+    pub spender: Vec<u8>,
+    pub value: Vec<u8>,
 }
 
 #[derive(Clone, PartialEq)]
 pub struct PairBurnEvent {
-    pub log_address: std::vec::Vec<u8>,
+    pub log_address: Vec<u8>,
     pub log_index: u64,
-    pub sender: std::vec::Vec<u8>,
-    pub amount0: std::vec::Vec<u8>,
-    pub amount1: std::vec::Vec<u8>,
-    pub to: std::vec::Vec<u8>,
+    pub sender: Vec<u8>,
+    pub amount0: Vec<u8>,
+    pub amount1: Vec<u8>,
+    pub to: Vec<u8>,
 }
 
 #[derive(Clone, PartialEq)]
 pub struct PairMintEvent {
-    pub log_address: std::vec::Vec<u8>,
+    pub log_address: Vec<u8>,
     pub log_index: u64,
-    pub sender: std::vec::Vec<u8>,
-    pub amount0: std::vec::Vec<u8>,
-    pub amount1: std::vec::Vec<u8>,
+    pub sender: Vec<u8>,
+    pub amount0: Vec<u8>,
+    pub amount1: Vec<u8>,
 }
 
 #[derive(Clone, PartialEq)]
 pub struct PairSwapEvent {
-    pub log_address: std::vec::Vec<u8>,
+    pub log_address: Vec<u8>,
     pub log_index: u64,
-    pub sender: std::vec::Vec<u8>,
-    pub amount0_in: std::vec::Vec<u8>,
-    pub amount1_in: std::vec::Vec<u8>,
-    pub amount0_out: std::vec::Vec<u8>,
-    pub amount1_out: std::vec::Vec<u8>,
-    pub to: std::vec::Vec<u8>,
+    pub sender: Vec<u8>,
+    pub amount0_in: Vec<u8>,
+    pub amount1_in: Vec<u8>,
+    pub amount0_out: Vec<u8>,
+    pub amount1_out: Vec<u8>,
+    pub to: Vec<u8>,
 }
 
 #[derive(Clone, PartialEq)]
 pub struct PairSyncEvent {
-    pub log_address: std::vec::Vec<u8>,
+    pub log_address: Vec<u8>,
     pub log_index: u64,
-    pub reserve0: std::vec::Vec<u8>,
-    pub reserve1: std::vec::Vec<u8>,
+    pub reserve0: Vec<u8>,
+    pub reserve1: Vec<u8>,
 }
 
 #[derive(Clone, PartialEq)]
 pub struct PairTransferEvent {
-    pub log_address: std::vec::Vec<u8>,
+    pub log_address: Vec<u8>,
     pub log_index: u64,
-    pub from: std::vec::Vec<u8>,
-    pub to: std::vec::Vec<u8>,
-    pub value: std::vec::Vec<u8>,
+    pub from: Vec<u8>,
+    pub to: Vec<u8>,
+    pub value: Vec<u8>,
 }

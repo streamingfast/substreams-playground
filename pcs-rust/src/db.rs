@@ -46,7 +46,7 @@ pub fn process(
         events,
     );
 
-    log::println(format!("about to process db_out items: {}", items.len()));
+    log::println(format!("about! to process db_out items: {}", items.len()));
 
     let mut database_changes: DatabaseChanges = DatabaseChanges {
         table_changes: vec![],
@@ -93,6 +93,8 @@ fn handle_pair_delta(
         fields: vec![
             field!("id", pair.address.clone(), ""),
             field!("name", format!("{}-{}", token0.symbol, token1.symbol), ""),
+            field!("token_0", pair.token0_address, ""),
+            field!("token_1", pair.token1_address, ""),
             field!("block", block.number, ""),
             field!("timestamp", block.timestamp(), ""),
         ],

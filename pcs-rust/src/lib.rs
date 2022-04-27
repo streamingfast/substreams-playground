@@ -11,7 +11,7 @@ use substreams::{log, proto, state};
 use eth::{address_decode, address_pretty, decode_string, decode_uint32};
 
 use crate::event::pcs_event::Event;
-use crate::event::{PcsEvent, Wrapper};
+use crate::event::PcsEvent;
 use crate::pb::pcs;
 use crate::pb::tokens::Token;
 use crate::pcs::event::Type;
@@ -33,10 +33,11 @@ mod utils;
 
 #[no_mangle]
 pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
+    log::println("Pairs mapping".to_string());
     substreams::register_panic_hook();
 
     let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
-    let mut pairs = pb::pcs::Pairs { pairs: vec![] };
+    let mut pairs = pcs::Pairs { pairs: vec![] };
 
     for trx in blk.transaction_traces {
         /* PCS Factory address */
@@ -52,7 +53,7 @@ pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
                 continue;
             }
 
-            pairs.pairs.push(pb::pcs::Pair {
+            pairs.pairs.push(pcs::Pair {
                 address: address_pretty(&log.data[12..32]),
                 token0_address: address_pretty(&log.topics[1][12..]),
                 token1_address: address_pretty(&log.topics[2][12..]),
@@ -70,9 +71,10 @@ pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
 
 #[no_mangle]
 pub extern "C" fn build_pairs_state(pairs_ptr: *mut u8, pairs_len: usize) {
+    log::println("building pair state".to_string());
     substreams::register_panic_hook();
 
-    let pairs: pb::pcs::Pairs = proto::decode_ptr(pairs_ptr, pairs_len).unwrap();
+    let pairs: pcs::Pairs = proto::decode_ptr(pairs_ptr, pairs_len).unwrap();
 
     for pair in pairs.pairs {
         state::set(
@@ -87,7 +89,7 @@ pub extern "C" fn build_pairs_state(pairs_ptr: *mut u8, pairs_len: usize) {
 pub extern "C" fn build_token_state(pairs_ptr: *mut u8, pairs_len: usize) {
     substreams::register_panic_hook();
 
-    let pairs: pb::pcs::Pairs = proto::decode_ptr(pairs_ptr, pairs_len).unwrap();
+    let pairs: pcs::Pairs = proto::decode_ptr(pairs_ptr, pairs_len).unwrap();
 
     for pair in pairs.pairs {
         state::set(
@@ -120,7 +122,7 @@ pub extern "C" fn map_reserves(
 
     let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
 
-    let mut reserves = pb::pcs::Reserves { reserves: vec![] };
+    let mut reserves = pcs::Reserves { reserves: vec![] };
 
     for trx in blk.transaction_traces {
         for log in trx.receipt.unwrap().logs {
@@ -135,14 +137,14 @@ pub extern "C" fn map_reserves(
                     }
 
                     // Unmarshall pair
-                    let pair: pb::pcs::Pair = proto::decode(&pair_bytes).unwrap();
+                    let pair: pcs::Pair = proto::decode(&pair_bytes).unwrap();
 
                     // reserve
-                    let token0: pb::tokens::Token =
+                    let token0: Token =
                         utils::get_last_token(tokens_store_idx, &pair.token0_address);
                     let reserve0 =
                         utils::convert_token_to_decimal(&log.data[0..32], &token0.decimals);
-                    let token1: pb::tokens::Token =
+                    let token1: Token =
                         utils::get_last_token(tokens_store_idx, &pair.token1_address);
                     let reserve1 =
                         utils::convert_token_to_decimal(&log.data[32..64], &token1.decimals);
@@ -151,7 +153,7 @@ pub extern "C" fn map_reserves(
                     let token0_price = utils::get_token_price(reserve0.clone(), reserve1.clone());
                     let token1_price = utils::get_token_price(reserve1.clone(), reserve0.clone());
 
-                    reserves.reserves.push(pb::pcs::Reserve {
+                    reserves.reserves.push(pcs::Reserve {
                         pair_address: pair.address,
                         reserve0: reserve0.to_string(),
                         reserve1: reserve1.to_string(),
@@ -187,7 +189,7 @@ pub extern "C" fn build_reserves_state(
     let day_id: i64 = timestamp_seconds / 86400;
     let hour_id: i64 = timestamp_seconds / 3600;
 
-    let reserves: pb::pcs::Reserves = proto::decode_ptr(reserves_ptr, reserves_len).unwrap();
+    let reserves: pcs::Reserves = proto::decode_ptr(reserves_ptr, reserves_len).unwrap();
 
     state::delete_prefix(0, &format!("pair_day:{}:", day_id - 1));
     state::delete_prefix(0, &format!("pair_hour:{}:", hour_id - 1));
@@ -196,7 +198,7 @@ pub extern "C" fn build_reserves_state(
         match state::get_last(pairs_store_idx, &format!("pair:{}", reserve.pair_address)) {
             None => continue,
             Some(pair_bytes) => {
-                let pair: pb::pcs::Pair = proto::decode(&pair_bytes).unwrap();
+                let pair: pcs::Pair = proto::decode(&pair_bytes).unwrap();
 
                 state::set(
                     reserve.log_ordinal as i64,
@@ -259,7 +261,7 @@ pub extern "C" fn build_prices_state(
     let day_id: i64 = timestamp_seconds / 86400;
     let hour_id: i64 = timestamp_seconds / 3600;
 
-    let reserves: pb::pcs::Reserves = proto::decode_ptr(reserves_ptr, reserves_len).unwrap();
+    let reserves: pcs::Reserves = proto::decode_ptr(reserves_ptr, reserves_len).unwrap();
 
     state::delete_prefix(0, &format!("pair_day:{}:", day_id - 1));
     state::delete_prefix(0, &format!("pair_hour:{}:", hour_id - 1));
@@ -269,7 +271,7 @@ pub extern "C" fn build_prices_state(
         match state::get_last(pairs_store_idx, &format!("pair:{}", reserve.pair_address)) {
             None => continue,
             Some(pair_bytes) => {
-                let pair: pb::pcs::Pair = proto::decode(&pair_bytes).unwrap();
+                let pair: pcs::Pair = proto::decode(&pair_bytes).unwrap();
 
                 let latest_usd_price: BigDecimal =
                     utils::compute_usd_price(&reserve, reserves_store_idx);
@@ -293,7 +295,7 @@ pub extern "C" fn build_prices_state(
                 // derived from:
                 // * price:%s:%s (tokenA, tokenB)
                 // * reserve:%s:%s (pair, tokenA)
-                let usd_price_valid: bool = latest_usd_price.ne(&utils::zero_big_decimal());
+                let usd_price_valid: bool = latest_usd_price.ne(&zero_big_decimal());
 
                 let t0_derived_bnb_price = utils::find_bnb_price_per_token(
                     &reserve.log_ordinal,
@@ -314,7 +316,7 @@ pub extern "C" fn build_prices_state(
                              reserve_amount: String|
                  -> BigDecimal {
                     if token_derived_bnb_price.is_none() {
-                        return utils::zero_big_decimal();
+                        return zero_big_decimal();
                     }
 
                     state::set(
@@ -380,7 +382,7 @@ pub extern "C" fn build_prices_state(
                 );
 
                 let reserves_bnb_sum = reserve0_bnb.mul(reserve1_bnb);
-                if reserves_bnb_sum.ne(&utils::zero_big_decimal()) {
+                if reserves_bnb_sum.ne(&zero_big_decimal()) {
                     state::set(
                         reserve.log_ordinal as i64,
                         format!("dreserves:{}:bnb", reserve.pair_address),
@@ -404,14 +406,14 @@ pub extern "C" fn map_mint_burn_swaps(
 
     let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
 
-    let mut events: pb::pcs::Events = pb::pcs::Events { events: vec![] };
+    let mut events: pcs::Events = pcs::Events { events: vec![] };
 
     let mut burn_count: i32 = 0;
     let mut mint_count: i32 = 0;
     let mut swap_count: i32 = 0;
 
     for trx in blk.transaction_traces {
-        let trx_id = eth::address_pretty(trx.hash.as_slice());
+        let trx_id = address_pretty(trx.hash.as_slice());
         for call in trx.calls {
             if call.state_reverted {
                 continue;
@@ -421,7 +423,7 @@ pub extern "C" fn map_mint_burn_swaps(
                 continue;
             }
 
-            let pair_addr = eth::address_pretty(call.address.as_slice());
+            let pair_addr = address_pretty(call.address.as_slice());
 
             let pair: pcs::Pair;
             match state::get_last(pairs_store_idx, &format!("pair:{}", pair_addr)) {
@@ -565,7 +567,7 @@ pub extern "C" fn map_mint_burn_swaps(
                             prices_store_idx,
                             &pair,
                             Some(pair_swap_event),
-                            eth::address_pretty(trx.from.as_slice()),
+                            address_pretty(trx.from.as_slice()),
                             utils::get_last_token(tokens_store_idx, &pair.token0_address).decimals,
                             utils::get_last_token(tokens_store_idx, &pair.token1_address).decimals,
                         );
@@ -620,67 +622,51 @@ pub extern "C" fn build_totals_state(
         return;
     }
 
-    let events: pb::pcs::Events = proto::decode_ptr(events_ptr, events_len).unwrap();
-    let pairs: pb::pcs::Pairs = proto::decode_ptr(pairs_ptr, pairs_len).unwrap();
-
-    let mut all_pairs_and_events: Vec<Wrapper> = Vec::new();
+    let events: pcs::Events = proto::decode_ptr(events_ptr, events_len).unwrap();
+    let pairs: pcs::Pairs = proto::decode_ptr(pairs_ptr, pairs_len).unwrap();
 
     for pair in pairs.pairs {
-        all_pairs_and_events.push(Wrapper::Pair(pair));
+        state::sum_int64(pair.log_ordinal as i64, "global:pair_count".to_string(), 1);
     }
 
     for event in events.events {
-        all_pairs_and_events.push(Wrapper::Event(event));
-    }
+        state_helper::sum_int64_many(
+            event.log_ordinal,
+            &vec![
+                format!("token:{}:transaction_count", event.token0),
+                format!("token:{}:transaction_count", event.token1),
+                format!("pair:{}:transaction_count", event.pair_address),
+                format!("global_day:{}:transaction_count", day_id),
+                format!("global:transaction_count"),
+            ],
+            1,
+        );
 
-    all_pairs_and_events.sort_by(|a, b| utils::get_ordinal(a).cmp(&utils::get_ordinal(b)));
+        match event.r#type.unwrap() {
+            Type::Swap(swap) => {
+                if swap.amount_usd.is_empty() {
+                    continue;
+                }
 
-    // move stuff here
-    for el in all_pairs_and_events {
-        match el {
-            Wrapper::Event(event) => {
                 state_helper::sum_int64_many(
                     event.log_ordinal,
-                    &vec![
-                        format!("token:{}:transaction_count", event.token0),
-                        format!("token:{}:transaction_count", event.token1),
-                        format!("pair:{}:transaction_count", event.pair_address),
-                        format!("global_day:{}:transaction_count", day_id),
-                        format!("global:transaction_count"),
-                    ],
+                    &vec![format!("pair:{}:swap_count", event.pair_address)],
                     1,
                 );
 
-                match event.r#type.unwrap() {
-                    Type::Swap(swap) => {
-                        if swap.amount_usd.is_empty() {
-                            continue;
-                        }
-
-                        state_helper::sum_int64_many(
-                            event.log_ordinal,
-                            &vec![format!("pair:{}:swap_count", event.pair_address)],
-                            1,
-                        );
-
-                        //todo: if we want to set the total transactions for global day we need a
-                        // key setter store to keep track of the latest computed(summed) values
-                    }
-                    Type::Burn(_) => state::sum_int64(
-                        event.log_ordinal as i64,
-                        format!("pair:{}:burn_count", event.pair_address),
-                        1,
-                    ),
-                    Type::Mint(_) => state::sum_int64(
-                        event.log_ordinal as i64,
-                        format!("pair:{}:mint_count", event.pair_address),
-                        1,
-                    ),
-                }
+                //todo: if we want to set the total transactions for global day we need a
+                // key setter store to keep track of the latest computed(summed) values
             }
-            Wrapper::Pair(pair) => {
-                state::sum_int64(pair.log_ordinal as i64, "global:pair_count".to_string(), 1);
-            }
+            Type::Burn(_) => state::sum_int64(
+                event.log_ordinal as i64,
+                format!("pair:{}:burn_count", event.pair_address),
+                1,
+            ),
+            Type::Mint(_) => state::sum_int64(
+                event.log_ordinal as i64,
+                format!("pair:{}:mint_count", event.pair_address),
+                1,
+            ),
         }
     }
 }
@@ -712,7 +698,7 @@ pub extern "C" fn build_volumes_state(
         return;
     }
 
-    let events: pb::pcs::Events = proto::decode_ptr(events_ptr, events_len).unwrap();
+    let events: pcs::Events = proto::decode_ptr(events_ptr, events_len).unwrap();
 
     state::delete_prefix(0, &format!("pair_day:{}:", day_id - 1));
     state::delete_prefix(0, &format!("token_day:{}:", day_id - 1));
@@ -914,9 +900,9 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
                 let rpc_calls = rpc::create_rpc_calls(&call.address);
 
                 let rpc_responses_marshalled: Vec<u8> =
-                    substreams::rpc::eth_call(substreams::proto::encode(&rpc_calls).unwrap());
+                    substreams::rpc::eth_call(proto::encode(&rpc_calls).unwrap());
                 let rpc_responses_unmarshalled: substreams::pb::eth::RpcResponses =
-                    substreams::proto::decode(&rpc_responses_marshalled).unwrap();
+                    proto::decode(&rpc_responses_marshalled).unwrap();
 
                 if rpc_responses_unmarshalled.responses[0].failed
                     || rpc_responses_unmarshalled.responses[1].failed
@@ -954,7 +940,7 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
                 let decoded_symbol =
                     decode_string(rpc_responses_unmarshalled.responses[2].raw.as_ref());
 
-                let token = pb::tokens::Token {
+                let token = Token {
                     address: decoded_address,
                     name: decoded_name,
                     symbol: decoded_symbol,
@@ -985,7 +971,7 @@ pub extern "C" fn build_tokens_state(tokens_ptr: *mut u8, tokens_len: usize) {
 pub extern "C" fn build_pcs_token_state(pairs_ptr: *mut u8, pairs_len: usize, tokens_idx: u32) {
     substreams::register_panic_hook();
 
-    let pairs: pb::pcs::Pairs = proto::decode_ptr(pairs_ptr, pairs_len).unwrap();
+    let pairs: pcs::Pairs = proto::decode_ptr(pairs_ptr, pairs_len).unwrap();
 
     let mut token0_retry: bool = false;
     let mut token0: Token = Token {
@@ -1099,7 +1085,7 @@ pub extern "C" fn map_to_database(
     let reserves_deltas: substreams::pb::substreams::StoreDeltas =
         proto::decode_ptr(reserves_deltas_ptr, reserves_deltas_len).unwrap();
 
-    let events: pb::pcs::Events = proto::decode_ptr(events_ptr, events_len).unwrap();
+    let events: pcs::Events = proto::decode_ptr(events_ptr, events_len).unwrap();
 
     let changes = db::process(
         &block,

@@ -2,6 +2,9 @@ package exchange
 
 import (
 	"fmt"
+	"io"
+	"os"
+
 	"github.com/streamingfast/bstream"
 	_ "github.com/streamingfast/sf-ethereum/types"
 	"github.com/streamingfast/substream-pancakeswap/pancakeswap"
@@ -10,8 +13,6 @@ import (
 	"github.com/streamingfast/substreams/graph-node/storage/postgres"
 	"github.com/streamingfast/substreams/manifest"
 	pbsubstreams "github.com/streamingfast/substreams/pb/sf/substreams/v1"
-	"io"
-	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -97,7 +98,7 @@ func runRoot(cmd *cobra.Command, args []string) error {
 		StopBlockNum:  mustGetUint64(cmd, "stop-block"),
 		ForkSteps:     []pbsubstreams.ForkStep{pbsubstreams.ForkStep_STEP_IRREVERSIBLE},
 		Manifest:      manifProto,
-		OutputModules: []string{"db_out"},
+		OutputModules: []string{"db_out", "pairs", "totals"},
 	}
 
 	stream, err := ssClient.Blocks(ctx, req, callOpts...)
@@ -124,6 +125,9 @@ func runRoot(cmd *cobra.Command, args []string) error {
 		case *pbsubstreams.Response_Data:
 
 			for _, output := range r.Data.Outputs {
+				for _, log := range output.Logs {
+					fmt.Println("LOG: ", log)
+				}
 				if output.Name == "db_out" {
 					if err := loader.ReturnHandler(output.GetMapOutput().GetValue(), r.Data.Step, r.Data.Cursor, r.Data.Clock); err != nil {
 						fmt.Printf("RETURN HANDLER ERROR: %s\n", err)

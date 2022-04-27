@@ -3,9 +3,10 @@ package pancakeswap
 import (
 	"context"
 	"fmt"
-	"go.uber.org/zap"
 	"reflect"
 	"time"
+
+	"go.uber.org/zap"
 
 	"github.com/golang/protobuf/proto"
 	graphnode "github.com/streamingfast/substreams/graph-node"
@@ -131,7 +132,7 @@ func (l *Loader) ReturnHandler(data []byte, step pbsubstreams.ForkStep, cursor s
 	zlog.Debug("squashed database changes")
 
 	for _, change := range databaseChanges.TableChanges {
-		fmt.Println("change: ", change.Table, change.Pk, change.Fields)
+		fmt.Println("change: ", change.Operation.String(), change.Table, change.Pk, change.Fields)
 
 		ent, ok := l.registry.GetInterface(change.Table)
 		if !ok {

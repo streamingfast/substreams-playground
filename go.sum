@@ -588,8 +588,8 @@ github.com/streamingfast/sf-ethereum/types v0.0.0-20220422143008-d40ff36b3c5c h1
 github.com/streamingfast/sf-ethereum/types v0.0.0-20220422143008-d40ff36b3c5c/go.mod h1:/rhbE8VBSZc1zvajcSXTHZ4w0uuiHkDc68HMowNS8T8=
 github.com/streamingfast/shutter v1.5.0 h1:NpzDYzj0HVpSiDJVO/FFSL6QIK/YKOxY0gJAtyaTOgs=
 github.com/streamingfast/shutter v1.5.0/go.mod h1:B/T6efqdeMGbGwjzPS1ToXzYZI4kDzI5/u4I+7qbjY8=
-github.com/streamingfast/substreams v0.0.0-20220427071724-10cbc89e07df h1:9PpXibYjHLvIiiSSv2oCtldqb8qCDE4aIMXiYi9MYmw=
-github.com/streamingfast/substreams v0.0.0-20220427071724-10cbc89e07df/go.mod h1:2j7V4JVG8F9xD6ZE0XCGjyWKTS9kjpDHHClJjsqtlQk=
+github.com/streamingfast/substreams v0.0.0-20220427163505-b53083a78e0a h1:wJVpSiJ4/pXP11qvtan0hoG2THgQJay8SEVcMusVxbU=
+github.com/streamingfast/substreams v0.0.0-20220427163505-b53083a78e0a/go.mod h1:2j7V4JVG8F9xD6ZE0XCGjyWKTS9kjpDHHClJjsqtlQk=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.1.1/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=

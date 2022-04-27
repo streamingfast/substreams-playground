@@ -7,7 +7,7 @@ use num_bigint::BigUint;
 use pad::PadStr;
 use substreams::{proto, state};
 
-use crate::{pb, Wrapper};
+use crate::pb;
 
 pub const WBNB_ADDRESS: &str = "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c";
 pub const BUSD_WBNB_PAIR: &str = "0x58f876857a02d6762e0101bb5c46a8c1ed44dc16";
@@ -150,7 +150,7 @@ pub fn find_bnb_price_per_token(
     reserves_store_idx: u32,
 ) -> Option<BigDecimal> {
     if erc20_token_address.eq(WBNB_ADDRESS) {
-        return Option::Some(one_big_decimal()); // BNB price of a BNB is always 1
+        return Some(one_big_decimal()); // BNB price of a BNB is always 1
     }
 
     let direct_to_bnb_price = match state::get_last(
@@ -162,7 +162,7 @@ pub fn find_bnb_price_per_token(
     };
 
     if direct_to_bnb_price.ne(&zero_big_decimal()) {
-        return Option::Some(direct_to_bnb_price);
+        return Some(direct_to_bnb_price);
     }
 
     // loop all whitelist for a matching pair
@@ -227,13 +227,6 @@ pub fn compute_amount_total(amount1: String, amount2: String) -> BigDecimal {
     let amount2_bd: BigDecimal = BigDecimal::from_str(amount2.as_str()).unwrap();
 
     amount1_bd.add(amount2_bd)
-}
-
-pub fn get_ordinal(all: &Wrapper) -> i64 {
-    return match all {
-        Wrapper::Event(event) => event.log_ordinal as i64,
-        Wrapper::Pair(pair) => pair.log_ordinal as i64,
-    };
 }
 
 pub fn get_last_token(tokens_store_idx: u32, token_address: &str) -> pb::tokens::Token {
