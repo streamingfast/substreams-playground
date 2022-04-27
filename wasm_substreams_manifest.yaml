@@ -16,7 +16,7 @@ modules:
 
   - name: pairs
     kind: store
-    startBlock: 6680000
+    startBlock: 6810706
     updatePolicy: replace
     valueType: proto:pcs.types.v1.Pair
     code:
@@ -28,7 +28,7 @@ modules:
 
   - name: block_to_reserves
     kind: map
-    startBlock: 6680000
+    startBlock: 6810706
     code:
       type: wasm/rust-v1
       file: ./pcs-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
@@ -69,7 +69,7 @@ modules:
 
   - name: mint_burn_swaps_extractor
     kind: map
-    startBlock: 6680000
+    startBlock: 6810706
     code:
       type: wasm/rust-v1
       file: ./pcs-rust/target/wasm32-unknown-unknown/release/pcs_substreams.wasm
@@ -147,7 +147,7 @@ modules:
 
   - name: db_out
     kind: map
-    startBlock: 6680000
+    startBlock: 6810706
     code:
       type: wasm/rust-v1
       file: ./pcs-rust/pkg/pcs_substreams_bg.wasm
