@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package solana.spl.v1;
+
+message TokenTransfers {
+  repeated TokenTransfer transfers = 1;
+}
+
+message TokenTransfer {
+  string transaction_id = 4;
+  uint64 ordinal = 5;
+
+  bytes from = 1;
+  bytes to = 2;
+  string amount = 3;
+}

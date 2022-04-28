@@ -1,0 +1,15 @@
+specVersion: 0.1.0
+description: Solana SPL Token Transfers stream
+
+modules:
+  - name: spl_transfers
+    kind: map
+    startBlock: 130769000
+    code:
+      type: wasm/rust-v1
+      file: ./pkg/sol_spl_tokens_bg.wasm
+      entrypoint: spl_transfers
+    inputs:
+      - source: sf.solana.type.v1.Block
+    output:
+      type: proto:sol.types.v1.SPLTokenTransfer
