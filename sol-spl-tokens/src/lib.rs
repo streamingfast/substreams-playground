@@ -31,7 +31,7 @@ pub extern "C" fn spl_transfers(block_ptr: *mut u8, block_len: usize) {
 
                 xfers.transfers.push(pb::spl::TokenTransfer {
                     transaction_id: hex::encode(&trx.id),
-                    ordinal: inst.ordinal as u64,
+                    ordinal: inst.begin_ordinal,
                     from: inst.account_keys[0].clone(),
                     to: inst.account_keys[1].clone(),
                     amount: format!("{:?}", amount),

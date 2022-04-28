@@ -4,7 +4,7 @@ description: Solana SPL Token Transfers stream
 modules:
   - name: spl_transfers
     kind: map
-    startBlock: 130769000
+    startBlock: 131450000
     code:
       type: wasm/rust-v1
       file: ./pkg/sol_spl_tokens_bg.wasm
