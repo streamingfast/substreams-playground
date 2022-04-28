@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use std::time::SystemTime;
 
 use hex::ToHex;
@@ -8,7 +9,7 @@ pub mod util;
 
 use substreams::{log, proto, rpc};
 
-use contracts::factory;
+use contracts::factory::FactoryContract;
 use pb::{
     eth::Log,
     uniswap::{Pool, Pools},
@@ -20,44 +21,25 @@ pub extern "C" fn pools(block_ptr: *mut u8, block_len: usize) {
 
     let mut pools = Pools { pools: vec![] };
 
-    let block: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
+    let block: Rc<pb::eth::Block> = Rc::new(proto::decode_ptr(block_ptr, block_len).unwrap());
 
-    let factory_txs = block
-        .transaction_traces
-        .iter()
-        .filter(|tx| hex::encode(&tx.to) == factory::ADDRESS);
+    let factory = FactoryContract::bind(block.clone(), "1f98431c8ad98523631ae4a59f267346ea31f984");
 
-    for tx in factory_txs {
-        log::println(format!("TX"));
+    for event in factory.pool_created_events() {
+        log::println(format!("POOL CREATED AT BLOCK #{}", block.number));
 
-        let pool_created_events = tx
-            .receipt
-            .as_ref()
-            .unwrap()
-            .logs
-            .iter()
-            .filter(|event| factory::PoolCreatedEvent::matches(event));
+        let mut pool = Pool::default();
+        let header = block.header.as_ref().expect("header");
 
-        for event in pool_created_events {
-            log::println(format!(
-                "POOL CREATED: #{}, tx {}",
-                block.number,
-                hex::encode(&tx.hash)
-            ));
+        pool.token0 = hex::encode(&event.topics[1][12..]);
+        pool.token1 = hex::encode(&event.topics[2][12..]);
 
-            let mut pool = Pool::default();
-            // let header = block.header.as_ref().expect("header");
+        let timestamp = header.timestamp.as_ref().expect("timestamp");
 
-            // pool.token0 = hex::encode(&event.topics[1][12..]);
-            // pool.token1 = hex::encode(&event.topics[2][12..]);
+        pool.created_at_timestamp = timestamp.seconds as u64;
+        pool.created_at_block_number = header.number;
 
-            // let timestamp = header.timestamp.as_ref().expect("timestamp");
-
-            // pool.created_at_timestamp = timestamp.seconds as u64;
-            // pool.created_at_block_number = header.number;
-
-            // pools.pools.push(pool);
-        }
+        pools.pools.push(pool);
     }
 
     if !pools.pools.is_empty() {
