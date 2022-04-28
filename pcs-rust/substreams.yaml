@@ -102,7 +102,7 @@ modules:
       file: ./pkg/pcs_substreams_bg.wasm
       entrypoint: build_volumes_state
     inputs:
-      - source: sf.ethereum.type.v1.block
+      - source: sf.ethereum.type.v1.Block
       - map: mint_burn_swaps_extractor
 
   - name: block_to_tokens
