@@ -1,7 +1,7 @@
 syntax = "proto3";
 
-package sf.substreams.v1;
-option go_package = "github.com/streamingfast/substreams/pb/sf/substreams/v1;pbsubstreams";
+package pcs.database.v1;
+option go_package = "github.com/streamingfast/substream-pancakeswap/pcs-go;database";
 
 message DatabaseChanges {
   repeated TableChange tableChanges = 1;

@@ -3,8 +3,7 @@ use std::string::String;
 
 use bigdecimal::BigDecimal;
 use substreams::pb::substreams::{
-    store_delta, table_change, table_change::Operation, DatabaseChanges, Field, StoreDelta,
-    StoreDeltas, TableChange,
+    store_delta,  StoreDelta, StoreDeltas,
 };
 use substreams::{log, proto};
 
@@ -13,6 +12,8 @@ use crate::pcs::{Burn, Event, Events, Mint, Reserve, Reserves, Swap};
 use crate::{
     field, field_create_string, field_from_strings, pb, pcs, proto_decode_to_string, utils, Type,
 };
+use crate::pb::database::{DatabaseChanges, TableChange, Field};
+use crate::pb::database::table_change::Operation;
 
 const PANCAKE_FACTORY: &str = "ca143ce32fe78f1f7019d7d551a6402fc5350c73";
 

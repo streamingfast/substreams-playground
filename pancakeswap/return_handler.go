@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/streamingfast/substream-pancakeswap/pb/pcs/database/v1"
+
 	"go.uber.org/zap"
 
 	"github.com/golang/protobuf/proto"
@@ -112,7 +114,7 @@ func (l *Loader) Flush(cursor string, blockNum uint64, blockID string, blockTime
 }
 
 func (l *Loader) ReturnHandler(data []byte, step pbsubstreams.ForkStep, cursor string, clock *pbsubstreams.Clock) error {
-	databaseChanges := &pbsubstreams.DatabaseChanges{}
+	databaseChanges := &database.DatabaseChanges{}
 
 	l.current = make(map[string]map[string]graphnode.Entity)
 	l.updates = make(map[string]map[string]graphnode.Entity)
@@ -147,7 +149,7 @@ func (l *Loader) ReturnHandler(data []byte, step pbsubstreams.ForkStep, cursor s
 			ent.Default()
 		}
 
-		err := graphnode.ApplyTableChange(change, ent)
+		err := database.ApplyTableChange(change, ent)
 		if err != nil {
 			return fmt.Errorf("applying table change: %w", err)
 		}

@@ -9,6 +9,9 @@ pub mod pcs;
 #[path = "./sf.substreams.tokens.v1.rs"]
 pub mod tokens;
 
+#[path = "./pcs.database.v1.rs"]
+pub mod database;
+
 impl Block {
     pub fn timestamp(&self) -> String {
         self.header
