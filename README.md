@@ -1,8 +1,10 @@
-# Substream-based PancakeSwap
-[![reference](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=flat-square)](https://pkg.go.dev/github.com/streamingfast/substream-pancakeswap)
+# Substreams Playground
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-This repo holds the `exchange` substream-based "pseudo-subgraph" from PancakeSwap.
+This repository holds a few example substreams.
+
+## Install dependencies
+
 
 ## Build and install wasm-pack
 
@@ -21,12 +23,13 @@ export PATH=$PATH:$somedir/target/release
 ```
 
 
-## Build wasm
+## Explore examples
 
-```bash
-cd pcs-rust
-./build.sh
-```
+* [PancakeSwap Substreams](./pcs-rust) - Our most complete example to date. Tracking PancakeSwap on BSC Mainnet.
+* [ETH Token Substreams](./eth-token) - Substreams tracking ERC-20 tokens. For ETH Mainnet.
+* [SPL Token Transfers](./sol-spl-tokens) - Tracking SPL token transfers. Solana Mainnet.
+* [Uniswap](./uniswap) - First draft at tracking Uniswap on ETH Mainnet
+
 
 ## Usage
 
@@ -71,37 +74,6 @@ sseth wasm_substreams_manifest.yaml pairs 2000 -s 6831000
 
 For `wasm_substreams_manifest.yaml`:
 
-```mermaid
-graph TD;
-  sf.ethereum.type.v1.Block -- "source:sf.ethereum.type.v1.Block" --> block_to_pairs
-  block_to_pairs -- "map:block_to_pairs" --> pairs
-  sf.ethereum.type.v1.Block -- "source:sf.ethereum.type.v1.Block" --> block_to_reserves
-  pairs -- "store:pairs:get" --> block_to_reserves
-  tokens -- "store:tokens:get" --> block_to_reserves
-  block_to_reserves -- "map:block_to_reserves" --> reserves
-  pairs -- "store:pairs:get" --> reserves
-  block_to_reserves -- "map:block_to_reserves" --> prices
-  pairs -- "store:pairs:get" --> prices
-  reserves -- "store:reserves:get" --> prices
-  sf.ethereum.type.v1.Block -- "source:sf.ethereum.type.v1.Block" --> mint_burn_swaps_extractor
-  pairs -- "store:pairs:get" --> mint_burn_swaps_extractor
-  prices -- "store:prices:get" --> mint_burn_swaps_extractor
-  tokens -- "store:tokens:get" --> mint_burn_swaps_extractor
-  block_to_pairs -- "map:block_to_pairs" --> totals
-  mint_burn_swaps_extractor -- "map:mint_burn_swaps_extractor" --> totals
-  sf.ethereum.type.v1.block -- "source:sf.ethereum.type.v1.block" --> volumes
-  mint_burn_swaps_extractor -- "map:mint_burn_swaps_extractor" --> volumes
-  sf.ethereum.type.v1.Block -- "source:sf.ethereum.type.v1.Block" --> block_to_tokens
-  block_to_tokens -- "map:block_to_tokens" --> tokens
-  sf.ethereum.type.v1.Block -- "source:sf.ethereum.type.v1.Block" --> db_out
-  tokens -- "store:tokens:deltas" --> db_out
-  pairs -- "store:pairs:deltas" --> db_out
-  totals -- "store:totals:deltas" --> db_out
-  volumes -- "store:volumes:deltas" --> db_out
-  reserves_extractor -- "map:reserves_extractor" --> db_out
-  mint_burn_swaps_extractor -- "map:mint_burn_swaps_extractor" --> db_out
-  tokens -- "store:tokens:get" --> db_out
-```
 
 ## References
 

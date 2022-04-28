@@ -6,10 +6,10 @@ secrets.go
 *~
 .git-old
 
-/localblocks
-/localdata
-/localirr
-/localrpccache
+localblocks
+localdata
+localirr
+localrpccache
 /step*-v*
 /stepcsvs
 /exported
