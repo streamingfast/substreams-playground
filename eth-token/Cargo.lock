@@ -316,7 +316,7 @@ dependencies = [
 [[package]]
 name = "substreams"
 version = "0.1.0"
-source = "git+https://github.com/streamingfast/substreams?branch=develop#fb25f4dee8e7903da2f46f1792a16d4db648a17d"
+source = "git+https://github.com/streamingfast/substreams?branch=develop#4041ba76994473891a5fa42f0f97bb04b40d7331"
 dependencies = [
  "bigdecimal",
  "hex",
