@@ -1,0 +1,6 @@
+/target/
+/localblocks/
+/localdata/
+/localirr/
+.idea/
+/rpc-cache/

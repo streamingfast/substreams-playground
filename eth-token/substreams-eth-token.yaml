@@ -1,0 +1,29 @@
+specVersion: 0.1.0
+description: Substreams for Ethereum tokens
+
+protoFiles:
+  - ./proto/tokens.proto
+
+modules:
+- name: block_to_tokens
+  kind: map
+  startBlock: 0
+  code:
+    type: wasm/rust-v1
+    file: ./pkg/substreams_eth_token_bg.wasm
+    entrypoint: block_to_tokens
+  inputs:
+    - source: sf.ethereum.type.v1.Block
+  output:
+    type: proto:sf.substreams.tokens.v1.Tokens
+
+- name: tokens
+  kind: store
+  updatePolicy: replace
+  valueType: bytes
+  code:
+    type: wasm/rust-v1
+    file: ./pkg/substreams_eth_token_bg.wasm
+    entrypoint: build_tokens_state
+  inputs:
+    - map: block_to_tokens
