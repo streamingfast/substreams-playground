@@ -12,4 +12,4 @@ modules:
     inputs:
       - source: sf.solana.type.v1.Block
     output:
-      type: proto:sol.types.v1.SPLTokenTransfer
+      type: proto:solana.spl.v1.TokenTransfers

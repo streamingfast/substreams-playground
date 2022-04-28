@@ -12,7 +12,7 @@ mod pb;
 
 #[no_mangle]
 pub extern "C" fn spl_transfers(block_ptr: *mut u8, block_len: usize) {
-    log::println("Pairs mapping".to_string());
+    log::println("Extracting SPL Token Transfers".to_string());
     substreams::register_panic_hook();
 
     let blk: pb::sol::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
