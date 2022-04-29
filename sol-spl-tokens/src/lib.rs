@@ -1,12 +1,10 @@
 extern crate core;
+use std::convert::TryInto;
 
-use std::fmt::format;
-use std::str::FromStr;
-
+//use bigdecimal::BigDecimal;
 use bs58;
-use bigdecimal::BigDecimal;
-use hex;
-use substreams::{log, proto, state};
+//use hex;
+use substreams::{log, proto}; //, state};
 
 mod pb;
 
@@ -27,14 +25,15 @@ pub extern "C" fn spl_transfers(block_ptr: *mut u8, block_len: usize) {
                     continue;
                 }
 
-                let amount = inst.data[1] as u64; // u64
+                let a: [u8; 8] = inst.data[1..9].try_into().unwrap();
+                let amount = u64::from_be_bytes(a);
 
                 xfers.transfers.push(pb::spl::TokenTransfer {
-                    transaction_id: hex::encode(&trx.id),
+                    transaction_id: bs58::encode(&trx.id).into_string(),
                     ordinal: inst.begin_ordinal,
                     from: inst.account_keys[0].clone(),
                     to: inst.account_keys[1].clone(),
-                    amount: format!("{:?}", amount),
+                    amount: amount,
                 })
             }
         }

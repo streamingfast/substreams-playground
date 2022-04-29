@@ -1,6 +1,5 @@
 Solana SPL Token Transfers Substreams
-PancakeSwap Substreams
-======================
+=====================================
 
 Install [`substreams` and its dependencies here](../README.md), compile these modules with:
 

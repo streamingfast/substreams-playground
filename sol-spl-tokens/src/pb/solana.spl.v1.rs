@@ -13,6 +13,6 @@ pub struct TokenTransfer {
     pub from: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes="vec", tag="2")]
     pub to: ::prost::alloc::vec::Vec<u8>,
-    #[prost(string, tag="3")]
-    pub amount: ::prost::alloc::string::String,
+    #[prost(uint64, tag="3")]
+    pub amount: u64,
 }

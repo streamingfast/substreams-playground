@@ -12,5 +12,5 @@ message TokenTransfer {
 
   bytes from = 1;
   bytes to = 2;
-  string amount = 3;
+  uint64 amount = 3;
 }
