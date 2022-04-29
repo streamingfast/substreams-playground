@@ -17,11 +17,18 @@ pub extern "C" fn spl_transfers(block_ptr: *mut u8, block_len: usize) {
     let mut xfers = pb::spl::TokenTransfers { transfers: vec![] };
 
     for trx in blk.transactions {
+        if trx.failed {
+            continue;
+        }
         for inst in trx.instructions {
             if bs58::encode(inst.program_id).into_string()
                 == "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
             {
                 if inst.data[0] != 0x03 {
+                    continue;
+                }
+
+                if inst.failed {
                     continue;
                 }
 
