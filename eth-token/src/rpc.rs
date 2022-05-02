@@ -1,7 +1,5 @@
 use hex;
 
-use crate::{address_pretty, decode_string, decode_uint32, pb};
-
 pub fn create_rpc_calls(addr: &Vec<u8>) -> substreams::pb::eth::RpcCalls {
     let decimals = hex::decode("313ce567").unwrap();
     let name = hex::decode("06fdde03").unwrap();

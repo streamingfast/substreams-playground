@@ -1,37 +1,30 @@
-use std::error::Error;
 use std::string::String;
 
-use bigdecimal::BigDecimal;
-use substreams::pb::substreams::{
-    store_delta,  StoreDelta, StoreDeltas,
-};
+use substreams::pb::substreams::{store_delta, StoreDelta, StoreDeltas};
 use substreams::{log, proto};
 
-use crate::pb::eth::Block;
-use crate::pcs::{Burn, Event, Events, Mint, Reserve, Reserves, Swap};
-use crate::{
-    field, field_create_string, field_from_strings, pb, pcs, proto_decode_to_string, utils, Type,
-};
-use crate::pb::database::{DatabaseChanges, TableChange, Field};
 use crate::pb::database::table_change::Operation;
+use crate::pb::database::{DatabaseChanges, Field, TableChange};
+use crate::pb::eth::Block;
+use crate::pcs::{Burn, Event, Events, Mint, Swap};
+use crate::{field, field_create_string, field_from_strings, pb, pcs, utils, Type};
 
 const PANCAKE_FACTORY: &str = "ca143ce32fe78f1f7019d7d551a6402fc5350c73";
 
 #[derive(Clone, Debug)]
 enum Item {
     PairDelta(StoreDelta),
-    TokenDelta(StoreDelta),
+    PcsTokenDelta(StoreDelta),
     TotalDelta(StoreDelta),
     VolumeDelta(StoreDelta),
     ReserveDelta(StoreDelta),
-    Reserve(Reserve),
     Event(Event),
 }
 
 pub fn process(
     block: &Block,
     pair_deltas: StoreDeltas,
-    token_deltas: StoreDeltas,
+    pcs_token_deltas: StoreDeltas,
     total_deltas: StoreDeltas,
     volumes_deltas: StoreDeltas,
     reserves_deltas: StoreDeltas,
@@ -40,7 +33,7 @@ pub fn process(
 ) -> DatabaseChanges {
     let items = join_sort_deltas(
         pair_deltas,
-        token_deltas,
+        pcs_token_deltas,
         total_deltas,
         volumes_deltas,
         reserves_deltas,
@@ -58,11 +51,10 @@ pub fn process(
             Item::PairDelta(delta) => {
                 handle_pair_delta(delta, &block, &mut database_changes, tokens_idx)
             }
-            Item::TokenDelta(delta) => handle_token_delta(delta, &mut database_changes, block),
+            Item::PcsTokenDelta(delta) => handle_token_delta(delta, &mut database_changes, block),
             Item::TotalDelta(delta) => handle_total_delta(delta, &mut database_changes, block),
             Item::VolumeDelta(delta) => handle_volume_delta(delta, &mut database_changes, block),
             Item::ReserveDelta(delta) => handle_reserves_delta(delta, &mut database_changes, block),
-            Item::Reserve(_) => {} //todo: to remove
             Item::Event(event) => handle_events(event, &mut database_changes, block),
         }
     }
@@ -518,7 +510,7 @@ fn handle_mint_event(mint: &Mint, event: &Event, changes: &mut DatabaseChanges, 
 
 fn join_sort_deltas(
     pair_deltas: StoreDeltas,
-    token_deltas: StoreDeltas,
+    pcs_token_deltas: StoreDeltas,
     total_deltas: StoreDeltas,
     volumes_deltas: StoreDeltas,
     reserves_delta: StoreDeltas,
@@ -538,10 +530,10 @@ fn join_sort_deltas(
         })
     }
 
-    for delta in token_deltas.deltas {
+    for delta in pcs_token_deltas.deltas {
         items.push(SortableItem {
             ordinal: delta.ordinal,
-            item: Item::TokenDelta(delta),
+            item: Item::PcsTokenDelta(delta),
         })
     }
 

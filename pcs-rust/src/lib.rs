@@ -1,7 +1,6 @@
 extern crate core;
 
-use std::fmt::format;
-use std::ops::{Add, Mul, Neg};
+use std::ops::{Mul, Neg};
 use std::str::FromStr;
 
 use bigdecimal::BigDecimal;
@@ -25,11 +24,6 @@ mod pb;
 mod rpc;
 mod state_helper;
 mod utils;
-
-// todo: add extern "build_psc_token_state" with params (pairs_ptr: *mut u8, pairs_len: usize, token_store_idx: u32)
-// todo: for each token of each pair we we query the token_store_idx
-// todo: then we call the state::SetIfNotExist for each token.
-// todo: modify "map_to_database" and friends to handle the new pcs_token_store change.
 
 #[no_mangle]
 pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
@@ -82,32 +76,6 @@ pub extern "C" fn build_pairs_state(pairs_ptr: *mut u8, pairs_len: usize) {
             format!("pair:{}", pair.address),
             &proto::encode(&pair).unwrap(),
         );
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn build_token_state(pairs_ptr: *mut u8, pairs_len: usize) {
-    substreams::register_panic_hook();
-
-    let pairs: pcs::Pairs = proto::decode_ptr(pairs_ptr, pairs_len).unwrap();
-
-    for pair in pairs.pairs {
-        state::set(
-            pair.log_ordinal as i64,
-            format!("pair:{}", pair.address),
-            &proto::encode(&pair).unwrap(),
-        );
-        state::set(
-            pair.log_ordinal as i64,
-            format!(
-                "tokens:{}",
-                utils::generate_tokens_key(
-                    pair.token0_address.as_str(),
-                    pair.token1_address.as_str(),
-                )
-            ),
-            &Vec::from(pair.address),
-        )
     }
 }
 
@@ -172,7 +140,6 @@ pub extern "C" fn map_reserves(
 
 #[no_mangle]
 pub extern "C" fn build_reserves_state(
-    // todo: replace with BlockClock
     block_ptr: *mut u8,
     block_len: usize,
     reserves_ptr: *mut u8,
@@ -243,7 +210,6 @@ pub extern "C" fn build_reserves_state(
 
 #[no_mangle]
 pub extern "C" fn build_prices_state(
-    // todo: replace with BlockClock
     block_ptr: *mut u8,
     block_len: usize,
     reserves_ptr: *mut u8,
@@ -909,8 +875,8 @@ pub extern "C" fn build_pcs_token_state(pairs_ptr: *mut u8, pairs_len: usize, to
 pub extern "C" fn map_to_database(
     block_ptr: *mut u8,
     block_len: usize,
-    tokens_deltas_ptr: *mut u8,
-    tokens_deltas_len: usize,
+    pcs_tokens_deltas_ptr: *mut u8,
+    pcs_tokens_deltas_len: usize,
     pairs_deltas_ptr: *mut u8,
     pairs_deltas_len: usize,
     totals_deltas_ptr: *mut u8,
@@ -928,15 +894,15 @@ pub extern "C" fn map_to_database(
     let block: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
     log::println(format!("block {:?}:{}", block_ptr, block_len));
 
-    let token_deltas: substreams::pb::substreams::StoreDeltas =
-        proto::decode_ptr(tokens_deltas_ptr, tokens_deltas_len).unwrap();
+    let pcs_token_deltas: substreams::pb::substreams::StoreDeltas =
+        proto::decode_ptr(pcs_tokens_deltas_ptr, pcs_tokens_deltas_len).unwrap();
 
     let pair_deltas: substreams::pb::substreams::StoreDeltas =
         proto::decode_ptr(pairs_deltas_ptr, pairs_deltas_len).unwrap();
 
     log::println(format!(
         "map_to_database: pairs deltas:{} {}",
-        tokens_deltas_len,
+        pcs_tokens_deltas_len,
         pair_deltas.deltas.len()
     ));
 
@@ -954,7 +920,7 @@ pub extern "C" fn map_to_database(
     let changes = db::process(
         &block,
         pair_deltas,
-        token_deltas,
+        pcs_token_deltas,
         totals_deltas,
         volumes_deltas,
         reserves_deltas,
