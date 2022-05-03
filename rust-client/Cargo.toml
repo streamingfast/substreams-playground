@@ -1,0 +1,16 @@
+[package]
+name = "rust-client"
+version = "0.1.0"
+edition = "2021"
+description = "Substreams for Ethereum tokens"
+
+[dependencies]
+prost = { version = "0.10.1" }
+prost-types = "0.10.1"
+#substreams = { git = "https://github.com/streamingfast/substreams", module="rust/substreams", branch="develop"}
+tonic = "0.7.1"
+tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
+tokio-stream = { version = "0.1", features = ["net"] }
+
+[build-dependencies]
+tonic-build = "0.7"
