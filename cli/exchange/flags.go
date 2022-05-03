@@ -11,7 +11,7 @@ import (
 
 func init() {
 	cobra.OnInitialize(func() {
-		autoBind(rootCmd, "SUBSTREAMS")
+		autoBind(loadGraphNodeCmd, "SUBSTREAMS")
 	})
 }
 

@@ -27,6 +27,7 @@ function main() {
   echo $PROTO
   generate "sf/ethereum/codec/v1/codec.proto"
   generate "pcs/database/v1/database.proto"
+  generate "pcs/database/v1/database.proto"
 
   echo "generate.sh - `date` - `whoami`" > $ROOT/pb/last_generate.txt
 }
@@ -41,6 +42,7 @@ function generate() {
     fi
 
     for file in "$@"; do
+      echo $PROTO
       protoc -I$PROTO -I$PROTO_ETHEREUM $base$file --go_out=paths=source_relative:.
     done
 }
