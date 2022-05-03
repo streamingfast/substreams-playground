@@ -4,6 +4,8 @@ PancakeSwap Substreams
 Install [`substreams` and its dependencies here](../README.md), compile these modules with:
 
 ```
+cd ../eth-token/build.sh
+cd ../pcs-rust
 ./build.sh
 ```
 

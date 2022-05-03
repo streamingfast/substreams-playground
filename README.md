@@ -13,10 +13,7 @@ See [installation instructions here](https://github.com/streamingfast/substreams
 
 * [PancakeSwap Substreams](./pcs-rust) - Our most complete example to date. Tracking PancakeSwap on BSC Mainnet.
 * [ETH Token Substreams](./eth-token) - Substreams tracking ERC-20 tokens. For ETH Mainnet.
-* [SPL Token Transfers](./sol-spl-tokens) - Tracking SPL token transfers. Solana Mainnet.
 * [Uniswap](./uniswap) - First draft at tracking Uniswap on ETH Mainnet
-
-
 
 ## Contributing
 
