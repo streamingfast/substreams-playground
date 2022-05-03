@@ -7,7 +7,7 @@ import (
 
 	"github.com/streamingfast/bstream"
 	_ "github.com/streamingfast/sf-ethereum/types"
-	"github.com/streamingfast/substream-pancakeswap/pancakeswap"
+	"github.com/streamingfast/substream-pancakeswap/cli/exchange/graphnode"
 	"github.com/streamingfast/substreams/client"
 	"github.com/streamingfast/substreams/graph-node/metrics"
 	"github.com/streamingfast/substreams/graph-node/storage/postgres"
@@ -57,7 +57,7 @@ func runRoot(cmd *cobra.Command, args []string) error {
 	schema := mustGetString(cmd, "pg-schema")
 	transactionsDisabled := mustGetBool(cmd, "pg-disable-transactions")
 
-	subgraphDef := pancakeswap.Definition
+	subgraphDef := graphnode.Definition
 
 	storage, err := postgres.New(zlog, metrics.NewBlockMetrics(), dsn, schema, deployment, subgraphDef, map[string]bool{}, !transactionsDisabled)
 	if err != nil {
@@ -69,7 +69,7 @@ func runRoot(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("store: registaring entities:%w", err)
 	}
 
-	loader := pancakeswap.NewLoader(storage, pancakeswap.Definition.Entities)
+	loader := graphnode.NewLoader(storage, graphnode.Definition.Entities)
 
 	manifestPath := args[0]
 	manif, err := manifest.New(manifestPath)
