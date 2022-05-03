@@ -28,3 +28,4 @@ dist/
 
 sseth
 /rust-client/target/
+/client-examples/rust-client/target/
