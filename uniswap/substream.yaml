@@ -1,9 +1,6 @@
 specVersion: 0.1.0
 description: Uniswap Substream
 
-protoFiles:
-  - ./proto/modules.proto
-
 modules:
   - name: pools
     kind: map

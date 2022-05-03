@@ -797,6 +797,7 @@ pub extern "C" fn build_volumes_state(
     }
 }
 
+// todo: create pcs-token proto
 #[no_mangle]
 pub extern "C" fn build_pcs_token_state(pairs_ptr: *mut u8, pairs_len: usize, tokens_idx: u32) {
     substreams::register_panic_hook();
