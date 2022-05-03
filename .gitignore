@@ -27,3 +27,4 @@ dist/
 /erc20-rust/target/
 
 sseth
+/rust-client/target/
