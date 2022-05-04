@@ -21,7 +21,7 @@ import (
 var loadGraphNodeCmd = &cobra.Command{
 	Use:          "load-graphnode [manifest]",
 	Short:        "run pcs sub graph and load database changes into postgress",
-	RunE:         runRoot,
+	RunE:         runLoadGraphnode,
 	Args:         cobra.ExactArgs(1),
 	SilenceUsage: true,
 }
@@ -44,7 +44,7 @@ func init() {
 	rootCmd.AddCommand(loadGraphNodeCmd)
 }
 
-func runRoot(cmd *cobra.Command, args []string) error {
+func runLoadGraphnode(cmd *cobra.Command, args []string) error {
 	err := bstream.ValidateRegistry()
 	if err != nil {
 		return fmt.Errorf("bstream validate registry %w", err)
