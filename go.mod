@@ -6,13 +6,13 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/spf13/cobra v1.3.0
 	github.com/spf13/pflag v1.0.5
-	github.com/streamingfast/bstream v0.0.2-0.20220419143921-1612cfa6b659
+	github.com/streamingfast/bstream v0.0.2-0.20220505155906-a0834b9c5258
 	github.com/streamingfast/eth-go v0.0.0-20220426130813-8ceed63c0fd5
 	github.com/streamingfast/logging v0.0.0-20220405224725-2755dab2ce75
 	github.com/streamingfast/sf-ethereum/types v0.0.0-20220422143008-d40ff36b3c5c
-	github.com/streamingfast/substreams v0.0.5-beta.0.20220503155555-067cb557399f
+	github.com/streamingfast/substreams v0.0.5-beta2.0.20220505181256-b2cbf5ea762f
 	github.com/stretchr/testify v1.7.1-0.20210427113832-6241f9ab9942
-	go.mongodb.org/mongo-driver v1.9.0
+	go.mongodb.org/mongo-driver v1.9.1
 	go.uber.org/zap v1.21.0
 	google.golang.org/protobuf v1.27.1
 )
@@ -75,7 +75,7 @@ require (
 	github.com/streamingfast/dtracing v0.0.0-20220301163030-15ce3f71dd1c // indirect
 	github.com/streamingfast/jsonpb v0.0.0-20210811021341-3670f0aa02d0 // indirect
 	github.com/streamingfast/opaque v0.0.0-20210811180740-0c01d37ea308 // indirect
-	github.com/streamingfast/pbgo v0.0.6-0.20220304191603-f73822f471ff // indirect
+	github.com/streamingfast/pbgo v0.0.6-0.20220428192744-f80aee7d4688 // indirect
 	github.com/streamingfast/shutter v1.5.0 // indirect
 	github.com/tidwall/gjson v1.12.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
