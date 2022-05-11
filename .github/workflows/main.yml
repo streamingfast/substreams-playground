@@ -33,3 +33,8 @@ jobs:
         with:
           working-directory: substreams-examples/uniswap
       - run: ./build-all.sh
+      - name: 'Upload Artifacts'
+        uses: actions/upload-artifact@v3
+        with:
+          name: substreams
+          path: substreams-examples/*/substreams.yaml.pb
