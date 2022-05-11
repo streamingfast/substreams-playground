@@ -9,11 +9,19 @@ This repository holds a few example substreams.
 See [installation instructions here](https://github.com/streamingfast/substreams).
 
 
-## Explore examples
+## Explore substreams examples
 
-* [PancakeSwap Substreams](./pcs-rust) - Our most complete example to date. Tracking PancakeSwap on BSC Mainnet.
-* [ETH Token Substreams](./eth-token) - Substreams tracking ERC-20 tokens. For ETH Mainnet.
-* [Uniswap](./uniswap) - First draft at tracking Uniswap on ETH Mainnet
+* [PancakeSwap Substreams](./substreams-examples/pancakeswap) - Our most complete example to date. Tracking PancakeSwap on BSC Mainnet.
+* [ETH Token Substreams](./substreams-examples/erc20) - Substreams tracking ERC-20 tokens. For ETH Mainnet.
+* [Uniswap](./substreams-examples/uniswap) - First draft at tracking Uniswap on ETH Mainnet
+* [Solana SPL Tokens](./substreams-examples/sol-spl-tokens) - First draft at solana SPL tokens extraction
+
+## Explore substreams clients
+
+* [Go client](./client-examples/go-client)
+*   [Go pancakeswap-specific client](./client-examples/go-pancakeswap-client)
+* [Rust client](./client-examples/rust-client)
+* [Python client (different repository)](https://github.com/streamingfast/example-python/tree/substreams)
 
 ## Contributing
 
