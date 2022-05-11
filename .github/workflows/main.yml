@@ -20,4 +20,16 @@ jobs:
       - uses: jetli/wasm-pack-action@v0.3.0
         with:
           version: 'latest'
+      - uses: Swatinem/rust-cache@v1
+        with:
+          working-directory: substreams-examples/eth-token
+      - uses: Swatinem/rust-cache@v1
+        with:
+          working-directory: substreams-examples/pancakeswap
+      - uses: Swatinem/rust-cache@v1
+        with:
+          working-directory: substreams-examples/sol-spl-tokens
+      - uses: Swatinem/rust-cache@v1
+        with:
+          working-directory: substreams-examples/uniswap
       - run: ./build-all.sh
