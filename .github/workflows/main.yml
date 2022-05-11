@@ -17,4 +17,7 @@ jobs:
       - run: curl -LO https://github.com/streamingfast/substreams/releases/download/v0.0.5-beta3/substreams_0.0.5-beta3_linux_x86_64.tar.gz
       - run: tar xf ./substreams_0.0.5-beta3_linux_x86_64.tar.gz
       - run: chmod +x substreams && mv substreams /usr/local/bin && export PATH=/usr/local/bin:$PATH
+      - uses: jetli/wasm-pack-action@v0.3.0
+        with:
+          version: 'latest'
       - run: ./build-all.sh
