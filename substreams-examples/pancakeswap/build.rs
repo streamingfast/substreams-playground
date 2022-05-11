@@ -9,7 +9,7 @@ fn main() {
                 "tokens.proto",
                 "pcs/v1/database.proto",
             ],
-            &["./proto/", "../../external-proto/", "../erc20/proto/"],
+            &["./proto/", "../../external-proto/", "../eth-token/proto/"],
         )
         .unwrap();
 }
