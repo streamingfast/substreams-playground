@@ -1,0 +1,20 @@
+name: Build and Test
+
+on:
+  push:
+    branches:
+      - ci
+
+jobs:
+  build_and_test:
+    name: Rust project
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - run: curl -LO https://github.com/streamingfast/substreams/releases/download/v0.0.5-beta3/substreams_0.0.5-beta3_linux_x86_64.tar.gz
+      - run: tar xf ./substreams_0.0.5-beta3_linux_x86_64.tar.gz
+      - run: chmod +x substreams && mv substreams /usr/local/bin && export PATH=/usr/local/bin:$PATH
+      - run: ./build-all.sh
