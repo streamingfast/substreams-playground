@@ -5,6 +5,6 @@ fn main() -> Result<()> {
     prost_build.out_dir("./src/pb");
     prost_build.compile_protos(
         &["codec_eth.proto", "modules.proto"],
-        &["../proto/", "./proto/"],
+        &["../../external-proto", "./proto/"],
     )
 }
