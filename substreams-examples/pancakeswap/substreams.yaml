@@ -110,7 +110,7 @@ modules:
     startBlock: 6810706
     code:
       type: wasm/rust-v1
-      file: ../eth-token/pkg/substreams_eth_token_bg.wasm
+      file: ../erc20/pkg/substreams_eth_token_bg.wasm
       entrypoint: block_to_tokens
     inputs:
       - source: sf.ethereum.type.v1.Block
@@ -124,7 +124,7 @@ modules:
     valueType: bytes
     code:
       type: wasm/rust-v1
-      file: ../eth-token/pkg/substreams_eth_token_bg.wasm
+      file: ../erc20/pkg/substreams_eth_token_bg.wasm
       entrypoint: build_tokens_state
     inputs:
       - map: block_to_tokens
