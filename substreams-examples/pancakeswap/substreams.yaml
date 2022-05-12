@@ -165,4 +165,4 @@ modules:
       - store: build_pcs_token_state
         mode: get
     output:
-      type: proto:sf.substreams.v1.DatabaseChanges
+      type: proto:pcs.database.v1.DatabaseChanges
