@@ -1,9 +1,11 @@
 mod eth;
-mod rpc;
 mod pb;
+mod rpc;
 
 use eth::{address_pretty, decode_string, decode_uint32};
 use substreams::{log, proto, state};
+
+const INITIALIZE_METHOD_HASH: &str = "0x1459457a";
 
 #[no_mangle]
 pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
@@ -11,8 +13,6 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
 
     let mut tokens = pb::tokens::Tokens { tokens: vec![] };
     let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
-
-    let initialize_method_hash: &str = "0x1459457a";
 
     for trx in blk.transaction_traces {
         for call in trx.calls {
@@ -24,7 +24,7 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
 
                 if call.call_type == pb::eth::CallType::Call as i32
                     && (call_input_len < 4
-                    || !address_pretty(&call.input).starts_with(initialize_method_hash))
+                        || !address_pretty(&call.input).starts_with(INITIALIZE_METHOD_HASH))
                 {
                     continue;
                 }
@@ -47,10 +47,7 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
 
                     log::println(format!(
                         "found contract creation: {}, caller {}, code change {}, input {}",
-                        contract_address,
-                        caller_address,
-                        code_change_len,
-                        call_input_len,
+                        contract_address, caller_address, code_change_len, call_input_len,
                     ));
 
                     if code_change_len <= 150 {
@@ -81,41 +78,46 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
                 let rpc_responses_unmarshalled: substreams::pb::eth::RpcResponses =
                     substreams::proto::decode(&rpc_responses_marshalled).unwrap();
 
-                if rpc_responses_unmarshalled.responses[0].failed
-                    || rpc_responses_unmarshalled.responses[1].failed
-                    || rpc_responses_unmarshalled.responses[2].failed
-                {
+                let responses = rpc_responses_unmarshalled.responses;
+
+                if responses[0].failed || responses[1].failed || responses[2].failed {
+                    let decimals_error = String::from_utf8_lossy(responses[0].raw.as_ref());
+                    let name_error = String::from_utf8_lossy(responses[1].raw.as_ref());
+                    let symbol_error = String::from_utf8_lossy(responses[2].raw.as_ref());
+
                     log::println(format!(
-                        "not a token because of a failure: {}",
-                        address_pretty(&call.address)
+                        "{} is not a an ERC20 token contract because of 'eth_call' failures [decimals: {}, name: {}, symbol: {}]",
+                        contract_address,
+                        decimals_error,
+                        name_error,
+                        symbol_error,
                     ));
                     continue;
                 };
 
-                if !(rpc_responses_unmarshalled.responses[1].raw.len() >= 96)
-                    || rpc_responses_unmarshalled.responses[0].raw.len() != 32
-                    || !(rpc_responses_unmarshalled.responses[2].raw.len() >= 96)
+                if !(responses[1].raw.len() >= 96)
+                    || responses[0].raw.len() != 32
+                    || !(responses[2].raw.len() >= 96)
                 {
                     log::println(format!(
-                        "not a token because response length: {}",
-                        address_pretty(&call.address)
+                        "{} is not a an ERC20 token contract because of 'eth_call' failures [decimals length: {}, name length: {}, symbo length: {}]",
+                        contract_address,
+                        responses[0].raw.len(),
+                        responses[1].raw.len(),
+                        responses[2].raw.len(),
                     ));
                     continue;
                 };
-
-                log::println(format!(
-                    "found a token: {} {}",
-                    address_pretty(&call.address),
-                    decode_string(rpc_responses_unmarshalled.responses[1].raw.as_ref()),
-                ));
 
                 let decoded_address = address_pretty(&call.address);
-                let decoded_decimals =
-                    decode_uint32(rpc_responses_unmarshalled.responses[0].raw.as_ref());
-                let decoded_name =
-                    decode_string(rpc_responses_unmarshalled.responses[1].raw.as_ref());
-                let decoded_symbol =
-                    decode_string(rpc_responses_unmarshalled.responses[2].raw.as_ref());
+                let decoded_decimals = decode_uint32(responses[0].raw.as_ref());
+                let decoded_name = decode_string(responses[1].raw.as_ref());
+                let decoded_symbol = decode_string(responses[2].raw.as_ref());
+
+                log::println(format!(
+                    "{} is an ERC20 token contract with name {}",
+                    decoded_address, decoded_name,
+                ));
 
                 let token = pb::tokens::Token {
                     address: decoded_address,

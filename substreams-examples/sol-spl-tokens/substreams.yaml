@@ -7,7 +7,7 @@ modules:
     startBlock: 131450000
     code:
       type: wasm/rust-v1
-      file: ./pkg/sol_spl_tokens_bg.wasm
+      file: ./target/wasm32-unknown-unknown/release/sol_spl_tokens.wasm
       entrypoint: spl_transfers
     inputs:
       - source: sf.solana.type.v1.Block

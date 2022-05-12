@@ -1,19 +1,13 @@
 use std::rc::Rc;
-use std::time::SystemTime;
-
-use hex::ToHex;
 
 mod contracts;
 mod pb;
 pub mod util;
 
-use substreams::{log, proto, rpc};
+use substreams::{log, proto};
 
 use contracts::factory::FactoryContract;
-use pb::{
-    eth::Log,
-    uniswap::{Pool, Pools},
-};
+use pb::uniswap::{Pool, Pools};
 
 #[no_mangle]
 pub extern "C" fn pools(block_ptr: *mut u8, block_len: usize) {

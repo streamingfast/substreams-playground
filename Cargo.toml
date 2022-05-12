@@ -1,0 +1,12 @@
+[workspace]
+members = [
+    "substreams-examples/eth-token",
+    "substreams-examples/pancakeswap",
+    "substreams-examples/sol-spl-tokens",
+    "substreams-examples/uniswap",
+]
+
+[profile.release]
+lto = true
+opt-level = 's'
+strip = "debuginfo"

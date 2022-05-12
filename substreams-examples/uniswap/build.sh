@@ -1,5 +1,3 @@
 #!/bin/bash
 
-cargo update
-
-wasm-pack build --target nodejs
+cargo build --target wasm32-unknown-unknown --release
