@@ -1,0 +1,40 @@
+name: Build and Test
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build_and_test:
+    name: Rust project
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - run: curl -LO https://github.com/streamingfast/substreams/releases/download/v0.0.5-beta3/substreams_0.0.5-beta3_linux_x86_64.tar.gz
+      - run: tar xf ./substreams_0.0.5-beta3_linux_x86_64.tar.gz
+      - run: chmod +x substreams && mv substreams /usr/local/bin && export PATH=/usr/local/bin:$PATH
+      - uses: jetli/wasm-pack-action@v0.3.0
+        with:
+          version: 'latest'
+      - uses: Swatinem/rust-cache@v1
+        with:
+          working-directory: substreams-examples/eth-token
+      - uses: Swatinem/rust-cache@v1
+        with:
+          working-directory: substreams-examples/pancakeswap
+      - uses: Swatinem/rust-cache@v1
+        with:
+          working-directory: substreams-examples/sol-spl-tokens
+      - uses: Swatinem/rust-cache@v1
+        with:
+          working-directory: substreams-examples/uniswap
+      - run: ./build-all.sh
+      - name: 'Upload Artifacts'
+        uses: actions/upload-artifact@v3
+        with:
+          name: substreams
+          path: substreams-examples/*/substreams.yaml.pb

@@ -316,7 +316,7 @@ dependencies = [
 [[package]]
 name = "substreams"
 version = "0.1.0"
-source = "git+https://github.com/streamingfast/substreams?branch=develop#5b7ff6113cb42088239461ae514f26d0c31a63aa"
+source = "git+https://github.com/streamingfast/substreams?branch=develop#16812f97a489b31f2d2ec9dd0837ceda32618c00"
 dependencies = [
  "bigdecimal",
  "hex",
@@ -343,9 +343,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "1.0.92"
+version = "1.0.93"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ff7c592601f11445996a06f8ad0c27f094a58857c2f89e97974ab9235b92c52"
+checksum = "04066589568b72ec65f42d65a1a52436e954b168773148893c020269563decf2"
 dependencies = [
  "proc-macro2",
  "quote",
