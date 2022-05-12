@@ -22,16 +22,7 @@ jobs:
           version: 'latest'
       - uses: Swatinem/rust-cache@v1
         with:
-          working-directory: substreams-examples/eth-token
-      - uses: Swatinem/rust-cache@v1
-        with:
-          working-directory: substreams-examples/pancakeswap
-      - uses: Swatinem/rust-cache@v1
-        with:
-          working-directory: substreams-examples/sol-spl-tokens
-      - uses: Swatinem/rust-cache@v1
-        with:
-          working-directory: substreams-examples/uniswap
+          target-dir: ./substreams-examples/pancakeswap
       - run: ./build-all.sh
       - name: 'Upload Artifacts'
         uses: actions/upload-artifact@v3
