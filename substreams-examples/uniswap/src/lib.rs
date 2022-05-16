@@ -20,7 +20,7 @@ pub extern "C" fn pools(block_ptr: *mut u8, block_len: usize) {
     let factory = FactoryContract::bind(block.clone(), "1f98431c8ad98523631ae4a59f267346ea31f984");
 
     for event in factory.pool_created_events() {
-        log::println(format!("POOL CREATED AT BLOCK #{}", block.number));
+        log::info!("Pool created at block #{}", block.number);
 
         let mut pool = Pool::default();
         let header = block.header.as_ref().expect("header");

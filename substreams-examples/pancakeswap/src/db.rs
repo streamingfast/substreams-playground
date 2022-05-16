@@ -40,7 +40,7 @@ pub fn process(
         events,
     );
 
-    log::println(format!("about! to process db_out items: {}", items.len()));
+    log::info!("about! to process db_out items: {}", items.len());
 
     let mut database_changes: DatabaseChanges = DatabaseChanges {
         table_changes: vec![],

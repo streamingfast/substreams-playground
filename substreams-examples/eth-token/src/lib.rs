@@ -45,24 +45,29 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
                         code_change_len += code_change.new_code.len()
                     }
 
-                    log::println(format!(
+                    log::debug!(
                         "found contract creation: {}, caller {}, code change {}, input {}",
-                        contract_address, caller_address, code_change_len, call_input_len,
-                    ));
+                        contract_address,
+                        caller_address,
+                        code_change_len,
+                        call_input_len,
+                    );
 
                     if code_change_len <= 150 {
                         // optimization to skip none viable SC
-                        log::println(format!(
+                        log::info!(
                             "skipping too small code to be a token contract: {}",
                             address_pretty(&call.address)
-                        ));
+                        );
                         continue;
                     }
-                } else if call.call_type == pb::eth::CallType::Call as i32 {
-                    log::println(format!(
-                        "found contract that may be a proxy contract: {}",
-                        caller_address
-                    ))
+                } else {
+                    log::debug!(
+                        "found proxy initialization: contract {}, caller {}, input length {}",
+                        contract_address,
+                        caller_address,
+                        call_input_len,
+                    );
                 }
 
                 if caller_address == "0x0000000000004946c0e9f43f4dee607b0ef1fa1c"
@@ -85,13 +90,13 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
                     let name_error = String::from_utf8_lossy(responses[1].raw.as_ref());
                     let symbol_error = String::from_utf8_lossy(responses[2].raw.as_ref());
 
-                    log::println(format!(
+                    log::debug!(
                         "{} is not a an ERC20 token contract because of 'eth_call' failures [decimals: {}, name: {}, symbol: {}]",
                         contract_address,
                         decimals_error,
                         name_error,
                         symbol_error,
-                    ));
+                    );
                     continue;
                 };
 
@@ -99,13 +104,13 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
                     || responses[0].raw.len() != 32
                     || !(responses[2].raw.len() >= 96)
                 {
-                    log::println(format!(
+                    log::debug!(
                         "{} is not a an ERC20 token contract because of 'eth_call' failures [decimals length: {}, name length: {}, symbo length: {}]",
                         contract_address,
                         responses[0].raw.len(),
                         responses[1].raw.len(),
                         responses[2].raw.len(),
-                    ));
+                    );
                     continue;
                 };
 
@@ -114,10 +119,11 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
                 let decoded_name = decode_string(responses[1].raw.as_ref());
                 let decoded_symbol = decode_string(responses[2].raw.as_ref());
 
-                log::println(format!(
+                log::debug!(
                     "{} is an ERC20 token contract with name {}",
-                    decoded_address, decoded_name,
-                ));
+                    decoded_address,
+                    decoded_name,
+                );
 
                 let token = pb::tokens::Token {
                     address: decoded_address,

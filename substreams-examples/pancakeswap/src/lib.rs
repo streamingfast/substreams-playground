@@ -27,7 +27,7 @@ mod utils;
 
 #[no_mangle]
 pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
-    log::println("Pairs mapping".to_string());
+    log::info!("Pairs mapping");
     substreams::register_panic_hook();
 
     let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
@@ -65,7 +65,7 @@ pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
 
 #[no_mangle]
 pub extern "C" fn build_pairs_state(pairs_ptr: *mut u8, pairs_len: usize) {
-    log::println("building pair state".to_string());
+    log::info!("Building pair state");
     substreams::register_panic_hook();
 
     let pairs: pcs::Pairs = proto::decode_ptr(pairs_ptr, pairs_len).unwrap();
@@ -469,7 +469,7 @@ pub extern "C" fn map_mint_burn_swaps(
                         );
                     }
                     _ => {
-                        log::println(format!("Error?! Events len is 4")); // fixme: should we panic here or just continue?
+                        log::info!("Error?! Events len is 4"); // fixme: should we panic here or just continue?
                         continue;
                     }
                 }
@@ -517,7 +517,7 @@ pub extern "C" fn map_mint_burn_swaps(
                         );
                     }
                     _ => {
-                        log::println(format!("Error?! Events len is 3")); // fixme: should we panic here or just continue?
+                        log::info!("Error?! Events len is 3"); // fixme: should we panic here or just continue?
                         continue;
                     }
                 }
@@ -539,18 +539,18 @@ pub extern "C" fn map_mint_burn_swaps(
                         );
                     }
                     _ => {
-                        log::println(format!("Error?! Events len is 2")); // fixme: should we panic here or just continue?
+                        log::info!("Error?! Events len is 2"); // fixme: should we panic here or just continue?
                         continue;
                     }
                 }
             } else if pcs_events.len() == 1 {
                 match pcs_events[0].event.as_ref().unwrap() {
                     Event::PairTransferEvent(_) => {
-                        log::println("Events len 1, PairTransferEvent".to_string());
+                        log::debug!("Events len 1, PairTransferEvent");
                         continue;
                     } // do nothing
                     Event::PairApprovalEvent(_) => {
-                        log::println("Events len 1, PairApprovalEvent".to_string());
+                        log::debug!("Events len 1, PairApprovalEvent");
                         continue;
                     } // do nothing
                     _ => panic!("unhandled event pattern, with 1 event"),
@@ -650,9 +650,9 @@ pub extern "C" fn build_volumes_state(
     let timestamp_block_header: pb::eth::BlockHeader = match blk.header {
         Some(block_header) => block_header,
         None => {
-            log::println(format!("block id: {}", address_pretty(blk.hash.as_slice())));
-            log::println(format!("block number: {}", blk.number.to_string()));
-            panic!("MISSING HEADER")
+            log::info!("block id: {}", address_pretty(blk.hash.as_slice()));
+            log::info!("block number: {}", blk.number.to_string());
+            panic!("missing header")
         }
     };
     let timestamp = timestamp_block_header.timestamp.unwrap();
@@ -823,16 +823,16 @@ pub extern "C" fn build_pcs_token_state(pairs_ptr: *mut u8, pairs_len: usize, to
         let token0_option: Option<Vec<u8>> =
             state::get_last(tokens_idx, &format!("token:{}", pair.token0_address));
         if token0_option.is_none() {
-            log::println(format!(
+            log::info!(
                 "token {} is not in the store, retrying rpc calls",
-                pair.token0_address
-            ));
+                pair.token0_address,
+            );
             token0 = rpc::retry_rpc_calls(&pair.token0_address);
             token0_retry = true;
-            log::println(format!(
+            log::info!(
                 "successfully found token {} after rpc calls",
                 pair.token0_address
-            ));
+            );
         }
 
         if !token0_retry {
@@ -848,16 +848,16 @@ pub extern "C" fn build_pcs_token_state(pairs_ptr: *mut u8, pairs_len: usize, to
         let token1_option: Option<Vec<u8>> =
             state::get_last(tokens_idx, &format!("token:{}", pair.token1_address));
         if token1_option.is_none() {
-            log::println(format!(
+            log::info!(
                 "token {} is not in the store, retrying rpc calls",
                 pair.token1_address
-            ));
+            );
             token1 = rpc::retry_rpc_calls(&pair.token1_address);
             token1_retry = true;
-            log::println(format!(
+            log::info!(
                 "successfully found token {} after rpc calls",
                 pair.token1_address
-            ));
+            );
         }
 
         if !token1_retry {
@@ -893,7 +893,7 @@ pub extern "C" fn map_to_database(
     substreams::register_panic_hook();
 
     let block: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
-    log::println(format!("block {:?}:{}", block_ptr, block_len));
+    log::info!("block {:?}:{}", block_ptr, block_len);
 
     let pcs_token_deltas: substreams::pb::substreams::StoreDeltas =
         proto::decode_ptr(pcs_tokens_deltas_ptr, pcs_tokens_deltas_len).unwrap();
@@ -901,11 +901,11 @@ pub extern "C" fn map_to_database(
     let pair_deltas: substreams::pb::substreams::StoreDeltas =
         proto::decode_ptr(pairs_deltas_ptr, pairs_deltas_len).unwrap();
 
-    log::println(format!(
+    log::info!(
         "map_to_database: pairs deltas:{} {}",
         pcs_tokens_deltas_len,
         pair_deltas.deltas.len()
-    ));
+    );
 
     let totals_deltas: substreams::pb::substreams::StoreDeltas =
         proto::decode_ptr(totals_deltas_ptr, totals_deltas_len).unwrap();
