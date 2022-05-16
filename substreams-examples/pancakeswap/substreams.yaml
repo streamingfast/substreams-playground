@@ -10,14 +10,16 @@ package:
 
 protobuf:
   files:
-    - pcs/v1/pcs.proto
-    - pcs/v1/database.proto
+    - google/protobuf/timestamp.proto
+    - google/protobuf/any.proto
     - codec_eth.proto
     - tokens.proto
+    - pcs/v1/pcs.proto
+    - pcs/v1/database.proto
   importPaths:
     - ./proto
-    - ../../external-protos
     - ../eth-token/proto
+    - ../../external-proto
 
 modules:
   - name: block_to_pairs

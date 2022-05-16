@@ -1,6 +1,6 @@
 use crate::pb::eth::Block;
 
-#[path = "./dfuse.ethereum.codec.v1.rs"]
+#[path = "./dfuse.ethereum.r#type.v1.rs"]
 pub mod eth;
 
 #[path = "./pcs.types.v1.rs"]
