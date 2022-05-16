@@ -1,5 +1,22 @@
-specVersion: 0.1.0
-description: Test WASM substream
+specVersion: v0.1.0
+package:
+  name: pcs
+  version: v1.0.0
+  url: https://github.com/streamingfast/substreams-playground
+  doc: |
+    These substream modules compose all the things to build up the PancakeSwap substreams.
+
+    See individual modules docs for help.
+
+protobuf:
+  files:
+    - pcs/v1/pcs.proto
+    - pcs/v1/database.proto
+    - codec_eth.proto
+    -
+  importPaths:
+    - ./proto
+    - ../external-protos
 
 modules:
   - name: block_to_pairs
@@ -165,4 +182,4 @@ modules:
       - store: build_pcs_token_state
         mode: get
     output:
-      type: proto:sf.substreams.v1.DatabaseChanges
+      type: proto:pcs.database.v1.DatabaseChanges
