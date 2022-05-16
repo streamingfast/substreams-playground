@@ -7,7 +7,7 @@ modules:
     startBlock: 6810706
     code:
       type: wasm/rust-v1
-      file: ./target/wasm32-unknown-unknown/release/pcs_substreams.wasm
+      file: ../../target/wasm32-unknown-unknown/release/pcs_substreams.wasm
       entrypoint: map_pairs
     inputs:
       - source: sf.ethereum.type.v1.Block
@@ -20,7 +20,7 @@ modules:
     valueType: proto:pcs.types.v1.Pair
     code:
       type: wasm/rust-v1
-      file: ./target/wasm32-unknown-unknown/release/pcs_substreams.wasm
+      file: ../../target/wasm32-unknown-unknown/release/pcs_substreams.wasm
       entrypoint: build_pairs_state
     inputs:
       - map: block_to_pairs
@@ -29,7 +29,7 @@ modules:
     kind: map
     code:
       type: wasm/rust-v1
-      file: ./target/wasm32-unknown-unknown/release/pcs_substreams.wasm
+      file: ../../target/wasm32-unknown-unknown/release/pcs_substreams.wasm
       entrypoint: map_reserves
     inputs:
       - source: sf.ethereum.type.v1.Block
@@ -44,7 +44,7 @@ modules:
     valueType: string
     code:
       type: wasm/rust-v1
-      file: ./target/wasm32-unknown-unknown/release/pcs_substreams.wasm
+      file: ../../target/wasm32-unknown-unknown/release/pcs_substreams.wasm
       entrypoint: build_reserves_state
     inputs:
       - source: sf.ethereum.type.v1.Block
@@ -57,7 +57,7 @@ modules:
     valueType: string
     code:
       type: wasm/rust-v1
-      file: ./target/wasm32-unknown-unknown/release/pcs_substreams.wasm
+      file: ../../target/wasm32-unknown-unknown/release/pcs_substreams.wasm
       entrypoint: build_prices_state
     inputs:
       - source: sf.ethereum.type.v1.Block
@@ -69,7 +69,7 @@ modules:
     kind: map
     code:
       type: wasm/rust-v1
-      file: ./target/wasm32-unknown-unknown/release/pcs_substreams.wasm
+      file: ../../target/wasm32-unknown-unknown/release/pcs_substreams.wasm
       entrypoint: map_mint_burn_swaps
     inputs:
       - source: sf.ethereum.type.v1.Block
@@ -86,7 +86,7 @@ modules:
     valueType: int64
     code:
       type: wasm/rust-v1
-      file: ./target/wasm32-unknown-unknown/release/pcs_substreams.wasm
+      file: ../../target/wasm32-unknown-unknown/release/pcs_substreams.wasm
       entrypoint: build_totals_state
     inputs:
       - source: sf.ethereum.type.v1.Block
@@ -99,7 +99,7 @@ modules:
     valueType: bigfloat
     code:
       type: wasm/rust-v1
-      file: ./target/wasm32-unknown-unknown/release/pcs_substreams.wasm
+      file: ../../target/wasm32-unknown-unknown/release/pcs_substreams.wasm
       entrypoint: build_volumes_state
     inputs:
       - source: sf.ethereum.type.v1.Block
@@ -110,7 +110,7 @@ modules:
     startBlock: 6810706
     code:
       type: wasm/rust-v1
-      file: ../eth-token/target/wasm32-unknown-unknown/release/substreams_eth_token.wasm
+      file: ../../target/wasm32-unknown-unknown/release/substreams_eth_token.wasm
       entrypoint: block_to_tokens
     inputs:
       - source: sf.ethereum.type.v1.Block
@@ -124,7 +124,7 @@ modules:
     valueType: bytes
     code:
       type: wasm/rust-v1
-      file: ../eth-token/target/wasm32-unknown-unknown/release/substreams_eth_token.wasm
+      file: ../../target/wasm32-unknown-unknown/release/substreams_eth_token.wasm
       entrypoint: build_tokens_state
     inputs:
       - map: block_to_tokens
@@ -136,7 +136,7 @@ modules:
     valueType: bytes
     code:
       type: wasm/rust-v1
-      file: ./target/wasm32-unknown-unknown/release/pcs_substreams.wasm
+      file: ../../target/wasm32-unknown-unknown/release/pcs_substreams.wasm
       entrypoint: build_pcs_token_state
     inputs:
       - map: block_to_pairs
@@ -147,7 +147,7 @@ modules:
     startBlock: 6810706
     code:
       type: wasm/rust-v1
-      file: ./target/wasm32-unknown-unknown/release/pcs_substreams.wasm
+      file: ../../target/wasm32-unknown-unknown/release/pcs_substreams.wasm
       entrypoint: map_to_database
     inputs:
       - source: sf.ethereum.type.v1.Block

@@ -7,7 +7,7 @@ modules:
   startBlock: 0
   code:
     type: wasm/rust-v1
-    file: ./target/wasm32-unknown-unknown/release/substreams_eth_token.wasm
+    file: ../../target/wasm32-unknown-unknown/release/substreams_eth_token.wasm
     entrypoint: block_to_tokens
   inputs:
     - source: sf.ethereum.type.v1.Block
@@ -20,7 +20,7 @@ modules:
   valueType: bytes
   code:
     type: wasm/rust-v1
-    file: ./target/wasm32-unknown-unknown/release/substreams_eth_token.wasm
+    file: ../../target/wasm32-unknown-unknown/release/substreams_eth_token.wasm
     entrypoint: build_tokens_state
   inputs:
     - map: block_to_tokens
