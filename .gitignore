@@ -5,3 +5,7 @@
 .DS_Store
 target/
 /substreams-examples/*/*.yaml.pb
+localirr
+localblocks
+rpc-cache
+localdata
