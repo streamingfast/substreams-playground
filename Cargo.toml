@@ -1,9 +1,9 @@
 [workspace]
 members = [
-    "substreams-examples/eth-token",
-    "substreams-examples/pancakeswap",
-    "substreams-examples/sol-spl-tokens",
-    "substreams-examples/uniswap",
+    "modules/eth-token",
+    "modules/pancakeswap",
+    "modules/sol-spl-tokens",
+    "modules/uniswap",
 ]
 
 [profile.release]

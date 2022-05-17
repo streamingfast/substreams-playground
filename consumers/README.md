@@ -1,4 +1,5 @@
 Dump that somewhere like `.bashrc`:
+
 ```bash
 export STREAMINGFAST_KEY=server_YOUR_KEY_HERE  # Ask us on Discord for a key
 function sftoken {

@@ -1,36 +1,34 @@
 # Substreams Playground
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-This repository holds a few example substreams.
+This repository holds a few example _Substreams Modules_, and example _consuming clients_.
 
 ## Documentation
 
 https://github.com/streamingfast/substreams-docs/blob/master/docs/guides/quickstart.md
 
-## Explore substreams examples
+## Example Substreams Modules
 
-* [PancakeSwap Substreams](./substreams-examples/pancakeswap) - Our most complete example to date. Tracking PancakeSwap on BSC Mainnet.
-* [ETH Token Substreams](./substreams-examples/erc20) - Substreams tracking ERC-20 tokens. For ETH Mainnet.
-* [Uniswap](./substreams-examples/uniswap) - First draft at tracking Uniswap on ETH Mainnet
-* [Solana SPL Tokens](./substreams-examples/sol-spl-tokens) - First draft at solana SPL tokens extraction
+* [PancakeSwap Substreams](./modules/pancakeswap) - Our most complete example to date. Tracking PancakeSwap on BSC Mainnet.
+* [ETH Token Substreams](./modules/erc20) - Substreams tracking ERC-20 tokens. For ETH Mainnet.
+* [Solana SPL Tokens](./modules/sol-spl-tokens) - First draft at solana SPL tokens extraction
+* [Uniswap](./modules/uniswap) - First draft at tracking Uniswap on ETH Mainnet
 
-## Explore substreams clients
 
-* [Go client](./client-examples/go-client)
-*   [Go pancakeswap-specific client](./client-examples/go-pancakeswap-client)
-* [Rust client](./client-examples/rust-client)
-* [Python client (different repository)](https://github.com/streamingfast/example-python/tree/substreams)
+## Example Consuming Clients
+
+* In [Go](./consumers/golang)
+* In [Rust](./consumers/rust)
+* In [Python](./consumers/python)
+* An [E2E indexer for PancakeSwap](./consumers/pancakeswap-to-graphnode) in Go.
+
 
 ## Contributing
-
-**Issues and PR in this repo related strictly to Pancake Generated.**
-
-Report any protocol-specific issues in their
-[respective repositories](https://github.com/streamingfast/streamingfast#protocols)
 
 **Please first refer to the general
 [StreamingFast contribution guide](https://github.com/streamingfast/streamingfast/blob/master/CONTRIBUTING.md)**,
 if you wish to contribute to this code base.
+
 
 ## License
 

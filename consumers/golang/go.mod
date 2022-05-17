@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/jhump/protoreflect v1.12.0
-	github.com/streamingfast/substreams v0.0.5-beta.0.20220503155555-067cb557399f
+	github.com/streamingfast/substreams v0.0.6-beta
 )
 
 require (
@@ -43,16 +43,17 @@ require (
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.32.1 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
+	github.com/rakyll/statik v0.1.7 // indirect
 	github.com/streamingfast/atm v0.0.0-20220131151839-18c87005e680 // indirect
-	github.com/streamingfast/bstream v0.0.2-0.20220330132237-248bc2d8ea7e // indirect
+	github.com/streamingfast/bstream v0.0.2-0.20220505155906-a0834b9c5258 // indirect
 	github.com/streamingfast/dbin v0.0.0-20210809205249-73d5eca35dc5 // indirect
 	github.com/streamingfast/dgrpc v0.0.0-20220301153539-536adf71b594 // indirect
 	github.com/streamingfast/dmetrics v0.0.0-20210811180524-8494aeb34447 // indirect
 	github.com/streamingfast/dstore v0.1.1-0.20220419183635-aad7bcb15b8e // indirect
 	github.com/streamingfast/dtracing v0.0.0-20210811175635-d55665d3622a // indirect
-	github.com/streamingfast/logging v0.0.0-20220304214715-bc750a74b424 // indirect
+	github.com/streamingfast/logging v0.0.0-20220511154537-ce373d264338 // indirect
 	github.com/streamingfast/opaque v0.0.0-20210811180740-0c01d37ea308 // indirect
-	github.com/streamingfast/pbgo v0.0.6-0.20220228185940-1bbaafec7d8a // indirect
+	github.com/streamingfast/pbgo v0.0.6-0.20220428192744-f80aee7d4688 // indirect
 	github.com/streamingfast/shutter v1.5.0 // indirect
 	github.com/yourbasic/graph v0.0.0-20210606180040-8ecfec1c2869 // indirect
 	go.opencensus.io v0.23.0 // indirect
@@ -60,6 +61,7 @@ require (
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.21.0 // indirect
 	golang.org/x/crypto v0.0.0-20220214200702-86341886e292 // indirect
+	golang.org/x/mod v0.5.1 // indirect
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect

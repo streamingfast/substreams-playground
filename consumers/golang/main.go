@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 
-	"github.com/jhump/protoreflect/desc/protoparse"
 	"github.com/streamingfast/substreams/client"
 	"github.com/streamingfast/substreams/decode"
 	"github.com/streamingfast/substreams/manifest"
@@ -14,12 +13,8 @@ import (
 )
 
 func main() {
-	manif, err := manifest.New("../../eth-token/substreams-eth-token.yaml")
-
+	pkg, err := manifest.New("https://github.com/streamingfast/substreams-playground/releases/download/v0.5.0/pcs-v0.5.0.spkg")
 	errCheck("reading manifest", err)
-
-	manifProto, err := manif.ToProto()
-	errCheck("converting manifest to protobuf", err)
 
 	ssClient, callOpts, err := client.NewSubstreamsClient(
 		"bsc-dev.streamingfast.io:443",
@@ -32,18 +27,14 @@ func main() {
 		StartBlockNum: 100_000,
 		StopBlockNum:  200_000,
 		ForkSteps:     []pbsubstreams.ForkStep{pbsubstreams.ForkStep_STEP_IRREVERSIBLE},
-		Manifest:      manifProto,
+		Modules:      pkg.Modules,
 		OutputModules: []string{"block_to_tokens"},
 	}
 
 	stream, err := ssClient.Blocks(context.Background(), req, callOpts...)
 	errCheck("creating stream", err)
 
-	parser := protoparse.Parser{}
-	fileDescs, err := parser.ParseFiles("../../eth-token/proto/tokens.proto")
-	errCheck("loading proto files", err)
-
-	returnHandler := decode.NewPrintReturnHandler(manif, fileDescs, []string{"block_to_tokens"})
+	returnHandler := decode.NewPrintReturnHandler(pkg, []string{"block_to_tokens"}, true)
 
 	for {
 		resp, err := stream.Recv()
@@ -66,7 +57,7 @@ func main() {
 				for _, log := range output.Logs {
 					fmt.Println("Remove log: ", log)
 				}
-				if err := returnHandler(r.Data); err != nil {
+				if err := returnHandler(r.Data, nil); err != nil {
 					fmt.Printf("RETURN HANDLER ERROR: %s\n", err)
 				}
 			}
