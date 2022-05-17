@@ -1,6 +1,6 @@
 specVersion: v0.1.0
 package:
-  name: eth_token
+  name: eth_token_at_pcs
   version: v0.9.0
   url: https://github.com/streamingfast/substreams-playground
   doc: |
