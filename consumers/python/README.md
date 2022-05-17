@@ -31,8 +31,8 @@ $CMD sf/substreams/v1/clock.proto
 $CMD pcs/v1/pcs.proto
 ```
 
-4. [Grab an access token]()
+4. Get yourself [an access token](https://discord.gg/jZwqxJAvRs)
 
 5. Run `main.py`
 
-6. Profit
+6. Profit, or jazz up
