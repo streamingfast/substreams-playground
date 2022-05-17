@@ -10,3 +10,4 @@ localblocks
 rpc-cache
 localdata
 /dist
+*.spkg
