@@ -1,5 +1,20 @@
-specVersion: 0.1.0
-description: Solana SPL Token Transfers stream
+specVersion: v0.1.0
+package:
+  name: solana_spl_transfers
+  version: v1.0.0
+  url: https://github.com/streamingfast/substreams-playground
+  doc: |
+    Solana SPL Token Transfers stream
+
+protobuf:
+  files:
+    - google/protobuf/timestamp.proto
+    - google/protobuf/any.proto
+    - sf_solana_type_v1.proto
+    - solana_spl.proto
+  importPaths:
+    - ./proto
+    - ../../external-proto
 
 modules:
   - name: spl_transfers
@@ -7,7 +22,7 @@ modules:
     startBlock: 131450000
     code:
       type: wasm/rust-v1
-      file: ./target/wasm32-unknown-unknown/release/sol_spl_tokens.wasm
+      file: ../../target/wasm32-unknown-unknown/release/sol_spl_tokens.wasm
       entrypoint: spl_transfers
     inputs:
       - source: sf.solana.type.v1.Block
