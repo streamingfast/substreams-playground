@@ -3,11 +3,9 @@
 
 This repository holds a few example substreams.
 
-## Install dependencies
+## Documentation
 
-
-See [installation instructions here](https://github.com/streamingfast/substreams).
-
+https://github.com/streamingfast/substreams-docs/blob/master/docs/guides/quickstart.md
 
 ## Explore substreams examples
 
