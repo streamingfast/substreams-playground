@@ -1,7 +1,7 @@
 specVersion: v0.1.0
 package:
   name: pcs
-  version: v1.0.0
+  version: v0.5.0
   url: https://github.com/streamingfast/substreams-playground
   doc: |
     These substream modules compose all the things to build up the PancakeSwap substreams.
