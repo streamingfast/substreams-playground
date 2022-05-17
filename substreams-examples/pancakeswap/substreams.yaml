@@ -8,17 +8,18 @@ package:
 
     See individual modules docs for help.
 
+imports:
+  ethtokens: ../eth-token/substreams-at-pcs.yaml
+
 protobuf:
   files:
     - google/protobuf/timestamp.proto
     - google/protobuf/any.proto
     - codec_eth.proto
-    - tokens.proto
     - pcs/v1/pcs.proto
     - pcs/v1/database.proto
   importPaths:
     - ./proto
-    - ../eth-token/proto
     - ../../external-proto
 
 modules:
@@ -125,33 +126,8 @@ modules:
       - source: sf.ethereum.type.v1.Block
       - map: mint_burn_swaps_extractor
 
-  - name: block_to_tokens
-    kind: map
-    startBlock: 6810706
-    code:
-      type: wasm/rust-v1
-      file: ../../target/wasm32-unknown-unknown/release/substreams_eth_token.wasm
-      entrypoint: block_to_tokens
-    inputs:
-      - source: sf.ethereum.type.v1.Block
-    output:
-      type: proto:sf.substreams.tokens.v1.Tokens
-
-  - name: tokens
-    kind: store
-    startBlock: 6810706
-    updatePolicy: replace
-    valueType: bytes
-    code:
-      type: wasm/rust-v1
-      file: ../../target/wasm32-unknown-unknown/release/substreams_eth_token.wasm
-      entrypoint: build_tokens_state
-    inputs:
-      - map: block_to_tokens
-
   - name: build_pcs_token_state
     kind: store
-    startBlock: 6810706
     updatePolicy: replace
     valueType: bytes
     code:
@@ -160,7 +136,7 @@ modules:
       entrypoint: build_pcs_token_state
     inputs:
       - map: block_to_pairs
-      - store: tokens
+      - store: ethtokens:tokens
 
   - name: db_out
     kind: map

@@ -9,3 +9,4 @@ localirr
 localblocks
 rpc-cache
 localdata
+/dist

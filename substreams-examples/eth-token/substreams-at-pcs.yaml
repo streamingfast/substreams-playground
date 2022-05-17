@@ -1,0 +1,40 @@
+specVersion: v0.1.0
+package:
+  name: eth_token
+  version: v0.9.0
+  url: https://github.com/streamingfast/substreams-playground
+  doc: |
+    This package provides modules that keep track of all ERC-20 tokens on the chain
+
+    It is presented as a simple store, helping avoid eth_calls to get decimal, name and symbols
+    for tokens.
+
+protobuf:
+  files:
+    - tokens.proto
+  importPaths:
+    - ./proto
+
+modules:
+- name: block_to_tokens
+  kind: map
+  startBlock: 6810706
+  code:
+    type: wasm/rust-v1
+    file: ../../target/wasm32-unknown-unknown/release/substreams_eth_token.wasm
+    entrypoint: block_to_tokens
+  inputs:
+    - source: sf.ethereum.type.v1.Block
+  output:
+    type: proto:sf.ethereum.tokens.v1.Tokens
+
+- name: tokens
+  kind: store
+  updatePolicy: replace
+  valueType: proto:sf.ethereum.tokens.v1.Token
+  code:
+    type: wasm/rust-v1
+    file: ../../target/wasm32-unknown-unknown/release/substreams_eth_token.wasm
+    entrypoint: build_tokens_state
+  inputs:
+    - map: block_to_tokens
