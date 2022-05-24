@@ -1,7 +1,7 @@
 PancakeSwap Substreams
 ======================
 
-Install [`substreams` and its dependencies here](../README.md), compile these modules with:
+Install [`substreams` and its dependencies here](https://github.com/streamingfast/substreams), compile these modules with:
 
 ```
 cd ../eth-token/build.sh
