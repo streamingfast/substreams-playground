@@ -5,7 +5,7 @@ Install [`substreams` and its dependencies here](../README.md), compile these mo
 
 ```
 cd ../eth-token/build.sh
-cd ../pcs-rust
+cd ../pancakeswap
 ./build.sh
 ```
 
