@@ -3,16 +3,16 @@ mod pb;
 mod rpc;
 
 use eth::{address_pretty, decode_string, decode_uint32};
-use substreams::{log, proto, state};
+use substreams::{errors::SubstreamError, log, proto, store};
 
 const INITIALIZE_METHOD_HASH: &str = "0x1459457a";
 
-#[no_mangle]
-pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
-    substreams::register_panic_hook();
-
-    let mut tokens = pb::tokens::Tokens { tokens: vec![] };
-    let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
+/// Find and output all the ERC20 transfers
+///
+/// `blk`: Ethereum block
+#[substreams::handlers::map]
+fn block_to_tokens(blk: pb::eth::Block) -> Result<pb::tokens::Tokens, SubstreamError> {
+    let mut tokens = vec![];
 
     for trx in blk.transaction_traces {
         for call in trx.calls {
@@ -132,22 +132,18 @@ pub extern "C" fn block_to_tokens(block_ptr: *mut u8, block_len: usize) {
                     decimals: decoded_decimals as u64,
                 };
 
-                tokens.tokens.push(token);
+                tokens.push(token);
             }
         }
     }
 
-    substreams::output(tokens);
+    Ok(pb::tokens::Tokens { tokens })
 }
 
-#[no_mangle]
-pub extern "C" fn build_tokens_state(tokens_ptr: *mut u8, tokens_len: usize) {
-    substreams::register_panic_hook();
-
-    let tokens: pb::tokens::Tokens = proto::decode_ptr(tokens_ptr, tokens_len).unwrap();
-
+#[substreams::handlers::store]
+fn build_tokens_state(tokens: pb::tokens::Tokens, store: store::UpdateWriter) {
     for token in tokens.tokens {
         let key = format!("token:{}", token.address);
-        state::set(1, key, &proto::encode(&token).unwrap());
+        store.set(1, key, &proto::encode(&token).unwrap());
     }
 }
