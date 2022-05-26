@@ -7,9 +7,6 @@ use substreams::{errors::SubstreamError, log, proto, store};
 
 const INITIALIZE_METHOD_HASH: &str = "0x1459457a";
 
-/// Find and output all the ERC20 transfers
-///
-/// `blk`: Ethereum block
 #[substreams::handlers::map]
 fn block_to_tokens(blk: pb::eth::Block) -> Result<pb::tokens::Tokens, SubstreamError> {
     let mut tokens = vec![];
