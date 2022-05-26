@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 use bigdecimal::BigDecimal;
 use hex;
-use substreams::{log, proto, state};
+use substreams::{log, proto, state, Error, store};
 
 use eth::{address_decode, address_pretty, decode_string, decode_uint32};
 
@@ -25,12 +25,8 @@ mod rpc;
 mod state_helper;
 mod utils;
 
-#[no_mangle]
-pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
-    log::info!("Pairs mapping");
-    substreams::register_panic_hook();
-
-    let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
+#[substreams::handlers::map]
+pub fn map_pairs(blk: pb::eth::Block) -> Result<pcs::Pairs, Error> {
     let mut pairs = pcs::Pairs { pairs: vec![] };
 
     for trx in blk.transaction_traces {
@@ -58,20 +54,14 @@ pub extern "C" fn map_pairs(block_ptr: *mut u8, block_len: usize) {
         }
     }
 
-    if pairs.pairs.len() != 0 {
-        substreams::output(pairs);
-    }
+    return Ok(pairs);
 }
 
-#[no_mangle]
-pub extern "C" fn build_pairs_state(pairs_ptr: *mut u8, pairs_len: usize) {
+#[substreams::handlers::store]
+pub fn build_pairs_state(pairs: pcs::Pairs, output: store::StoreSet) {
     log::info!("Building pair state");
-    substreams::register_panic_hook();
-
-    let pairs: pcs::Pairs = proto::decode_ptr(pairs_ptr, pairs_len).unwrap();
-
     for pair in pairs.pairs {
-        state::set(
+        output.set(
             pair.log_ordinal as i64,
             format!("pair:{}", pair.address),
             &proto::encode(&pair).unwrap(),
@@ -79,23 +69,14 @@ pub extern "C" fn build_pairs_state(pairs_ptr: *mut u8, pairs_len: usize) {
     }
 }
 
-#[no_mangle]
-pub extern "C" fn map_reserves(
-    block_ptr: *mut u8,
-    block_len: usize,
-    pairs_store_idx: u32,
-    tokens_store_idx: u32,
-) {
-    substreams::register_panic_hook();
-
-    let blk: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
-
+#[substreams::handlers::map]
+pub fn map_reserves(blk: pb::eth::Block, pairs: store::StoreGet, tokens: store::StoreGet) -> Result<pcs::Reserves, Error> {
     let mut reserves = pcs::Reserves { reserves: vec![] };
 
     for trx in blk.transaction_traces {
         for log in trx.receipt.unwrap().logs {
             let addr = address_pretty(&log.address);
-            match state::get_last(pairs_store_idx, &format!("pair:{}", addr)) {
+            match pairs.get_last(format!("pair:{}", addr)) {
                 None => continue,
                 Some(pair_bytes) => {
                     let sig = hex::encode(&log.topics[0]);
@@ -109,11 +90,11 @@ pub extern "C" fn map_reserves(
 
                     // reserve
                     let token0: Token =
-                        utils::get_last_token(tokens_store_idx, &pair.token0_address);
+                        utils::get_last_token(tokens, &pair.token0_address);
                     let reserve0 =
                         utils::convert_token_to_decimal(&log.data[0..32], &token0.decimals);
                     let token1: Token =
-                        utils::get_last_token(tokens_store_idx, &pair.token1_address);
+                        utils::get_last_token(tokens, &pair.token1_address);
                     let reserve1 =
                         utils::convert_token_to_decimal(&log.data[32..64], &token1.decimals);
 
@@ -133,30 +114,22 @@ pub extern "C" fn map_reserves(
             }
         }
     }
-    if reserves.reserves.len() != 0 {
-        substreams::output(reserves)
-    }
+
+    return Ok(reserves);
 }
 
-#[no_mangle]
-pub extern "C" fn build_reserves_state(
-    block_ptr: *mut u8,
-    block_len: usize,
-    reserves_ptr: *mut u8,
-    reserves_len: usize,
-    pairs_store_idx: u32,
+#[substreams::handlers::store]
+pub fn build_reserves_state(
+    blk: substreams::pb::substreams::Clock,
+    reserves: pcs::Reserves,
+    pairs: store::StoreGet,
 ) {
-    substreams::register_panic_hook();
-
-    let block: pb::eth::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
-    let timestamp_block_header: pb::eth::BlockHeader = block.header.unwrap();
+    let timestamp_block_header: pb::eth::BlockHeader = blk.header.unwrap();
     let timestamp = timestamp_block_header.timestamp.unwrap();
     let timestamp_seconds = timestamp.seconds;
 
     let day_id: i64 = timestamp_seconds / 86400;
     let hour_id: i64 = timestamp_seconds / 3600;
-
-    let reserves: pcs::Reserves = proto::decode_ptr(reserves_ptr, reserves_len).unwrap();
 
     state::delete_prefix(0, &format!("pair_day:{}:", day_id - 1));
     state::delete_prefix(0, &format!("pair_hour:{}:", hour_id - 1));
@@ -359,6 +332,54 @@ pub extern "C" fn build_prices_state(
         }
     }
 }
+
+
+
+pub extern "C" fn build_twap_transient_store(clock, prices_deltas) {
+    let deltas: pcs::StoreDeltas;
+    // TODO: flatten the deltas
+    for delta in deltas.deltas {
+	if delta.key.starts_with("dprice:") {
+	    let key = delta.key.split(":");
+	    
+	    let token0 = delta.key.split(":")[1];
+	    // FLATTEN to per block
+	    state::set(0, "price:{:012}:{}", clock.number, token0);
+	    // but then, how to compute the twap? we can't read
+	    // the store here
+	}
+    }
+    
+    let del_prev_block = (clock.number - 100) / 100.0;
+    state::delete_prefix("price:{:010}", del_prev_block)
+}
+
+pub extern "C" fn build_twap_from_dprice(clock, twap_price_store, twap_prices_deltas) {
+    let deltas: pcs::StoreDeltas;
+    // Assumes its flattened
+    for delta in deltas.deltas {
+	let key = delta.key.split(":");
+	let block_num = key[1];
+	let token = key[2];
+	// loop through previous keys?
+
+	let count = 0;
+	let price_sum = 0.0;
+	for (i = 0; i < 10 /* or whatever is parameterized for the number of blocks of twap */; i++) {
+	    let price, found = state::get_last(twap_price_store, format!("price:{}:{}", block_num - i, token));
+	    if found {
+		count++;
+		price_sum += price;
+	    }
+	}
+
+	// avg = price_sum / count;
+	state::set(0, format!("price:{}:{}", clock.number, token0), avg);
+    }
+}
+
+
+
 
 #[no_mangle]
 pub extern "C" fn map_mint_burn_swaps(

@@ -229,8 +229,8 @@ pub fn compute_amount_total(amount1: String, amount2: String) -> BigDecimal {
     amount1_bd.add(amount2_bd)
 }
 
-pub fn get_last_token(tokens_store_idx: u32, token_address: &str) -> pb::tokens::Token {
-    proto::decode(&state::get_last(tokens_store_idx, &format!("token:{}", token_address)).unwrap())
+pub fn get_last_token(tokens: &store::StoreGet, token_address: &str) -> pb::tokens::Token {
+    proto::decode(tokens.get_last(&format!("token:{}", token_address)).unwrap())
         .unwrap()
 }
 

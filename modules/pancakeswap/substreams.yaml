@@ -9,13 +9,12 @@ package:
     See individual modules docs for help.
 
 imports:
+  eth: ./ethereum-v0.10.2+timestamp.spkg
   ethtokens: ../eth-token/substreams-at-pcs.yaml
 
 protobuf:
   files:
-    - google/protobuf/timestamp.proto
     - google/protobuf/any.proto
-    - codec_eth.proto
     - pcs/v1/pcs.proto
     - pcs/v1/database.proto
   importPaths:
@@ -37,7 +36,7 @@ modules:
 
   - name: pairs
     kind: store
-    updatePolicy: replace
+    updatePolicy: set
     valueType: proto:pcs.types.v1.Pair
     code:
       type: wasm/rust-v1
@@ -61,20 +60,20 @@ modules:
 
   - name: reserves
     kind: store
-    updatePolicy: replace
+    updatePolicy: set
     valueType: string
     code:
       type: wasm/rust-v1
       file: ../../target/wasm32-unknown-unknown/release/pcs_substreams.wasm
       entrypoint: build_reserves_state
     inputs:
-      - source: sf.ethereum.type.v1.Block
+      - source: sf.substreams.v1.Clock
       - map: block_to_reserves
       - store: pairs
 
   - name: prices
     kind: store
-    updatePolicy: replace
+    updatePolicy: set
     valueType: string
     code:
       type: wasm/rust-v1
@@ -103,7 +102,7 @@ modules:
   - name: totals
     kind: store
     startBlock: 6810706
-    updatePolicy: sum
+    updatePolicy: add
     valueType: int64
     code:
       type: wasm/rust-v1
@@ -116,7 +115,7 @@ modules:
 
   - name: volumes
     kind: store
-    updatePolicy: sum
+    updatePolicy: add
     valueType: bigfloat
     code:
       type: wasm/rust-v1
@@ -128,7 +127,7 @@ modules:
 
   - name: build_pcs_token_state
     kind: store
-    updatePolicy: replace
+    updatePolicy: set
     valueType: bytes
     code:
       type: wasm/rust-v1
