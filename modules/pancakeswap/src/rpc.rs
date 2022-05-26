@@ -1,4 +1,5 @@
 use hex;
+use substreams::{log, log_debug};
 
 use crate::{address_decode, address_pretty, decode_string, decode_uint32, Token};
 
@@ -25,7 +26,7 @@ pub fn create_rpc_calls(addr: &Vec<u8>) -> substreams::pb::eth::RpcCalls {
     };
 }
 
-pub fn retry_rpc_calls(pair_token_address: &String) -> Token {
+pub fn retry_rpc_calls(pair_token_address: &String) -> Option<Token> {
     let rpc_calls = create_rpc_calls(&address_decode(pair_token_address));
 
     let rpc_responses_marshalled: Vec<u8> =
@@ -37,30 +38,26 @@ pub fn retry_rpc_calls(pair_token_address: &String) -> Token {
         || rpc_responses_unmarshalled.responses[1].failed
         || rpc_responses_unmarshalled.responses[2].failed
     {
-        panic!(
-            "not a token because of a failure: {}",
-            address_pretty(pair_token_address.as_bytes())
-        )
+        log_debug!("not a token because of a failure: {}", address_pretty(pair_token_address.as_bytes()));
+        return None
     };
 
     if !(rpc_responses_unmarshalled.responses[1].raw.len() >= 96)
         || rpc_responses_unmarshalled.responses[0].raw.len() != 32
         || !(rpc_responses_unmarshalled.responses[2].raw.len() >= 96)
     {
-        panic!(
-            "not a token because response length: {}",
-            address_pretty(pair_token_address.as_bytes())
-        )
+        log_debug!("not a token because response length: {}", address_pretty(pair_token_address.as_bytes()));
+        return None
     };
 
     let decoded_decimals = decode_uint32(rpc_responses_unmarshalled.responses[0].raw.as_ref());
     let decoded_name = decode_string(rpc_responses_unmarshalled.responses[1].raw.as_ref());
     let decoded_symbol = decode_string(rpc_responses_unmarshalled.responses[2].raw.as_ref());
 
-    Token {
+    return Some(Token {
         address: pair_token_address.to_string(),
         name: decoded_name,
         symbol: decoded_symbol,
         decimals: decoded_decimals as u64,
-    }
+    })
 }

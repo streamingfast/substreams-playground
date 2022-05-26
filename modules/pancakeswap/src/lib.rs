@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 use bigdecimal::BigDecimal;
 use hex;
-use substreams::{log, proto, state};
+use substreams::{log, proto, store};
 
 use eth::{address_decode, address_pretty, decode_string, decode_uint32};
 
@@ -820,14 +820,20 @@ pub extern "C" fn build_pcs_token_state(pairs_ptr: *mut u8, pairs_len: usize, to
     };
 
     for pair in pairs.pairs {
-        let token0_option: Option<Vec<u8>> =
+        let token0_option_from_store: Option<Vec<u8>> =
             state::get_last(tokens_idx, &format!("token:{}", pair.token0_address));
-        if token0_option.is_none() {
+        if token0_option_from_store.is_none() {
             log::info!(
                 "token {} is not in the store, retrying rpc calls",
                 pair.token0_address,
             );
-            token0 = rpc::retry_rpc_calls(&pair.token0_address);
+            let token0_option = rpc::retry_rpc_calls(&pair.token0_address);
+            if token0_option.is_none() {
+                continue; // skip to next execution, we don't have a valid token
+            }
+
+            token0 = token0_option.unwrap();
+
             token0_retry = true;
             log::info!(
                 "successfully found token {} after rpc calls",
@@ -835,8 +841,8 @@ pub extern "C" fn build_pcs_token_state(pairs_ptr: *mut u8, pairs_len: usize, to
             );
         }
 
-        if !token0_retry {
-            token0 = proto::decode(&token0_option.unwrap()).unwrap();
+        if !token0_retry { // didn't need to retry as we have the token in the store
+            token0 = proto::decode(&token0_option_from_store.unwrap()).unwrap();
         }
 
         state::set_if_not_exists(
@@ -845,14 +851,20 @@ pub extern "C" fn build_pcs_token_state(pairs_ptr: *mut u8, pairs_len: usize, to
             &proto::encode(&token0).unwrap(),
         );
 
-        let token1_option: Option<Vec<u8>> =
+        let token1_option_from_store: Option<Vec<u8>> =
             state::get_last(tokens_idx, &format!("token:{}", pair.token1_address));
-        if token1_option.is_none() {
+        if token1_option_from_store.is_none() {
             log::info!(
                 "token {} is not in the store, retrying rpc calls",
                 pair.token1_address
             );
-            token1 = rpc::retry_rpc_calls(&pair.token1_address);
+            let token1_option = rpc::retry_rpc_calls(&pair.token1_address);
+            if token1_option.is_none() {
+                continue; // skip to next execution, we don't have a valid token
+            }
+
+            token1 = token1_option.unwrap();
+
             token1_retry = true;
             log::info!(
                 "successfully found token {} after rpc calls",
@@ -860,8 +872,8 @@ pub extern "C" fn build_pcs_token_state(pairs_ptr: *mut u8, pairs_len: usize, to
             );
         }
 
-        if !token1_retry {
-            token1 = proto::decode(&token1_option.unwrap()).unwrap();
+        if !token1_retry { // didn't need to retry as we have the token in the store
+            token1 = proto::decode(&token1_option_from_store.unwrap()).unwrap();
         }
 
         state::set_if_not_exists(
