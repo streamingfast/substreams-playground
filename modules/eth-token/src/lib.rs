@@ -3,12 +3,12 @@ mod pb;
 mod rpc;
 
 use eth::{address_pretty, decode_string, decode_uint32};
-use substreams::{errors::SubstreamError, log, proto, store};
+use substreams::{errors::Error, log, proto, store};
 
 const INITIALIZE_METHOD_HASH: &str = "0x1459457a";
 
 #[substreams::handlers::map]
-fn block_to_tokens(blk: pb::eth::Block) -> Result<pb::tokens::Tokens, SubstreamError> {
+fn block_to_tokens(blk: pb::eth::Block) -> Result<pb::tokens::Tokens, Error> {
     let mut tokens = vec![];
 
     for trx in blk.transaction_traces {

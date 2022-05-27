@@ -1,11 +1,10 @@
 use std::string::String;
 
-use substreams::pb::substreams::{store_delta, StoreDelta, StoreDeltas};
-use substreams::{log, proto};
+use substreams::pb::substreams::{store_delta, StoreDelta, Clock};
+use substreams::{log, proto, store};
 
 use crate::pb::database::table_change::Operation;
 use crate::pb::database::{DatabaseChanges, Field, TableChange};
-use crate::pb::eth::Block;
 use crate::pcs::{Burn, Event, Events, Mint, Swap};
 use crate::{field, field_create_string, field_from_strings, pb, pcs, utils, Type};
 
@@ -22,14 +21,14 @@ enum Item {
 }
 
 pub fn process(
-    block: &Block,
-    pair_deltas: StoreDeltas,
-    pcs_token_deltas: StoreDeltas,
-    total_deltas: StoreDeltas,
-    volumes_deltas: StoreDeltas,
-    reserves_deltas: StoreDeltas,
+    block: &Clock,
+    pair_deltas: store::Deltas,
+    pcs_token_deltas: store::Deltas,
+    total_deltas: store::Deltas,
+    volumes_deltas: store::Deltas,
+    reserves_deltas: store::Deltas,
     events: Events,
-    tokens_idx: u32,
+    tokens: &store::StoreGet,
 ) -> DatabaseChanges {
     let items = join_sort_deltas(
         pair_deltas,
@@ -49,7 +48,7 @@ pub fn process(
     for item in items {
         match item {
             Item::PairDelta(delta) => {
-                handle_pair_delta(delta, &block, &mut database_changes, tokens_idx)
+                handle_pair_delta(delta, &block, &mut database_changes, tokens)
             }
             Item::PcsTokenDelta(delta) => handle_token_delta(delta, &mut database_changes, block),
             Item::TotalDelta(delta) => handle_total_delta(delta, &mut database_changes, block),
@@ -64,9 +63,9 @@ pub fn process(
 
 fn handle_pair_delta(
     delta: StoreDelta,
-    block: &Block,
+    block: &Clock,
     changes: &mut DatabaseChanges,
-    tokens_idx: u32,
+    tokens: &store::StoreGet,
 ) {
     if delta.operation != store_delta::Operation::Create as i32 {
         return;
@@ -74,8 +73,8 @@ fn handle_pair_delta(
 
     let pair: pcs::Pair = proto::decode(&delta.new_value).unwrap();
 
-    let token0 = utils::get_last_token(tokens_idx, pair.token0_address.as_str());
-    let token1 = utils::get_last_token(tokens_idx, pair.token1_address.as_str());
+    let token0 = utils::get_last_token(&tokens, pair.token0_address.as_str());
+    let token1 = utils::get_last_token(&tokens, pair.token1_address.as_str());
 
     changes.table_changes.push(TableChange {
         table: "pair".to_string(),
@@ -89,12 +88,12 @@ fn handle_pair_delta(
             field!("token_0", pair.token0_address, ""),
             field!("token_1", pair.token1_address, ""),
             field!("block", block.number, ""),
-            field!("timestamp", block.timestamp(), ""),
+            field!("timestamp", block.timestamp, ""),
         ],
     });
 }
 
-fn handle_token_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &Block) {
+fn handle_token_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &Clock) {
     if delta.operation != store_delta::Operation::Create as i32 {
         return;
     }
@@ -116,7 +115,7 @@ fn handle_token_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &
     });
 }
 
-fn handle_total_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &Block) {
+fn handle_total_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &Clock) {
     let parts: Vec<&str> = delta.key.split(":").collect();
     let prefix = parts[0];
     let mut operation = delta.operation;
@@ -188,7 +187,7 @@ fn handle_total_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &
     })
 }
 
-fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &Block) {
+fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &Clock) {
     let parts: Vec<&str> = delta.key.split(":").collect();
     let prefix = parts[0];
 
@@ -331,7 +330,7 @@ fn handle_volume_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: 
     })
 }
 
-fn handle_reserves_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &Block) {
+fn handle_reserves_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block: &Clock) {
     let parts: Vec<&str> = delta.key.split(":").collect();
     let prefix = parts[0];
 
@@ -423,7 +422,7 @@ fn handle_reserves_delta(delta: StoreDelta, changes: &mut DatabaseChanges, block
     })
 }
 
-fn handle_events(event: Event, changes: &mut DatabaseChanges, block: &Block) {
+fn handle_events(event: Event, changes: &mut DatabaseChanges, block: &Clock) {
     match event.r#type.as_ref().unwrap() {
         Type::Swap(swap) => handle_swap_event(&swap, &event, changes, block),
         Type::Burn(burn) => handle_burn_event(&burn, &event, changes, block),
@@ -431,7 +430,7 @@ fn handle_events(event: Event, changes: &mut DatabaseChanges, block: &Block) {
     }
 }
 
-fn handle_swap_event(swap: &Swap, event: &Event, changes: &mut DatabaseChanges, block: &Block) {
+fn handle_swap_event(swap: &Swap, event: &Event, changes: &mut DatabaseChanges, block: &Clock) {
     changes.table_changes.push(TableChange {
         table: "swap".to_string(),
         pk: swap.id.to_string(),
@@ -458,7 +457,7 @@ fn handle_swap_event(swap: &Swap, event: &Event, changes: &mut DatabaseChanges, 
     });
 }
 
-fn handle_burn_event(burn: &Burn, event: &Event, changes: &mut DatabaseChanges, block: &Block) {
+fn handle_burn_event(burn: &Burn, event: &Event, changes: &mut DatabaseChanges, block: &Clock) {
     changes.table_changes.push(TableChange {
         table: "burn".to_string(),
         pk: burn.id.to_string(),
@@ -483,7 +482,7 @@ fn handle_burn_event(burn: &Burn, event: &Event, changes: &mut DatabaseChanges, 
     });
 }
 
-fn handle_mint_event(mint: &Mint, event: &Event, changes: &mut DatabaseChanges, block: &Block) {
+fn handle_mint_event(mint: &Mint, event: &Event, changes: &mut DatabaseChanges, block: &Clock) {
     changes.table_changes.push(TableChange {
         table: "mint".to_string(),
         pk: mint.id.to_string(),
@@ -509,11 +508,11 @@ fn handle_mint_event(mint: &Mint, event: &Event, changes: &mut DatabaseChanges, 
 }
 
 fn join_sort_deltas(
-    pair_deltas: StoreDeltas,
-    pcs_token_deltas: StoreDeltas,
-    total_deltas: StoreDeltas,
-    volumes_deltas: StoreDeltas,
-    reserves_delta: StoreDeltas,
+    pair_deltas: store::Deltas,
+    pcs_token_deltas: store::Deltas,
+    total_deltas: store::Deltas,
+    volumes_deltas: store::Deltas,
+    reserves_delta: store::Deltas,
     events: Events,
 ) -> Vec<Item> {
     struct SortableItem {
@@ -523,35 +522,35 @@ fn join_sort_deltas(
 
     let mut items: Vec<SortableItem> = Vec::new();
 
-    for delta in pair_deltas.deltas {
+    for delta in pair_deltas {
         items.push(SortableItem {
             ordinal: delta.ordinal,
             item: Item::PairDelta(delta),
         })
     }
 
-    for delta in pcs_token_deltas.deltas {
+    for delta in pcs_token_deltas {
         items.push(SortableItem {
             ordinal: delta.ordinal,
             item: Item::PcsTokenDelta(delta),
         })
     }
 
-    for delta in total_deltas.deltas {
+    for delta in total_deltas {
         items.push(SortableItem {
             ordinal: delta.ordinal,
             item: Item::TotalDelta(delta),
         })
     }
 
-    for delta in volumes_deltas.deltas {
+    for delta in volumes_deltas {
         items.push(SortableItem {
             ordinal: delta.ordinal,
             item: Item::VolumeDelta(delta),
         })
     }
 
-    for delta in reserves_delta.deltas {
+    for delta in reserves_delta {
         items.push(SortableItem {
             ordinal: delta.ordinal,
             item: Item::ReserveDelta(delta),

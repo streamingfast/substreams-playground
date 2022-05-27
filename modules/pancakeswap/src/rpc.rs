@@ -1,24 +1,25 @@
 use hex;
 use substreams::{log, log_debug};
+use substreams_ethereum::pb::eth;
 
 use crate::{address_decode, address_pretty, decode_string, decode_uint32, Token};
 
-pub fn create_rpc_calls(addr: &Vec<u8>) -> substreams::pb::eth::RpcCalls {
+pub fn create_rpc_calls(addr: &Vec<u8>) -> eth::rpc::RpcCalls {
     let decimals = hex::decode("313ce567").unwrap();
     let name = hex::decode("06fdde03").unwrap();
     let symbol = hex::decode("95d89b41").unwrap();
 
-    return substreams::pb::eth::RpcCalls {
+    return eth::rpc::RpcCalls {
         calls: vec![
-            substreams::pb::eth::RpcCall {
+            eth::rpc::RpcCall {
                 to_addr: Vec::from(addr.clone()),
                 method_signature: decimals,
             },
-            substreams::pb::eth::RpcCall {
+            eth::rpc::RpcCall {
                 to_addr: Vec::from(addr.clone()),
                 method_signature: name,
             },
-            substreams::pb::eth::RpcCall {
+            eth::rpc::RpcCall {
                 to_addr: Vec::from(addr.clone()),
                 method_signature: symbol,
             },
@@ -29,10 +30,8 @@ pub fn create_rpc_calls(addr: &Vec<u8>) -> substreams::pb::eth::RpcCalls {
 pub fn retry_rpc_calls(pair_token_address: &String) -> Option<Token> {
     let rpc_calls = create_rpc_calls(&address_decode(pair_token_address));
 
-    let rpc_responses_marshalled: Vec<u8> =
-        substreams::rpc::eth_call(substreams::proto::encode(&rpc_calls).unwrap());
-    let rpc_responses_unmarshalled: substreams::pb::eth::RpcResponses =
-        substreams::proto::decode(&rpc_responses_marshalled).unwrap();
+    let rpc_responses_unmarshalled: eth::rpc::RpcResponses =
+	substreams_ethereum::rpc::eth_call(&rpc_calls);
 
     if rpc_responses_unmarshalled.responses[0].failed
         || rpc_responses_unmarshalled.responses[1].failed

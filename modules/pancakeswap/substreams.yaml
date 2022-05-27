@@ -9,7 +9,7 @@ package:
     See individual modules docs for help.
 
 imports:
-  eth: ./ethereum-v0.10.2+timestamp.spkg
+  eth: https://github.com/streamingfast/sf-ethereum/releases/download/v0.10.2/ethereum-v0.10.3.spkg
   ethtokens: ../eth-token/substreams-at-pcs.yaml
 
 protobuf:
@@ -122,7 +122,7 @@ modules:
       file: ../../target/wasm32-unknown-unknown/release/pcs_substreams.wasm
       entrypoint: build_volumes_state
     inputs:
-      - source: sf.ethereum.type.v1.Block
+      - source: sf.substreams.v1.Clock
       - map: mint_burn_swaps_extractor
 
   - name: build_pcs_token_state
@@ -145,7 +145,7 @@ modules:
       file: ../../target/wasm32-unknown-unknown/release/pcs_substreams.wasm
       entrypoint: map_to_database
     inputs:
-      - source: sf.ethereum.type.v1.Block
+      - source: sf.substreams.v1.Clock
       - store: build_pcs_token_state
         mode: deltas
       - store: pairs
