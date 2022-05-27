@@ -902,7 +902,7 @@ dependencies = [
  "prost",
  "prost-build",
  "prost-types",
- "substreams 0.1.0",
+ "substreams",
  "substreams-ethereum",
  "wasm-bindgen",
 ]
@@ -1303,7 +1303,7 @@ dependencies = [
  "prost",
  "prost-build",
  "prost-types",
- "substreams 0.1.0 (git+https://github.com/streamingfast/substreams?branch=develop)",
+ "substreams",
  "wasm-bindgen",
 ]
 
@@ -1316,6 +1316,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 [[package]]
 name = "substreams"
 version = "0.1.0"
+source = "git+https://github.com/streamingfast/substreams?branch=develop#db26ea7df10f05436994f6c5213085cc6d3ad1d9"
 dependencies = [
  "bigdecimal",
  "hex",
@@ -1323,22 +1324,8 @@ dependencies = [
  "prost",
  "prost-build",
  "prost-types",
- "substreams-macro 0.1.0",
+ "substreams-macro",
  "thiserror",
-]
-
-[[package]]
-name = "substreams"
-version = "0.1.0"
-source = "git+https://github.com/streamingfast/substreams?branch=develop#1cecae22ae2693460fa10a312eebbcefa13553db"
-dependencies = [
- "bigdecimal",
- "hex",
- "num-bigint",
- "prost",
- "prost-build",
- "prost-types",
- "substreams-macro 0.1.0 (git+https://github.com/streamingfast/substreams?branch=develop)",
 ]
 
 [[package]]
@@ -1352,7 +1339,7 @@ dependencies = [
  "prost",
  "prost-build",
  "prost-types",
- "substreams 0.1.0",
+ "substreams",
  "substreams-ethereum",
  "wasm-bindgen",
 ]
@@ -1360,13 +1347,14 @@ dependencies = [
 [[package]]
 name = "substreams-ethereum"
 version = "0.1.0"
+source = "git+https://github.com/streamingfast/substreams-ethereum?branch=develop#e35e39d676da7d904aecffca1dbdbefd94f5eec4"
 dependencies = [
  "ethabi 17.0.0",
  "getrandom",
  "prost",
  "prost-build",
  "prost-types",
- "substreams 0.1.0",
+ "substreams",
  "substreams-ethereum-abigen",
  "substreams-ethereum-derive",
 ]
@@ -1374,6 +1362,7 @@ dependencies = [
 [[package]]
 name = "substreams-ethereum-abigen"
 version = "0.1.0"
+source = "git+https://github.com/streamingfast/substreams-ethereum?branch=develop#e35e39d676da7d904aecffca1dbdbefd94f5eec4"
 dependencies = [
  "anyhow",
  "ethabi 17.0.0",
@@ -1388,6 +1377,7 @@ dependencies = [
 [[package]]
 name = "substreams-ethereum-derive"
 version = "0.1.0"
+source = "git+https://github.com/streamingfast/substreams-ethereum?branch=develop#e35e39d676da7d904aecffca1dbdbefd94f5eec4"
 dependencies = [
  "ethabi 17.0.0",
  "heck",
@@ -1401,17 +1391,7 @@ dependencies = [
 [[package]]
 name = "substreams-macro"
 version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
- "thiserror",
-]
-
-[[package]]
-name = "substreams-macro"
-version = "0.1.0"
-source = "git+https://github.com/streamingfast/substreams?branch=develop#1cecae22ae2693460fa10a312eebbcefa13553db"
+source = "git+https://github.com/streamingfast/substreams?branch=develop#db26ea7df10f05436994f6c5213085cc6d3ad1d9"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1560,7 +1540,7 @@ dependencies = [
  "prost-build",
  "prost-types",
  "serde_json",
- "substreams 0.1.0 (git+https://github.com/streamingfast/substreams?branch=develop)",
+ "substreams",
  "tiny-keccak",
  "wasm-bindgen",
 ]
