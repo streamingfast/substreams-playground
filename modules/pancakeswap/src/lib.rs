@@ -27,7 +27,7 @@ mod rpc;
 mod utils;
 
 #[substreams::handlers::map]
-pub fn map_pairs(blk: pb::eth::Block) -> Result<pcs::Pairs, Error> {
+pub fn block_to_pairs(blk: pb::eth::Block) -> Result<pcs::Pairs, Error> {
     let mut pairs = pcs::Pairs { pairs: vec![] };
 
     for trx in blk.transaction_traces {
@@ -59,7 +59,7 @@ pub fn map_pairs(blk: pb::eth::Block) -> Result<pcs::Pairs, Error> {
 }
 
 #[substreams::handlers::store]
-pub fn build_pairs_state(pairs: pcs::Pairs, output: store::StoreSet) {
+pub fn pairs(pairs: pcs::Pairs, output: store::StoreSet) {
     log::info!("Building pair state");
     for pair in pairs.pairs {
         output.set(
@@ -71,7 +71,7 @@ pub fn build_pairs_state(pairs: pcs::Pairs, output: store::StoreSet) {
 }
 
 #[substreams::handlers::map]
-pub fn map_reserves(
+pub fn block_to_reserves(
     blk: pb::eth::Block,
     pairs: store::StoreGet,
     tokens: store::StoreGet,
@@ -122,7 +122,7 @@ pub fn map_reserves(
 }
 
 #[substreams::handlers::store]
-pub fn build_reserves_state(
+pub fn reserves(
     clock: substreams::pb::substreams::Clock,
     reserves: pcs::Reserves,
     pairs: store::StoreGet,
@@ -183,7 +183,7 @@ pub fn build_reserves_state(
 }
 
 #[substreams::handlers::store]
-pub fn build_prices_state(
+pub fn prices(
     clock: substreams::pb::substreams::Clock,
     reserves: pcs::Reserves,
     pairs: store::StoreGet,
@@ -369,7 +369,7 @@ pub fn build_prices_state(
 // }
 
 #[substreams::handlers::map]
-pub fn map_mint_burn_swaps(
+pub fn mint_burn_swaps_extractor(
     blk: pb::eth::Block,
     pairs_store: store::StoreGet,
     prices_store: store::StoreGet,
@@ -570,7 +570,7 @@ pub fn map_mint_burn_swaps(
 }
 
 #[substreams::handlers::store]
-pub fn build_totals_state(
+pub fn totals(
     clock: substreams::pb::substreams::Clock,
     pairs: pcs::Pairs,
     events: pcs::Events,
@@ -630,7 +630,7 @@ pub fn build_totals_state(
 }
 
 #[substreams::handlers::store]
-pub fn build_volumes_state(
+pub fn volumes(
     clock: substreams::pb::substreams::Clock,
     events: pcs::Events,
     output: store::StoreAddBigFloat,
@@ -776,7 +776,7 @@ pub fn build_volumes_state(
 
 // todo: create pcs-token proto
 #[substreams::handlers::store]
-pub fn build_pcs_token_state(
+pub fn pcs_tokens(
     pairs: pcs::Pairs,
     tokens: store::StoreGet,
     output: store::StoreSetIfNotExists,
@@ -864,7 +864,7 @@ pub fn build_pcs_token_state(
 }
 
 #[substreams::handlers::map]
-pub fn map_to_database(
+pub fn db_out(
     block: substreams::pb::substreams::Clock,
     pcs_tokens_deltas: store::Deltas,
     pairs_deltas: store::Deltas,

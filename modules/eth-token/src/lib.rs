@@ -138,7 +138,7 @@ fn block_to_tokens(blk: pb::eth::Block) -> Result<pb::tokens::Tokens, Error> {
 }
 
 #[substreams::handlers::store]
-fn build_tokens_state(tokens: pb::tokens::Tokens, store: store::StoreSet) {
+fn tokens(tokens: pb::tokens::Tokens, store: store::StoreSet) {
     for token in tokens.tokens {
         let key = format!("token:{}", token.address);
         store.set(1, key, &proto::encode(&token).unwrap());

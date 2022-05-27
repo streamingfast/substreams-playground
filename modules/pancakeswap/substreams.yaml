@@ -20,14 +20,19 @@ protobuf:
     - ./proto
     - ../../external-proto
 
+binaries:
+  default:
+    type: wasm/rust-v1
+    file: ../../target/wasm32-unknown-unknown/release/pcs_substreams.wasm
+  pcs_fixed:
+    type: wasm/rust-v1
+    file: snapshot.wasm
+
 modules:
   - name: block_to_pairs
     kind: map
-    startBlock: 6810706
-    code:
-      type: wasm/rust-v1
-      file: ../../target/wasm32-unknown-unknown/release/pcs_substreams.wasm
-      entrypoint: map_pairs
+    initialBlock: 6810706
+    binary: default  # Implicit
     inputs:
       - source: sf.ethereum.type.v1.Block
     output:
@@ -37,19 +42,11 @@ modules:
     kind: store
     updatePolicy: set
     valueType: proto:pcs.types.v1.Pair
-    code:
-      type: wasm/rust-v1
-      file: ../../target/wasm32-unknown-unknown/release/pcs_substreams.wasm
-      entrypoint: build_pairs_state
     inputs:
       - map: block_to_pairs
 
   - name: block_to_reserves
     kind: map
-    code:
-      type: wasm/rust-v1
-      file: ../../target/wasm32-unknown-unknown/release/pcs_substreams.wasm
-      entrypoint: map_reserves
     inputs:
       - source: sf.ethereum.type.v1.Block
       - store: pairs
@@ -61,10 +58,6 @@ modules:
     kind: store
     updatePolicy: set
     valueType: string
-    code:
-      type: wasm/rust-v1
-      file: ../../target/wasm32-unknown-unknown/release/pcs_substreams.wasm
-      entrypoint: build_reserves_state
     inputs:
       - source: sf.substreams.v1.Clock
       - map: block_to_reserves
@@ -74,10 +67,6 @@ modules:
     kind: store
     updatePolicy: set
     valueType: string
-    code:
-      type: wasm/rust-v1
-      file: ../../target/wasm32-unknown-unknown/release/pcs_substreams.wasm
-      entrypoint: build_prices_state
     inputs:
       - source: sf.substreams.v1.Clock
       - map: block_to_reserves
@@ -86,10 +75,6 @@ modules:
 
   - name: mint_burn_swaps_extractor
     kind: map
-    code:
-      type: wasm/rust-v1
-      file: ../../target/wasm32-unknown-unknown/release/pcs_substreams.wasm
-      entrypoint: map_mint_burn_swaps
     inputs:
       - source: sf.ethereum.type.v1.Block
       - store: pairs
@@ -100,13 +85,9 @@ modules:
 
   - name: totals
     kind: store
-    startBlock: 6810706
+    initialBlock: 6810706
     updatePolicy: add
     valueType: int64
-    code:
-      type: wasm/rust-v1
-      file: ../../target/wasm32-unknown-unknown/release/pcs_substreams.wasm
-      entrypoint: build_totals_state
     inputs:
       - source: sf.substreams.v1.Clock
       - map: block_to_pairs
@@ -116,36 +97,24 @@ modules:
     kind: store
     updatePolicy: add
     valueType: bigfloat
-    code:
-      type: wasm/rust-v1
-      file: ../../target/wasm32-unknown-unknown/release/pcs_substreams.wasm
-      entrypoint: build_volumes_state
     inputs:
       - source: sf.substreams.v1.Clock
       - map: mint_burn_swaps_extractor
 
-  - name: build_pcs_token_state
+  - name: pcs_tokens
     kind: store
     updatePolicy: set
     valueType: bytes
-    code:
-      type: wasm/rust-v1
-      file: ../../target/wasm32-unknown-unknown/release/pcs_substreams.wasm
-      entrypoint: build_pcs_token_state
     inputs:
       - map: block_to_pairs
       - store: ethtokens:tokens
 
   - name: db_out
     kind: map
-    startBlock: 6810706
-    code:
-      type: wasm/rust-v1
-      file: ../../target/wasm32-unknown-unknown/release/pcs_substreams.wasm
-      entrypoint: map_to_database
+    initialBlock: 6810706
     inputs:
       - source: sf.substreams.v1.Clock
-      - store: build_pcs_token_state
+      - store: pcs_tokens
         mode: deltas
       - store: pairs
         mode: deltas
@@ -156,7 +125,7 @@ modules:
       - store: reserves
         mode: deltas
       - map: mint_burn_swaps_extractor
-      - store: build_pcs_token_state
+      - store: pcs_tokens
         mode: get
     output:
       type: proto:pcs.database.v1.DatabaseChanges

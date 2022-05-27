@@ -15,14 +15,15 @@ protobuf:
   importPaths:
     - ./proto
 
+binaries:
+  default:
+    type: wasm/rust-v1
+    file: ../../target/wasm32-unknown-unknown/release/substreams_eth_token.wasm
+
 modules:
   - name: block_to_tokens
     kind: map
-    startBlock: 6810706
-    code:
-      type: wasm/rust-v1
-      file: ../../target/wasm32-unknown-unknown/release/substreams_eth_token.wasm
-      entrypoint: block_to_tokens
+    initialBlock: 6810706
     inputs:
       - source: sf.ethereum.type.v1.Block
     output:
@@ -32,9 +33,5 @@ modules:
     kind: store
     updatePolicy: set
     valueType: proto:sf.ethereum.tokens.v1.Token
-    code:
-      type: wasm/rust-v1
-      file: ../../target/wasm32-unknown-unknown/release/substreams_eth_token.wasm
-      entrypoint: build_tokens_state
     inputs:
       - map: block_to_tokens
