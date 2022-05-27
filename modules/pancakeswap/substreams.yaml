@@ -79,7 +79,7 @@ modules:
       file: ../../target/wasm32-unknown-unknown/release/pcs_substreams.wasm
       entrypoint: build_prices_state
     inputs:
-      - source: sf.ethereum.type.v1.Block
+      - source: sf.substreams.v1.Clock
       - map: block_to_reserves
       - store: pairs
       - store: reserves
@@ -108,7 +108,7 @@ modules:
       file: ../../target/wasm32-unknown-unknown/release/pcs_substreams.wasm
       entrypoint: build_totals_state
     inputs:
-      - source: sf.ethereum.type.v1.Block
+      - source: sf.substreams.v1.Clock
       - map: block_to_pairs
       - map: mint_burn_swaps_extractor
 
