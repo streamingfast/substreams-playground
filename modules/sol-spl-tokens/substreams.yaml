@@ -8,8 +8,6 @@ package:
 
 protobuf:
   files:
-    - google/protobuf/timestamp.proto
-    - google/protobuf/any.proto
     - sf_solana_type_v1.proto
     - solana_spl.proto
   importPaths:
@@ -28,3 +26,13 @@ modules:
       - source: sf.solana.type.v1.Block
     output:
       type: proto:solana.spl.v1.TokenTransfers
+  - name: transfer_store
+    kind: store
+    updatePolicy: set
+    valueType: string #proto:solana.spl.v1.TokenTransfers
+    code:
+      type: wasm/rust-v1
+      file: ../../target/wasm32-unknown-unknown/release/sol_spl_tokens.wasm
+      entrypoint: transfer_store
+    inputs:
+      - map: spl_transfers

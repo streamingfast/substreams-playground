@@ -5,7 +5,7 @@ fn main() {
     prost_build
         .compile_protos(
             &[
-                "sf_solana_type_v1.proto",
+                "confirmed_block.proto",
                 "solana_spl.proto",
             ],
             &["./proto"],
