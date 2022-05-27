@@ -1,21 +1,18 @@
 extern crate core;
 use std::convert::TryInto;
 
-//use bigdecimal::BigDecimal;
 use bs58;
-//use hex;
-use substreams::{log, proto}; //, state};
+use substreams::log;
+use substreams::errors::Error;
 
 mod pb;
 
-#[no_mangle]
-pub extern "C" fn spl_transfers(block_ptr: *mut u8, block_len: usize) {
-    log::info!("Extracting SPL Token Transfers");
-    substreams::register_panic_hook();
-
-    let blk: pb::sol::Block = proto::decode_ptr(block_ptr, block_len).unwrap();
+#[substreams::handlers::map]
+pub fn spl_transfers(blk: pb::sol::Block) -> Result<pb::spl::TokenTransfers, Error> {
     let mut xfers = pb::spl::TokenTransfers { transfers: vec![] };
 
+    log::info!("Extracting SPL Token Transfers");
+    
     for trx in blk.transactions {
         if trx.failed {
             continue;
@@ -46,7 +43,5 @@ pub extern "C" fn spl_transfers(block_ptr: *mut u8, block_len: usize) {
         }
     }
 
-    if xfers.transfers.len() != 0 {
-        substreams::output(xfers);
-    }
+    Ok(xfers)
 }
