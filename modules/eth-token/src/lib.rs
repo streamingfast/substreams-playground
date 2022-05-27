@@ -2,8 +2,11 @@ mod eth;
 mod pb;
 mod rpc;
 
+use substreams_ethereum::pb::eth as ethpb;
+use substreams_ethereum;
 use eth::{address_pretty, decode_string, decode_uint32};
-use substreams::{errors::Error, log, proto, store};
+use substreams::{log, proto, store};
+use substreams::errors::Error;
 
 const INITIALIZE_METHOD_HASH: &str = "0x1459457a";
 
@@ -74,11 +77,8 @@ fn block_to_tokens(blk: pb::eth::Block) -> Result<pb::tokens::Tokens, Error> {
                 }
 
                 let rpc_calls = rpc::create_rpc_calls(&call.address);
-
-                let rpc_responses_marshalled: Vec<u8> =
-                    substreams::rpc::eth_call(substreams::proto::encode(&rpc_calls).unwrap());
-                let rpc_responses_unmarshalled: substreams::pb::eth::RpcResponses =
-                    substreams::proto::decode(&rpc_responses_marshalled).unwrap();
+                let rpc_responses_unmarshalled: ethpb::rpc::RpcResponses =
+                    substreams_ethereum::rpc::eth_call(&rpc_calls);
 
                 let responses = rpc_responses_unmarshalled.responses;
 
@@ -138,7 +138,7 @@ fn block_to_tokens(blk: pb::eth::Block) -> Result<pb::tokens::Tokens, Error> {
 }
 
 #[substreams::handlers::store]
-fn build_tokens_state(tokens: pb::tokens::Tokens, store: store::UpdateWriter) {
+fn build_tokens_state(tokens: pb::tokens::Tokens, store: store::StoreSet) {
     for token in tokens.tokens {
         let key = format!("token:{}", token.address);
         store.set(1, key, &proto::encode(&token).unwrap());

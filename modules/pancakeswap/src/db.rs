@@ -88,7 +88,7 @@ fn handle_pair_delta(
             field!("token_0", pair.token0_address, ""),
             field!("token_1", pair.token1_address, ""),
             field!("block", block.number, ""),
-            field!("timestamp", block.timestamp, ""),
+            field!("timestamp", block.timestamp.as_ref().unwrap().seconds, ""),
         ],
     });
 }

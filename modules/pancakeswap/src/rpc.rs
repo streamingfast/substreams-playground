@@ -1,5 +1,5 @@
 use hex;
-use substreams::{log, log_debug};
+use substreams::{log_debug};
 use substreams_ethereum::pb::eth;
 
 use crate::{address_decode, address_pretty, decode_string, decode_uint32, Token};

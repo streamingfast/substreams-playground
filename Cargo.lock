@@ -1352,7 +1352,8 @@ dependencies = [
  "prost",
  "prost-build",
  "prost-types",
- "substreams 0.1.0 (git+https://github.com/streamingfast/substreams?branch=develop)",
+ "substreams 0.1.0",
+ "substreams-ethereum",
  "wasm-bindgen",
 ]
 
