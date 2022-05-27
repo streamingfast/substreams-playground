@@ -5,7 +5,7 @@ This repository holds a few example _Substreams Modules_, and example _consuming
 
 ## Documentation
 
-https://github.com/streamingfast/substreams-docs/blob/master/docs/guides/quickstart.md
+https://github.com/streamingfast/substreams under _Documentation_.
 
 ## Example Substreams Modules
 
