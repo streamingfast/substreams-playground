@@ -4,7 +4,7 @@ use std::convert::TryInto;
 //use bigdecimal::BigDecimal;
 use bs58;
 //use hex;
-use substreams::{log, proto}; //, state};
+use substreams::{log, proto, store};
 
 mod pb;
 
@@ -33,14 +33,12 @@ pub extern "C" fn spl_transfers(block_ptr: *mut u8, block_len: usize) {
                             continue;
                         }
     
+                        // not sure if this is part of the confirmedBlock model
                         //if inst.failed {
                         //    continue;
                         //}
     
-                        let a: [u8; 8] = inst.data[0..8].try_into().unwrap();
-
-                        let amount = u64::from_be_bytes(a);
-
+                        let am: [u8; 8] = inst.data[1..9].try_into().unwrap();
                         let from = &msg.account_keys[inst.accounts[0] as usize];
                         let to= &msg.account_keys[inst.accounts[1] as usize];
     
@@ -49,11 +47,10 @@ pub extern "C" fn spl_transfers(block_ptr: *mut u8, block_len: usize) {
                             ordinal: 0,
                             from: from.to_vec(),
                             to: to.to_vec(),
-                            amount: amount,
+                            amount: u64::from_le_bytes(am),
                         });
 
-                        log::info!("trx: {} from: {} to: {} account bytes: 0x{}", bs58::encode(&tt.signatures[0]).into_string(), bs58::encode(from.to_vec()).into_string(), bs58::encode(to.to_vec()).into_string(),
-                        hex::encode(a));
+                        // log::info!("trx: {} from: {} to: {} account bytes: 0x{}", bs58::encode(&tt.signatures[0]).into_string(), bs58::encode(from.to_vec()).into_string(), bs58::encode(to.to_vec()).into_string(), hex::encode(am));
                     }
                 }
             }
@@ -64,3 +61,17 @@ pub extern "C" fn spl_transfers(block_ptr: *mut u8, block_len: usize) {
             substreams::output(xfers);
         }
 }
+
+#[substreams::handlers::store]
+pub fn transfer_store(xfers: pb::spl::TokenTransfers, output: store::StoreSet) {
+    log::info!("Building xfer state");
+    for xfer in xfers.transfers {
+        output.set(
+            1,
+            format!("xfer:{}", xfer.transaction_id),
+            &Vec::from("fuckyou"),//&proto::encode(&xfer).unwrap(),
+        );
+    }
+}
+
+
