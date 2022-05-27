@@ -11,8 +11,6 @@ package:
 
 protobuf:
   files:
-    - google/protobuf/timestamp.proto
-    - google/protobuf/any.proto
     - tokens.proto
   importPaths:
     - ./proto
@@ -32,7 +30,7 @@ modules:
 
   - name: tokens
     kind: store
-    updatePolicy: replace
+    updatePolicy: set
     valueType: proto:sf.ethereum.tokens.v1.Token
     code:
       type: wasm/rust-v1
