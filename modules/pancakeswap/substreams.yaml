@@ -14,7 +14,6 @@ imports:
 
 protobuf:
   files:
-    - google/protobuf/any.proto
     - pcs/v1/pcs.proto
     - pcs/v1/database.proto
   importPaths:
