@@ -50,7 +50,7 @@ modules:
     inputs:
       - source: sf.ethereum.type.v1.Block
       - store: pairs
-      - store: build_pcs_token_state
+      - store: pcs_tokens
     output:
       type: proto:pcs.types.v1.Reserves
 
@@ -79,7 +79,7 @@ modules:
       - source: sf.ethereum.type.v1.Block
       - store: pairs
       - store: prices
-      - store: build_pcs_token_state
+      - store: pcs_tokens
     output:
       type: proto:pcs.types.v1.Events
 
