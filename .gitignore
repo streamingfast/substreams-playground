@@ -1,6 +1,9 @@
 *~
 .idea/
 .envrc
+.env
+node_modules/
+generated/
 .git-old
 .DS_Store
 target/
@@ -11,3 +14,4 @@ rpc-cache
 localdata
 /dist
 *.spkg
+*.log

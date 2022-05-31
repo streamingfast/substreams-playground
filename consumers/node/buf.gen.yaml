@@ -1,0 +1,11 @@
+# TODO: Do we want to move this to the root of the playground and share a single buf config?
+# NOTE: We could likely replace the other language specific protoc (and other) build steps in the other examples too?
+version: v1
+plugins:
+  - remote: buf.build/timostamm/plugins/protobuf-ts
+    out: src/generated
+    opt:
+      - generate_dependencies
+      - long_type_string
+      - eslint_disable
+      - client_generic

@@ -1,0 +1,9 @@
+# TODO: Do we want to move this to the root of the playground and share a single buf config?
+version: v1
+deps:
+  - buf.build/fubhy/substreams
+
+lint:
+  use:
+    - DEFAULT
+    - COMMENTS
