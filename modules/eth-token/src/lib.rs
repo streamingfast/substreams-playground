@@ -2,11 +2,12 @@ mod eth;
 mod pb;
 mod rpc;
 
-use substreams_ethereum::pb::eth as ethpb;
-use substreams::{log, proto, store, Hex, hex};
+use hex_literal::hex;
 use substreams::errors::Error;
+use substreams::{log, proto, store, Hex};
+use substreams_ethereum::pb::eth as ethpb;
 
-const INITIALIZE_METHOD_HASH: [u8;4] = hex!("1459457a");
+const INITIALIZE_METHOD_HASH: [u8; 4] = hex!("1459457a");
 
 #[substreams::handlers::map]
 fn map_tokens(blk: ethpb::v1::Block) -> Result<pb::tokens::Tokens, Error> {
@@ -15,14 +16,16 @@ fn map_tokens(blk: ethpb::v1::Block) -> Result<pb::tokens::Tokens, Error> {
     for trx in blk.transaction_traces {
         for call in trx.calls {
             if call.state_reverted {
-                continue
+                continue;
             }
-            if call.call_type == ethpb::v1::CallType::Create as i32 ||
-                call.call_type == ethpb::v1::CallType::Call as i32 // proxy contract creation
+            if call.call_type == ethpb::v1::CallType::Create as i32
+                || call.call_type == ethpb::v1::CallType::Call as i32
+            // proxy contract creation
             {
                 let call_input_len = call.input.len();
                 if call.call_type == ethpb::v1::CallType::Call as i32
-                    && (call_input_len < 4 || call.input[0..4] != INITIALIZE_METHOD_HASH) {
+                    && (call_input_len < 4 || call.input[0..4] != INITIALIZE_METHOD_HASH)
+                {
                     // this will check if a proxy contract has been called to create a ERC20 contract.
                     // if that is the case the Proxy contract will call the initialize function on the ERC20 contract
                     // this is part of the OpenZeppelin Proxy contract standard
@@ -45,21 +48,30 @@ fn map_tokens(blk: ethpb::v1::Block) -> Result<pb::tokens::Tokens, Error> {
 
                     if code_change_len <= 150 {
                         // optimization to skip none viable SC
-                        log::info!("skipping too small code to be a token contract: {}",Hex(&call.address));
+                        log::info!(
+                            "skipping too small code to be a token contract: {}",
+                            Hex(&call.address)
+                        );
                         continue;
                     }
                 } else {
-                    log::debug!("found proxy initialization: contract {}, caller {}",Hex(&call.address),Hex(&call.caller));
+                    log::debug!(
+                        "found proxy initialization: contract {}, caller {}",
+                        Hex(&call.address),
+                        Hex(&call.caller)
+                    );
                 }
 
-                if call.caller == hex!("0000000000004946c0e9f43f4dee607b0ef1fa1c") ||
-                    call.caller == hex!("00000000687f5b66638856396bee28c1db0178d1") {
+                if call.caller == hex!("0000000000004946c0e9f43f4dee607b0ef1fa1c")
+                    || call.caller == hex!("00000000687f5b66638856396bee28c1db0178d1")
+                {
                     log::debug!("skipping known caller address");
                     continue;
                 }
 
                 let rpc_calls = rpc::create_rpc_calls(&call.address);
-                let rpc_responses_unmarshalled: ethpb::rpc::RpcResponses = substreams_ethereum::rpc::eth_call(&rpc_calls);
+                let rpc_responses_unmarshalled: ethpb::rpc::RpcResponses =
+                    substreams_ethereum::rpc::eth_call(&rpc_calls);
                 let responses = rpc_responses_unmarshalled.responses;
 
                 if responses[0].failed || responses[1].failed || responses[2].failed {
