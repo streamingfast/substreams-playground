@@ -22,37 +22,49 @@ This is a flow that is executed for each block.  The graph is produced automatic
 ```mermaid
 
 graph TD;
+  block_to_pairs[map: block_to_pairs]
   sf.ethereum.type.v1.Block[source: sf.ethereum.type.v1.Block] --> block_to_pairs
-  block_to_pairs[map: block_to_pairs] --> pairs
+  pairs[store: pairs]
+  block_to_pairs --> pairs
+  pcs_tokens[store: pcs_tokens]
+  block_to_pairs --> pcs_tokens
+  ethtokens:tokens --> pcs_tokens
+  block_to_reserves[map: block_to_reserves]
   sf.ethereum.type.v1.Block[source: sf.ethereum.type.v1.Block] --> block_to_reserves
-  pairs[store: pairs] --> block_to_reserves
-  build_pcs_token_state[store: build_pcs_token_state] --> block_to_reserves
-  sf.ethereum.type.v1.Block[source: sf.ethereum.type.v1.Block] --> reserves
-  block_to_reserves[map: block_to_reserves] --> reserves
-  pairs[store: pairs] --> reserves
-  sf.ethereum.type.v1.Block[source: sf.ethereum.type.v1.Block] --> prices
-  block_to_reserves[map: block_to_reserves] --> prices
-  pairs[store: pairs] --> prices
-  reserves[store: reserves] --> prices
+  pairs --> block_to_reserves
+  pcs_tokens --> block_to_reserves
+  reserves[store: reserves]
+  sf.substreams.v1.Clock[source: sf.substreams.v1.Clock] --> reserves
+  block_to_reserves --> reserves
+  pairs --> reserves
+  prices[store: prices]
+  sf.substreams.v1.Clock[source: sf.substreams.v1.Clock] --> prices
+  block_to_reserves --> prices
+  pairs --> prices
+  reserves --> prices
+  mint_burn_swaps_extractor[map: mint_burn_swaps_extractor]
   sf.ethereum.type.v1.Block[source: sf.ethereum.type.v1.Block] --> mint_burn_swaps_extractor
-  pairs[store: pairs] --> mint_burn_swaps_extractor
-  prices[store: prices] --> mint_burn_swaps_extractor
-  build_pcs_token_state[store: build_pcs_token_state] --> mint_burn_swaps_extractor
-  sf.ethereum.type.v1.Block[source: sf.ethereum.type.v1.Block] --> totals
-  block_to_pairs[map: block_to_pairs] --> totals
-  mint_burn_swaps_extractor[map: mint_burn_swaps_extractor] --> totals
-  sf.ethereum.type.v1.Block[source: sf.ethereum.type.v1.Block] --> volumes
-  mint_burn_swaps_extractor[map: mint_burn_swaps_extractor] --> volumes
-  sf.ethereum.type.v1.Block[source: sf.ethereum.type.v1.Block] --> block_to_tokens
-  block_to_tokens[map: block_to_tokens] --> tokens
-  block_to_pairs[map: block_to_pairs] --> build_pcs_token_state
-  tokens[store: tokens] --> build_pcs_token_state
-  sf.ethereum.type.v1.Block[source: sf.ethereum.type.v1.Block] --> db_out
-  build_pcs_token_state[store: build_pcs_token_state] -- "deltas" --> db_out
-  pairs[store: pairs] -- "deltas" --> db_out
-  totals[store: totals] -- "deltas" --> db_out
-  volumes[store: volumes] -- "deltas" --> db_out
-  reserves[store: reserves] -- "deltas" --> db_out
-  mint_burn_swaps_extractor[map: mint_burn_swaps_extractor] --> db_out
-  build_pcs_token_state[store: build_pcs_token_state] --> db_out
+  pairs --> mint_burn_swaps_extractor
+  prices --> mint_burn_swaps_extractor
+  pcs_tokens --> mint_burn_swaps_extractor
+  totals[store: totals]
+  sf.substreams.v1.Clock[source: sf.substreams.v1.Clock] --> totals
+  block_to_pairs --> totals
+  mint_burn_swaps_extractor --> totals
+  volumes[store: volumes]
+  sf.substreams.v1.Clock[source: sf.substreams.v1.Clock] --> volumes
+  mint_burn_swaps_extractor --> volumes
+  db_out[map: db_out]
+  sf.substreams.v1.Clock[source: sf.substreams.v1.Clock] --> db_out
+  pcs_tokens -- deltas --> db_out
+  pairs -- deltas --> db_out
+  totals -- deltas --> db_out
+  volumes -- deltas --> db_out
+  reserves -- deltas --> db_out
+  mint_burn_swaps_extractor --> db_out
+  pcs_tokens --> db_out
+  ethtokens:block_to_tokens[map: ethtokens:block_to_tokens]
+  sf.ethereum.type.v1.Block[source: sf.ethereum.type.v1.Block] --> ethtokens:block_to_tokens
+  ethtokens:tokens[store: ethtokens:tokens]
+  ethtokens:block_to_tokens --> ethtokens:tokens
   ```
