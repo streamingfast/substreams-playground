@@ -86,10 +86,8 @@ pub fn map_reserves(blk: pb::eth::Block, pairs: store::StoreGet, tokens: store::
                         continue;
                     }
 
-                    // Unmarshall pair
                     let pair: pcs::Pair = proto::decode(&pair_bytes).unwrap();
 
-                    // reserve
                     let token0: Token = utils::get_last_token(&tokens, &pair.token0_address);
                     let reserve0 =
                         utils::convert_token_to_decimal(&log.data[0..32], &token0.decimals);
@@ -97,7 +95,6 @@ pub fn map_reserves(blk: pb::eth::Block, pairs: store::StoreGet, tokens: store::
                     let reserve1 =
                         utils::convert_token_to_decimal(&log.data[32..64], &token1.decimals);
 
-                    // token_price
                     let token0_price = utils::get_token_price(reserve0.clone(), reserve1.clone());
                     let token1_price = utils::get_token_price(reserve1.clone(), reserve0.clone());
 
