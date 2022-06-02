@@ -115,7 +115,6 @@ fn map_tokens(blk: ethpb::v1::Block) -> Result<pb::tokens::Tokens, Error> {
                     Hex(&call.address),
                     name,
                 );
-                log::debug!("out");
                 let token = pb::tokens::Token {
                     address: Hex(&call.address).to_string(),
                     name,

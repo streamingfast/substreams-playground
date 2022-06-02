@@ -1,21 +1,17 @@
 extern crate core;
 use std::convert::TryInto;
 
-//use bigdecimal::BigDecimal;
 use bs58;
-//use hex;
 use substreams::{log, proto, store};
+use substreams::errors::Error;
 
 mod pb;
 
-#[no_mangle]
-pub extern "C" fn spl_transfers(block_ptr: *mut u8, block_len: usize) {
+#[substreams::handlers::map]
+fn map_tokens(blk: ethpb::v1::Block) -> Result<pb::tokens::Tokens, Error> {
     log::info!("Extracting SPL Token Transfers");
     substreams::register_panic_hook();
-
-    let blk: pb::sol::ConfirmedBlock = proto::decode_ptr(block_ptr, block_len).unwrap();
     let mut xfers = pb::spl::TokenTransfers { transfers: vec![] };
-
     for trx in blk.transactions {
         if let Some(meta) = trx.meta {
             if let Some(_err) = meta.err {
@@ -49,22 +45,17 @@ pub extern "C" fn spl_transfers(block_ptr: *mut u8, block_len: usize) {
                             to: to.to_vec(),
                             amount: u64::from_le_bytes(am),
                         });
-
-                        // log::info!("trx: {} from: {} to: {} account bytes: 0x{}", bs58::encode(&tt.signatures[0]).into_string(), bs58::encode(from.to_vec()).into_string(), bs58::encode(to.to_vec()).into_string(), hex::encode(am));
                     }
                 }
             }
         }
-
-   }
-        if xfers.transfers.len() != 0 {
-            substreams::output(xfers);
-        }
+    }
+    return Ok(xfers);
 }
 
 #[substreams::handlers::store]
-pub fn transfer_store(xfers: pb::spl::TokenTransfers, output: store::StoreSet) {
-    log::info!("Building xfer state");
+pub fn store_transfers(xfers: pb::spl::TokenTransfers, output: store::StoreSet) {
+    log::info!("Building transfer state");
     for xfer in xfers.transfers {
         output.set(
             1,

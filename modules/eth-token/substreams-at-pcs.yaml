@@ -37,4 +37,4 @@ modules:
     updatePolicy: set
     valueType: proto:sf.ethereum.tokens.v1.Token
     inputs:
-      - map: block_to_tokens
+      - map: map_tokens

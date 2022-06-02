@@ -8,7 +8,7 @@ use hex;
 use substreams::{log, proto, store};
 use substreams::errors::Error;
 
-use eth::{address_decode, address_pretty, decode_string, decode_uint32};
+use eth::{address_decode, address_pretty};
 
 use crate::event::pcs_event::Event;
 use crate::event::PcsEvent;
@@ -27,7 +27,7 @@ mod rpc;
 mod utils;
 
 #[substreams::handlers::map]
-pub fn block_to_pairs(blk: pb::eth::Block) -> Result<pcs::Pairs, Error> {
+pub fn map_pairs(blk: pb::eth::Block) -> Result<pcs::Pairs, Error> {
     let mut pairs = pcs::Pairs { pairs: vec![] };
 
     for trx in blk.transaction_traces {
@@ -59,7 +59,7 @@ pub fn block_to_pairs(blk: pb::eth::Block) -> Result<pcs::Pairs, Error> {
 }
 
 #[substreams::handlers::store]
-pub fn pairs(pairs: pcs::Pairs, output: store::StoreSet) {
+pub fn store_pairs(pairs: pcs::Pairs, output: store::StoreSet) {
     log::info!("Building pair state");
     for pair in pairs.pairs {
         output.set(
@@ -71,11 +71,7 @@ pub fn pairs(pairs: pcs::Pairs, output: store::StoreSet) {
 }
 
 #[substreams::handlers::map]
-pub fn block_to_reserves(
-    blk: pb::eth::Block,
-    pairs: store::StoreGet,
-    tokens: store::StoreGet,
-) -> Result<pcs::Reserves, Error> {
+pub fn map_reserves(blk: pb::eth::Block, pairs: store::StoreGet, tokens: store::StoreGet) -> Result<pcs::Reserves, Error> {
     let mut reserves = pcs::Reserves { reserves: vec![] };
 
     for trx in blk.transaction_traces {
@@ -122,12 +118,7 @@ pub fn block_to_reserves(
 }
 
 #[substreams::handlers::store]
-pub fn reserves(
-    clock: substreams::pb::substreams::Clock,
-    reserves: pcs::Reserves,
-    pairs: store::StoreGet,
-    output: store::StoreSet,
-) {
+pub fn store_reserves(clock: substreams::pb::substreams::Clock, reserves: pcs::Reserves, pairs: store::StoreGet, output: store::StoreSet) {
     let timestamp_seconds = clock.timestamp.unwrap().seconds;
     let day_id: i64 = timestamp_seconds / 86400;
     let hour_id: i64 = timestamp_seconds / 3600;
@@ -183,13 +174,7 @@ pub fn reserves(
 }
 
 #[substreams::handlers::store]
-pub fn prices(
-    clock: substreams::pb::substreams::Clock,
-    reserves: pcs::Reserves,
-    pairs: store::StoreGet,
-    reserves_store: store::StoreGet,
-    output: store::StoreSet,
-) {
+pub fn store_prices(clock: substreams::pb::substreams::Clock, reserves: pcs::Reserves, pairs: store::StoreGet, reserves_store: store::StoreGet, output: store::StoreSet) {
     let timestamp_seconds = clock.timestamp.unwrap().seconds;
     let day_id: i64 = timestamp_seconds / 86400;
     let hour_id: i64 = timestamp_seconds / 3600;
@@ -369,12 +354,7 @@ pub fn prices(
 // }
 
 #[substreams::handlers::map]
-pub fn mint_burn_swaps_extractor(
-    blk: pb::eth::Block,
-    pairs_store: store::StoreGet,
-    prices_store: store::StoreGet,
-    tokens_store: store::StoreGet,
-) -> Result<pcs::Events, Error> {
+pub fn map_burn_swaps_events(blk: pb::eth::Block, pairs_store: store::StoreGet, prices_store: store::StoreGet, tokens_store: store::StoreGet) -> Result<pcs::Events, Error> {
     let mut events: pcs::Events = pcs::Events { events: vec![] };
 
     let mut burn_count: i32 = 0;
@@ -804,12 +784,12 @@ pub fn pcs_tokens(
                 "token {} is not in the store, retrying rpc calls",
                 pair.token0_address,
             );
-            let token0_option = rpc::retry_rpc_calls(&pair.token0_address);
-            if token0_option.is_none() {
+            let token0_res = rpc::retry_rpc_calls(&pair.token0_address);
+            if token0_res.is_err() {
                 continue; // skip to next execution, we don't have a valid token
             }
 
-            token0 = token0_option.unwrap();
+            token0 = token0_res.unwrap();
 
             token0_retry = true;
             log::info!(
@@ -836,12 +816,12 @@ pub fn pcs_tokens(
                 "token {} is not in the store, retrying rpc calls",
                 pair.token1_address
             );
-            let token1_option = rpc::retry_rpc_calls(&pair.token1_address);
-            if token1_option.is_none() {
+            let token1_res = rpc::retry_rpc_calls(&pair.token1_address);
+            if token1_res.is_err() {
                 continue; // skip to next execution, we don't have a valid token
             }
 
-            token1 = token1_option.unwrap();
+            token1 = token1_res.unwrap();
 
             token1_retry = true;
             log::info!(

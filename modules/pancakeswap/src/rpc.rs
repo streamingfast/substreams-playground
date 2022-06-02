@@ -1,8 +1,9 @@
 use hex;
-use substreams::{log_debug};
+use substreams::{Hex};
 use substreams_ethereum::pb::eth;
 
-use crate::{address_decode, address_pretty, decode_string, decode_uint32, Token};
+use crate::{address_decode, address_pretty, Token};
+use crate::eth::{read_string, read_uint32};
 
 pub fn create_rpc_calls(addr: &Vec<u8>) -> eth::rpc::RpcCalls {
     let decimals = hex::decode("313ce567").unwrap();
@@ -27,7 +28,7 @@ pub fn create_rpc_calls(addr: &Vec<u8>) -> eth::rpc::RpcCalls {
     };
 }
 
-pub fn retry_rpc_calls(pair_token_address: &String) -> Option<Token> {
+pub fn retry_rpc_calls(pair_token_address: &String) -> Result<Token, String> {
     let rpc_calls = create_rpc_calls(&address_decode(pair_token_address));
 
     let rpc_responses_unmarshalled: eth::rpc::RpcResponses =
@@ -37,26 +38,30 @@ pub fn retry_rpc_calls(pair_token_address: &String) -> Option<Token> {
         || rpc_responses_unmarshalled.responses[1].failed
         || rpc_responses_unmarshalled.responses[2].failed
     {
-        log_debug!("not a token because of a failure: {}", address_pretty(pair_token_address.as_bytes()));
-        return None
+        return Err(format!("not a ERC20 because of a failure: {}", address_pretty(pair_token_address.as_bytes())));
     };
 
-    if !(rpc_responses_unmarshalled.responses[1].raw.len() >= 96)
-        || rpc_responses_unmarshalled.responses[0].raw.len() != 32
-        || !(rpc_responses_unmarshalled.responses[2].raw.len() >= 96)
-    {
-        log_debug!("not a token because response length: {}", address_pretty(pair_token_address.as_bytes()));
-        return None
-    };
+    let decoded_decimals = read_uint32(rpc_responses_unmarshalled.responses[0].raw.as_ref());
+    if decoded_decimals.is_err() {
+        return Err(format!("{} is not a an ERC20 token contract decimal `eth_call` failed: {}", Hex(&pair_token_address), decoded_decimals.err().unwrap()));
+    }
 
-    let decoded_decimals = decode_uint32(rpc_responses_unmarshalled.responses[0].raw.as_ref());
-    let decoded_name = decode_string(rpc_responses_unmarshalled.responses[1].raw.as_ref());
-    let decoded_symbol = decode_string(rpc_responses_unmarshalled.responses[2].raw.as_ref());
 
-    return Some(Token {
+    let decoded_name = read_string(rpc_responses_unmarshalled.responses[1].raw.as_ref());
+    if decoded_name.is_err() {
+        return Err(format!("{} is not a an ERC20 token contract name `eth_call` failed: {}", Hex(&pair_token_address),decoded_name.err().unwrap()));
+    }
+
+
+    let decoded_symbol = read_string(rpc_responses_unmarshalled.responses[2].raw.as_ref());
+    if decoded_symbol.is_err() {
+        return Err(format!("{} is not a an ERC20 token contract symbol `eth_call` failed: {}", Hex(&pair_token_address),decoded_symbol.err().unwrap()));
+    }
+
+    return Ok(Token {
         address: pair_token_address.to_string(),
-        name: decoded_name,
-        symbol: decoded_symbol,
-        decimals: decoded_decimals as u64,
+        name: decoded_name.unwrap(),
+        symbol: decoded_symbol.unwrap(),
+        decimals: decoded_decimals.unwrap() as u64,
     })
 }

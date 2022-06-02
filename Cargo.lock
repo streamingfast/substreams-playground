@@ -564,6 +564,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
+name = "hex-literal"
+version = "0.3.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7ebdb29d2ea9ed0083cd8cece49bbd968021bd99b0849edb4a9a7ee0fdf6a4e0"
+
+[[package]]
 name = "idna"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -623,9 +629,9 @@ dependencies = [
 
 [[package]]
 name = "indexmap"
-version = "1.7.0"
+version = "1.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc633605454125dec4b66843673f01c7df2b89479b32e0ed634e43a91cff62a5"
+checksum = "e6012d540c5baa3589337a98ce73408de9b5a25ec9fc2c6fd6be8f0d39e0ca5a"
 dependencies = [
  "autocfg",
  "hashbrown",
@@ -699,9 +705,9 @@ checksum = "349d5a591cd28b49e1d1037471617a32ddcda5731b99419008085f72d5a53836"
 
 [[package]]
 name = "libz-sys"
-version = "1.1.6"
+version = "1.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92e7e15d7610cce1d9752e137625f14e61a28cd45929b6e12e47b50fe154ee2e"
+checksum = "9702761c3935f8cc2f101793272e202c72b99da8f4224a19ddcf1279a6450bbf"
 dependencies = [
  "cc",
  "libc",
@@ -870,9 +876,9 @@ dependencies = [
 
 [[package]]
 name = "parking_lot"
-version = "0.12.0"
+version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87f5ec2493a61ac0506c0f4199f99070cbe83857b0337006a30f3e6719b8ef58"
+checksum = "3742b2c103b9f06bc9fff0a37ff4912935851bee6d36f3c02bcc755bcfec228f"
 dependencies = [
  "lock_api",
  "parking_lot_core",
@@ -902,7 +908,7 @@ dependencies = [
  "prost",
  "prost-build",
  "prost-types",
- "substreams",
+ "substreams 0.0.8-beta",
  "substreams-ethereum",
  "wasm-bindgen",
 ]
@@ -915,9 +921,9 @@ checksum = "d4fd5641d01c8f18a23da7b6fe29298ff4b55afcccdf78973b24cf3175fee32e"
 
 [[package]]
 name = "petgraph"
-version = "0.6.1"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "51b305cc4569dd4e8765bab46261f67ef5d4d11a4b6e745100ee5dad8948b46c"
+checksum = "e6d5014253a1331579ce62aa67443b4a658c5e7dd03d4bc6d302b94474888143"
 dependencies = [
  "fixedbitset",
  "indexmap",
@@ -1303,7 +1309,7 @@ dependencies = [
  "prost",
  "prost-build",
  "prost-types",
- "substreams",
+ "substreams 0.0.8-beta (git+https://github.com/streamingfast/substreams?branch=develop)",
  "wasm-bindgen",
 ]
 
@@ -1315,16 +1321,32 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "substreams"
-version = "0.1.0"
-source = "git+https://github.com/streamingfast/substreams?branch=develop#8c55852177cb238d9b1c4aee3b9885233f9aadbf"
+version = "0.0.8-beta"
 dependencies = [
  "bigdecimal",
  "hex",
+ "hex-literal",
  "num-bigint",
  "prost",
  "prost-build",
  "prost-types",
- "substreams-macro",
+ "substreams-macro 0.0.8-beta",
+ "thiserror",
+]
+
+[[package]]
+name = "substreams"
+version = "0.0.8-beta"
+source = "git+https://github.com/streamingfast/substreams?branch=develop#5cd7e554f193bc65a0f4f2d1d28bb9eac33c0165"
+dependencies = [
+ "bigdecimal",
+ "hex",
+ "hex-literal",
+ "num-bigint",
+ "prost",
+ "prost-build",
+ "prost-types",
+ "substreams-macro 0.0.8-beta (git+https://github.com/streamingfast/substreams?branch=develop)",
  "thiserror",
 ]
 
@@ -1337,9 +1359,8 @@ dependencies = [
  "num-bigint",
  "pad",
  "prost",
- "prost-build",
  "prost-types",
- "substreams",
+ "substreams 0.0.8-beta",
  "substreams-ethereum",
  "wasm-bindgen",
 ]
@@ -1347,14 +1368,13 @@ dependencies = [
 [[package]]
 name = "substreams-ethereum"
 version = "0.1.0"
-source = "git+https://github.com/streamingfast/substreams-ethereum?branch=develop#e35e39d676da7d904aecffca1dbdbefd94f5eec4"
 dependencies = [
  "ethabi 17.0.0",
  "getrandom",
  "prost",
  "prost-build",
  "prost-types",
- "substreams",
+ "substreams 0.0.8-beta",
  "substreams-ethereum-abigen",
  "substreams-ethereum-derive",
 ]
@@ -1362,10 +1382,10 @@ dependencies = [
 [[package]]
 name = "substreams-ethereum-abigen"
 version = "0.1.0"
-source = "git+https://github.com/streamingfast/substreams-ethereum?branch=develop#e35e39d676da7d904aecffca1dbdbefd94f5eec4"
 dependencies = [
  "anyhow",
  "ethabi 17.0.0",
+ "getrandom",
  "heck",
  "hex",
  "prettyplease",
@@ -1377,7 +1397,6 @@ dependencies = [
 [[package]]
 name = "substreams-ethereum-derive"
 version = "0.1.0"
-source = "git+https://github.com/streamingfast/substreams-ethereum?branch=develop#e35e39d676da7d904aecffca1dbdbefd94f5eec4"
 dependencies = [
  "ethabi 17.0.0",
  "heck",
@@ -1390,8 +1409,18 @@ dependencies = [
 
 [[package]]
 name = "substreams-macro"
-version = "0.1.0"
-source = "git+https://github.com/streamingfast/substreams?branch=develop#8c55852177cb238d9b1c4aee3b9885233f9aadbf"
+version = "0.0.8-beta"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+ "thiserror",
+]
+
+[[package]]
+name = "substreams-macro"
+version = "0.0.8-beta"
+source = "git+https://github.com/streamingfast/substreams?branch=develop#5cd7e554f193bc65a0f4f2d1d28bb9eac33c0165"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1540,7 +1569,7 @@ dependencies = [
  "prost-build",
  "prost-types",
  "serde_json",
- "substreams",
+ "substreams 0.0.8-beta (git+https://github.com/streamingfast/substreams?branch=develop)",
  "tiny-keccak",
  "wasm-bindgen",
 ]

@@ -6,6 +6,10 @@ package:
   doc: |
     Solana SPL Token Transfers stream
 
+imports:
+  sol: https://github.com/streamingfast/sf-ethereum/releases/download/v0.10.2/ethereum-v0.10.4.spkg
+
+
 protobuf:
   files:
     - sf_solana_type_v1.proto
@@ -21,7 +25,7 @@ binaries:
 
 
 modules:
-  - name: spl_transfers
+  - name: map_transfers
     kind: map
     startBlock: 131450000
     inputs:
@@ -29,7 +33,7 @@ modules:
     output:
       type: proto:solana.spl.v1.TokenTransfers
 
-  - name: transfer_store
+  - name: store_transfers
     kind: store
     updatePolicy: set
     valueType: string #proto:solana.spl.v1.TokenTransfers
