@@ -5,6 +5,7 @@ package:
   url: https://github.com/streamingfast/substreams-playground
   doc: |
     This package provides modules that keep track of all ERC-20 tokens on the chain
+
     It is presented as a simple store, helping avoid eth_calls to get decimal, name and symbols
     for tokens.
 
