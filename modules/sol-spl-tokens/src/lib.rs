@@ -2,13 +2,13 @@ extern crate core;
 use std::convert::TryInto;
 
 use bs58;
-use substreams::{log, store};
+use substreams::{log, proto, store};
 use substreams::errors::Error;
 
 mod pb;
 
 #[substreams::handlers::map]
-fn map_tokens(blk: pb::sol::ConfirmedBlock) -> Result<pb::spl::TokenTransfers, Error> {
+fn spl_transfers(blk: pb::sol::ConfirmedBlock) -> Result<pb::spl::TokenTransfers, Error> {
     log::info!("Extracting SPL Token Transfers");
     substreams::register_panic_hook();
     let mut xfers = pb::spl::TokenTransfers { transfers: vec![] };
@@ -55,7 +55,7 @@ pub fn transfer_store(xfers: pb::spl::TokenTransfers, output: store::StoreSet) {
         output.set(
             1,
             format!("xfer:{}", xfer.transaction_id),
-            &Vec::from("not-implemented"),//&proto::encode(&xfer).unwrap(),
+            &proto::encode(&xfer).unwrap(),
         );
     }
 }

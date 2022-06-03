@@ -10,7 +10,7 @@ Install [`substreams` and its dependencies here](../README.md), compile these mo
 and try with:
 
 ```
-substreams run -k -e localhost:9000 substreams.yaml spl_transfers -s 131450000 -t 131450010
+substreams run -k -e mainnet.sol.streamingfast.io:443 substreams.yaml transfer_store -s 130000000 -t 130000100
 ```
 
 ## Visual data flow
@@ -19,5 +19,8 @@ This is a flow that is executed for each block.  The graph is produced automatic
 
 ```mermaid
 graph TD;
-  sf.solana.type.v1.Block -- "source:sf.solana.type.v1.Block" --> spl_transfers
+  spl_transfers[map: spl_transfers]
+  sf.solana.type.v1.Block[source: sf.solana.type.v1.Block] --> spl_transfers
+  transfer_store[store: transfer_store]
+  spl_transfers --> transfer_store
 ```
