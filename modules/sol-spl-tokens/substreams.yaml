@@ -1,7 +1,7 @@
 specVersion: v0.1.0
 package:
   name: solana_spl_transfers
-  version: v0.5.2
+  version: v0.5.3
   url: https://github.com/streamingfast/substreams-playground
   doc: |
     Solana SPL Token Transfers stream
@@ -30,6 +30,7 @@ modules:
       - source: sf.solana.type.v1.Block
     output:
       type: proto:solana.spl.v1.TokenTransfers
+
   - name: transfer_store
     kind: store
     updatePolicy: set
