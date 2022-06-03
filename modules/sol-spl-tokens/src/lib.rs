@@ -2,13 +2,13 @@ extern crate core;
 use std::convert::TryInto;
 
 use bs58;
-use substreams::{log, proto, store};
+use substreams::{log, store};
 use substreams::errors::Error;
 
 mod pb;
 
 #[substreams::handlers::map]
-fn map_tokens(blk: ethpb::v1::Block) -> Result<pb::tokens::Tokens, Error> {
+fn map_tokens(blk: pb::sol::ConfirmedBlock) -> Result<pb::spl::TokenTransfers, Error> {
     log::info!("Extracting SPL Token Transfers");
     substreams::register_panic_hook();
     let mut xfers = pb::spl::TokenTransfers { transfers: vec![] };
@@ -29,11 +29,6 @@ fn map_tokens(blk: ethpb::v1::Block) -> Result<pb::tokens::Tokens, Error> {
                             continue;
                         }
     
-                        // not sure if this is part of the confirmedBlock model
-                        //if inst.failed {
-                        //    continue;
-                        //}
-    
                         let am: [u8; 8] = inst.data[1..9].try_into().unwrap();
                         let from = &msg.account_keys[inst.accounts[0] as usize];
                         let to= &msg.account_keys[inst.accounts[1] as usize];
@@ -49,18 +44,18 @@ fn map_tokens(blk: ethpb::v1::Block) -> Result<pb::tokens::Tokens, Error> {
                 }
             }
         }
-    }
+   }
     return Ok(xfers);
 }
 
 #[substreams::handlers::store]
-pub fn store_transfers(xfers: pb::spl::TokenTransfers, output: store::StoreSet) {
+pub fn transfer_store(xfers: pb::spl::TokenTransfers, output: store::StoreSet) {
     log::info!("Building transfer state");
     for xfer in xfers.transfers {
         output.set(
             1,
             format!("xfer:{}", xfer.transaction_id),
-            &Vec::from("some-content-maybe"),//&proto::encode(&xfer).unwrap(),
+            &Vec::from("not-implemented"),//&proto::encode(&xfer).unwrap(),
         );
     }
 }

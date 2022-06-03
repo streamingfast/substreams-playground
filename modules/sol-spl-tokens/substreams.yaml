@@ -1,14 +1,15 @@
 specVersion: v0.1.0
 package:
   name: solana_spl_transfers
-  version: v0.5.1
+  version: v0.5.2
   url: https://github.com/streamingfast/substreams-playground
   doc: |
     Solana SPL Token Transfers stream
 
-imports:
-  sol: https://github.com/streamingfast/sf-ethereum/releases/download/v0.10.2/ethereum-v0.10.4.spkg
-
+binaries:
+  default:
+    type: wasm/rust-v1
+    file: ../../target/wasm32-unknown-unknown/release/sol_spl_tokens.wasm
 
 protobuf:
   files:
@@ -18,22 +19,15 @@ protobuf:
     - ./proto
     - ../../external-proto
 
-binaries:
-  default:
-    type: wasm/rust-v1
-    file: ../../target/wasm32-unknown-unknown/release/sol_spl_tokens.wasm
-
-
 modules:
-  - name: map_transfers
+  - name: spl_transfers
     kind: map
     startBlock: 131450000
     inputs:
       - source: sf.solana.type.v1.Block
     output:
       type: proto:solana.spl.v1.TokenTransfers
-
-  - name: store_transfers
+  - name: transfer_store
     kind: store
     updatePolicy: set
     valueType: string #proto:solana.spl.v1.TokenTransfers
