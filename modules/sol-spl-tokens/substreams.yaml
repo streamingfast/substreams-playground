@@ -6,6 +6,11 @@ package:
   doc: |
     Solana SPL Token Transfers stream
 
+    This streams out SPL token transfers to the nearest human being.
+
+imports:
+  sol: https://github.com/streamingfast/sf-solana/releases/download/v0.1.0/solana-v0.1.0.spkg
+
 binaries:
   default:
     type: wasm/rust-v1
@@ -13,11 +18,9 @@ binaries:
 
 protobuf:
   files:
-    - sf_solana_type_v1.proto
     - solana_spl.proto
   importPaths:
     - ./proto
-    - ../../external-proto
 
 modules:
   - name: spl_transfers
