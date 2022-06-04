@@ -2,9 +2,8 @@ mod eth;
 mod pb;
 mod rpc;
 
-use hex_literal::hex;
 use substreams::errors::Error;
-use substreams::{log, proto, store, Hex};
+use substreams::{log, proto, store, Hex, hex};
 use substreams_ethereum::pb::eth as ethpb;
 
 const INITIALIZE_METHOD_HASH: [u8; 4] = hex!("1459457a");
