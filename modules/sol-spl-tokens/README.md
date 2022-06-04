@@ -15,7 +15,7 @@ substreams protogen substreams.yaml --exclude-paths="sf/solana,sf/substreams,goo
 
 ## Running the Substrams
 ```
-substreams run -k -e mainnet.sol.streamingfast.io:443 substreams.yaml store_transfers -s 130000000 -t 130000100
+substreams run -k -e sol-dev.streamingfast.io:443 substreams.yaml store_transfers -s 130000000 -t 130000100
 ```
 
 ## Visual data flow
