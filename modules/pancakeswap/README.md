@@ -17,7 +17,7 @@ substreams run -e bsc-dev.streamingfast.io:443 substreams.yaml pairs,block_to_pa
 
 ## Visual data flow
 
-This is a flow that is executed for each block.  The graph is produced with `substreams manifest graph ./substreams.yaml`.
+This is a flow that is executed for each block.  The graph is produced with `substreams graph ./substreams.yaml`.
 
 ```mermaid
 
