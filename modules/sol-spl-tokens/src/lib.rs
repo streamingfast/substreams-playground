@@ -56,8 +56,7 @@ fn map_transfers(blk: solpb::sol::v1::Block) -> Result<pb::spl::TokenTransfers, 
 }
 
 #[substreams::handlers::store]
-pub fn transfer_store(transfers: pb::spl::TokenTransfers, output: store::StoreSet) {
-
+pub fn store_transfers(transfers: pb::spl::TokenTransfers, output: store::StoreSet) {
     log::info!("building transfer state");
     for transfer in transfers.transfers {
         output.set(

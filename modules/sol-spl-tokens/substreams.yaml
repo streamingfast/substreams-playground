@@ -23,7 +23,7 @@ protobuf:
     - ./proto
 
 modules:
-  - name: spl_transfers
+  - name: map_transfers
     kind: map
     initialBlock: 130000000
     inputs:
@@ -31,9 +31,9 @@ modules:
     output:
       type: proto:solana.spl.v1.TokenTransfers
 
-  - name: transfer_store
+  - name: store_transfers
     kind: store
     updatePolicy: set
     valueType: proto:solana.spl.v1.TokenTransfers
     inputs:
-      - map: spl_transfers
+      - map: map_transfers
