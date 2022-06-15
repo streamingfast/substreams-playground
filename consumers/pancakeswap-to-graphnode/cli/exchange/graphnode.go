@@ -2,19 +2,17 @@ package exchange
 
 import (
 	"fmt"
-	"io"
-	"os"
-
+	"github.com/spf13/cobra"
 	"github.com/streamingfast/bstream"
 	_ "github.com/streamingfast/sf-ethereum/types"
 	"github.com/streamingfast/substream-pancakeswap/cli/exchange/graphnode"
+	"github.com/streamingfast/substream-pancakeswap/graph-node/metrics"
+	"github.com/streamingfast/substream-pancakeswap/graph-node/storage/postgres"
 	"github.com/streamingfast/substreams/client"
-	"github.com/streamingfast/substreams/graph-node/metrics"
-	"github.com/streamingfast/substreams/graph-node/storage/postgres"
 	"github.com/streamingfast/substreams/manifest"
 	pbsubstreams "github.com/streamingfast/substreams/pb/sf/substreams/v1"
-
-	"github.com/spf13/cobra"
+	"io"
+	"os"
 )
 
 // loadGraphNodeCmd represents the base command
@@ -72,16 +70,10 @@ func runLoadGraphnode(cmd *cobra.Command, args []string) error {
 	loader := graphnode.NewLoader(storage, graphnode.Definition.Entities)
 
 	manifestPath := args[0]
-	manif, err := manifest.New(manifestPath)
+	manifestReader := manifest.NewReader(manifestPath)
+	pkg, err := manifestReader.Read()
 	if err != nil {
 		return fmt.Errorf("read manifest %q: %w", manifestPath, err)
-	}
-
-	manif.PrintMermaid()
-
-	manifProto, err := manif.ToProto()
-	if err != nil {
-		return fmt.Errorf("parse manifest to proto%q: %w", manifestPath, err)
 	}
 
 	ssClient, callOpts, err := client.NewSubstreamsClient(
@@ -98,7 +90,7 @@ func runLoadGraphnode(cmd *cobra.Command, args []string) error {
 		StartBlockNum: mustGetInt64(cmd, "start-block"),
 		StopBlockNum:  mustGetUint64(cmd, "stop-block"),
 		ForkSteps:     []pbsubstreams.ForkStep{pbsubstreams.ForkStep_STEP_IRREVERSIBLE},
-		Manifest:      manifProto,
+		Modules:       pkg.Modules,
 		OutputModules: []string{"db_out", "pairs", "totals"},
 	}
 

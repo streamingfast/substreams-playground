@@ -3,15 +3,14 @@ package graphnode
 import (
 	"context"
 	"fmt"
-	"reflect"
-	"time"
-
 	"github.com/golang/protobuf/proto"
+	graphnode "github.com/streamingfast/substream-pancakeswap/graph-node"
+	"github.com/streamingfast/substream-pancakeswap/graph-node/storage"
 	"github.com/streamingfast/substream-pancakeswap/pb/pcs/database/v1"
-	graphnode "github.com/streamingfast/substreams/graph-node"
-	"github.com/streamingfast/substreams/graph-node/storage"
 	pbsubstreams "github.com/streamingfast/substreams/pb/sf/substreams/v1"
 	"go.uber.org/zap"
+	"reflect"
+	"time"
 )
 
 type Loader struct {

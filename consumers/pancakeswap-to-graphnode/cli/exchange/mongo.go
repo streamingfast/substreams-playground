@@ -7,8 +7,6 @@ import (
 	"os"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-
 	"github.com/spf13/cobra"
 	"github.com/streamingfast/bstream"
 	_ "github.com/streamingfast/sf-ethereum/types"
@@ -16,6 +14,7 @@ import (
 	"github.com/streamingfast/substreams/client"
 	"github.com/streamingfast/substreams/manifest"
 	pbsubstreams "github.com/streamingfast/substreams/pb/sf/substreams/v1"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"google.golang.org/protobuf/proto"
@@ -51,16 +50,10 @@ func runLoadMongo(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
 
 	manifestPath := args[0]
-	manif, err := manifest.New(manifestPath)
+	manifestReader := manifest.NewReader(manifestPath)
+	pkg, err := manifestReader.Read()
 	if err != nil {
 		return fmt.Errorf("read manifest %q: %w", manifestPath, err)
-	}
-
-	manif.PrintMermaid()
-
-	manifProto, err := manif.ToProto()
-	if err != nil {
-		return fmt.Errorf("parse manifest to proto%q: %w", manifestPath, err)
 	}
 
 	ssClient, callOpts, err := client.NewSubstreamsClient(
@@ -77,7 +70,7 @@ func runLoadMongo(cmd *cobra.Command, args []string) error {
 		StartBlockNum: mustGetInt64(cmd, "start-block"),
 		StopBlockNum:  mustGetUint64(cmd, "stop-block"),
 		ForkSteps:     []pbsubstreams.ForkStep{pbsubstreams.ForkStep_STEP_IRREVERSIBLE},
-		Manifest:      manifProto,
+		Modules:       pkg.Modules,
 		OutputModules: []string{"db_out"},
 	}
 
@@ -104,7 +97,7 @@ func runLoadMongo(cmd *cobra.Command, args []string) error {
 		case *pbsubstreams.Response_Progress:
 			p := r.Progress
 			for _, module := range p.Modules {
-				fmt.Println("progress:", module.Name, module.ProcessedRanges)
+				fmt.Println("progress:", module.Name, module.GetProcessedRanges())
 			}
 		case *pbsubstreams.Response_SnapshotData:
 			_ = r.SnapshotData

@@ -2,11 +2,10 @@ package database
 
 import (
 	"fmt"
+	graphnode "github.com/streamingfast/substream-pancakeswap/graph-node"
 	"reflect"
 	"strconv"
 	"strings"
-
-	graphnode "github.com/streamingfast/substreams/graph-node"
 )
 
 func ApplyTableChange(change *TableChange, entity graphnode.Entity) (err error) {
