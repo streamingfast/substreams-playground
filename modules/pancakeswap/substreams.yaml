@@ -11,7 +11,8 @@ package:
 imports:
   eth: https://github.com/streamingfast/sf-ethereum/releases/download/v0.10.2/ethereum-v0.10.3.spkg
   ethtokens: https://github.com/streamingfast/substreams-playground/releases/download/v0.5.1/eth-token-v0.5.1.spkg
-  ethtokens_at_pcs: ../eth-token/eth-token-at-pcs-v0.5.1.spkg # To use tokens only present at the beginning of PCS, eventually that would be an override on a third-party module's "initialBlock"
+  ethtokens_at_pcs: https://github.com/streamingfast/substreams-playground/releases/download/v0.5.1/eth-token-at-pcs-v0.5.1.spkg
+  # To use tokens only present at the beginning of PCS, eventually that would be an override on a third-party module's "initialBlock"
 
 protobuf:
   files:
