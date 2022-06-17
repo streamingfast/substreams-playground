@@ -1,4 +1,4 @@
-package exchange
+package main
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/streamingfast/bstream"
 	_ "github.com/streamingfast/sf-ethereum/types"
-	"github.com/streamingfast/substream-pancakeswap/pb/pcs/database/v1"
+	database "github.com/streamingfast/substreams-playground/consumers/golang/mongo/db"
 	"github.com/streamingfast/substreams/client"
 	"github.com/streamingfast/substreams/manifest"
 	pbsubstreams "github.com/streamingfast/substreams/pb/sf/substreams/v1"
@@ -22,10 +22,10 @@ import (
 
 // loadGraphNodeCmd represents the base command
 var loadMongoCmd = &cobra.Command{
-	Use:          "load-mongo [manifest]",
+	Use:          "load [manifest]",
 	Short:        "run pcs sub graph and load a mongo database",
 	RunE:         runLoadMongo,
-	Args:         cobra.ExactArgs(1),
+	Args:         cobra.ExactArgs(2),
 	SilenceUsage: true,
 }
 
@@ -37,6 +37,7 @@ func init() {
 	loadMongoCmd.Flags().String("substreams-api-key-envvar", "FIREHOSE_API_TOKEN", "name of variable containing firehose authentication token (JWT)")
 	loadMongoCmd.Flags().BoolP("insecure", "k", false, "Skip certificate validation on GRPC connection")
 	loadMongoCmd.Flags().BoolP("plaintext", "p", false, "Establish GRPC connection in plaintext")
+	loadMongoCmd.Flags().String("mongodb-url", "mongodb://localhost:27017", "Set mongo database url")
 
 	rootCmd.AddCommand(loadMongoCmd)
 }
@@ -56,6 +57,8 @@ func runLoadMongo(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("read manifest %q: %w", manifestPath, err)
 	}
 
+	moduleName := args[1]
+
 	ssClient, callOpts, err := client.NewSubstreamsClient(
 		mustGetString(cmd, "firehose-endpoint"),
 		os.Getenv(mustGetString(cmd, "substreams-api-key-envvar")),
@@ -71,7 +74,7 @@ func runLoadMongo(cmd *cobra.Command, args []string) error {
 		StopBlockNum:  mustGetUint64(cmd, "stop-block"),
 		ForkSteps:     []pbsubstreams.ForkStep{pbsubstreams.ForkStep_STEP_IRREVERSIBLE},
 		Modules:       pkg.Modules,
-		OutputModules: []string{"db_out"},
+		OutputModules: []string{moduleName},
 	}
 
 	stream, err := ssClient.Blocks(ctx, req, callOpts...)
@@ -79,7 +82,7 @@ func runLoadMongo(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("call sf.substreams.v1.Stream/Blocks: %w", err)
 	}
 
-	mongoDB, err := NewMongoDB("mongodb://localhost:27017")
+	mongoDB, err := NewMongoDB(mustGetString(cmd, "mongodb-url"))
 	if err != nil {
 		return fmt.Errorf("creating mongo db client")
 	}
@@ -110,6 +113,7 @@ func runLoadMongo(cmd *cobra.Command, args []string) error {
 					fmt.Println("LOG: ", log)
 				}
 				if output.Name == "db_out" {
+					// fixme: create agnostic database change model
 					databaseChanges := &database.DatabaseChanges{}
 					err := proto.Unmarshal(output.GetMapOutput().GetValue(), databaseChanges)
 					if err != nil {

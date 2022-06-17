@@ -18,7 +18,6 @@ require (
 	github.com/streamingfast/sf-ethereum/types v0.0.0-20220422143008-d40ff36b3c5c
 	github.com/streamingfast/substreams v0.0.14-0.20220613142408-bbb8d32e32f9
 	github.com/stretchr/testify v1.7.1
-	go.mongodb.org/mongo-driver v1.9.1
 	go.uber.org/zap v1.21.0
 	google.golang.org/protobuf v1.27.1
 )
@@ -44,9 +43,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
-	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
-	github.com/golang/snappy v0.0.3 // indirect
 	github.com/google/go-cmp v0.5.7 // indirect
 	github.com/google/uuid v1.2.0 // indirect
 	github.com/googleapis/gax-go/v2 v2.1.1 // indirect
@@ -62,7 +59,6 @@ require (
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/mitchellh/go-testing-interface v1.14.1 // indirect
 	github.com/openzipkin/zipkin-go v0.1.6 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.12.1 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
@@ -79,10 +75,6 @@ require (
 	github.com/streamingfast/pbgo v0.0.6-0.20220428192744-f80aee7d4688 // indirect
 	github.com/streamingfast/shutter v1.5.0 // indirect
 	github.com/tidwall/gjson v1.12.1 // indirect
-	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
-	github.com/xdg-go/scram v1.0.2 // indirect
-	github.com/xdg-go/stringprep v1.0.2 // indirect
-	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d // indirect
 	github.com/yourbasic/graph v0.0.0-20210606180040-8ecfec1c2869 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
