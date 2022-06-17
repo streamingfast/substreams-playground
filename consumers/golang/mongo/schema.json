@@ -1,0 +1,6 @@
+{
+  "pair": {
+    "timestamp" : "timestamp",
+    "block": "integer"
+  }
+}

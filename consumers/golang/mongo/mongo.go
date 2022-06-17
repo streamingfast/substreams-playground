@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"strconv"
 	"time"
@@ -44,6 +45,7 @@ func init() {
 
 	loadMongoCmd.Flags().String("mongodb-url", "mongodb://localhost:27017", "Set mongo database url")
 	loadMongoCmd.Flags().String("mongodb-name", "pcs", "Mongo database name")
+	loadMongoCmd.Flags().String("mongodb-schema", "./schema.json", "Mongo database schema for unmarshalling data")
 
 	rootCmd.AddCommand(loadMongoCmd)
 }
@@ -64,8 +66,18 @@ func runLoadMongo(cmd *cobra.Command, args []string) error {
 	}
 
 	moduleName := args[1]
-
 	databaseName := mustGetString(cmd, "mongodb-name")
+
+	schemaFile := mustGetString(cmd, "mongodb-schema")
+	contents, err := ioutil.ReadFile(schemaFile)
+	if err != nil {
+		return fmt.Errorf("error reading %q: %w", schemaFile, err)
+	}
+	ddl := tables{}
+	err = json.Unmarshal(contents, &ddl)
+	if err != nil {
+		return fmt.Errorf("unmarshalling schema: %w", err)
+	}
 
 	ssClient, callOpts, err := client.NewSubstreamsClient(
 		mustGetString(cmd, "firehose-endpoint"),
@@ -127,7 +139,7 @@ func runLoadMongo(cmd *cobra.Command, args []string) error {
 					if err != nil {
 						return fmt.Errorf("unmarshalling database changes: %w", err)
 					}
-					err = applyDatabaseChanges(mongoDB, databaseChanges, databaseName)
+					err = applyDatabaseChanges(mongoDB, databaseChanges, databaseName, ddl)
 					if err != nil {
 						return fmt.Errorf("applying database changes: %w", err)
 					}
@@ -179,13 +191,7 @@ func (db *MongoDB) Update(databaseName string, collectionName string, id string,
 	return nil
 }
 
-func applyDatabaseChanges(db *MongoDB, databaseChanges *database.DatabaseChanges, databaseName string) (err error) {
-	ddl := tables{}
-	err = json.Unmarshal([]byte(schema), &ddl)
-	if err != nil {
-		return fmt.Errorf("unmarshalling schema: %w", err)
-	}
-
+func applyDatabaseChanges(db *MongoDB, databaseChanges *database.DatabaseChanges, databaseName string, ddl tables) (err error) {
 	for _, change := range databaseChanges.TableChanges {
 		id := change.Pk
 		switch change.Operation {
