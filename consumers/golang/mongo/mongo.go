@@ -2,10 +2,14 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/spf13/cobra"
 	"github.com/streamingfast/bstream"
@@ -33,11 +37,13 @@ func init() {
 	loadMongoCmd.Flags().Int64P("start-block", "s", -1, "Start block for blockchain firehose")
 	loadMongoCmd.Flags().Uint64P("stop-block", "t", 0, "Stop block for blockchain firehose")
 
-	loadMongoCmd.Flags().String("firehose-endpoint", "bsc-dev.streamingfast.io:443", "firehose GRPC endpoint")
+	loadMongoCmd.Flags().StringP("firehose-endpoint", "e", "bsc-dev.streamingfast.io:443", "firehose GRPC endpoint")
 	loadMongoCmd.Flags().String("substreams-api-key-envvar", "FIREHOSE_API_TOKEN", "name of variable containing firehose authentication token (JWT)")
 	loadMongoCmd.Flags().BoolP("insecure", "k", false, "Skip certificate validation on GRPC connection")
 	loadMongoCmd.Flags().BoolP("plaintext", "p", false, "Establish GRPC connection in plaintext")
+
 	loadMongoCmd.Flags().String("mongodb-url", "mongodb://localhost:27017", "Set mongo database url")
+	loadMongoCmd.Flags().String("mongodb-name", "pcs", "Mongo database name")
 
 	rootCmd.AddCommand(loadMongoCmd)
 }
@@ -58,6 +64,8 @@ func runLoadMongo(cmd *cobra.Command, args []string) error {
 	}
 
 	moduleName := args[1]
+
+	databaseName := mustGetString(cmd, "mongodb-name")
 
 	ssClient, callOpts, err := client.NewSubstreamsClient(
 		mustGetString(cmd, "firehose-endpoint"),
@@ -119,7 +127,7 @@ func runLoadMongo(cmd *cobra.Command, args []string) error {
 					if err != nil {
 						return fmt.Errorf("unmarshalling database changes: %w", err)
 					}
-					err = applyDatabaseChanges(mongoDB, databaseChanges)
+					err = applyDatabaseChanges(mongoDB, databaseChanges, databaseName)
 					if err != nil {
 						return fmt.Errorf("applying database changes: %w", err)
 					}
@@ -128,8 +136,6 @@ func runLoadMongo(cmd *cobra.Command, args []string) error {
 		}
 	}
 }
-
-const PCS_DATABASE = "pcs"
 
 type MongoDB struct {
 	client *mongo.Client
@@ -151,8 +157,8 @@ func NewMongoDB(address string) (*MongoDB, error) {
 
 }
 
-func (db *MongoDB) SaveEntity(collectionName string, id string, entity map[string]interface{}) error {
-	collection := db.client.Database(PCS_DATABASE).Collection(collectionName)
+func (db *MongoDB) SaveEntity(databaseName string, collectionName string, id string, entity map[string]interface{}) error {
+	collection := db.client.Database(databaseName).Collection(collectionName)
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
 	_, err := collection.InsertOne(ctx, entity)
 	if err != nil {
@@ -161,9 +167,8 @@ func (db *MongoDB) SaveEntity(collectionName string, id string, entity map[strin
 	return nil
 }
 
-func (db *MongoDB) Update(collectionName string, id string, changes map[string]interface{}) error {
-
-	collection := db.client.Database(PCS_DATABASE).Collection(collectionName)
+func (db *MongoDB) Update(databaseName string, collectionName string, id string, changes map[string]interface{}) error {
+	collection := db.client.Database(databaseName).Collection(collectionName)
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
 	filter := bson.M{"id": id}
 	update := bson.M{"$set": changes}
@@ -174,7 +179,13 @@ func (db *MongoDB) Update(collectionName string, id string, changes map[string]i
 	return nil
 }
 
-func applyDatabaseChanges(db *MongoDB, databaseChanges *database.DatabaseChanges) error {
+func applyDatabaseChanges(db *MongoDB, databaseChanges *database.DatabaseChanges, databaseName string) (err error) {
+	ddl := tables{}
+	err = json.Unmarshal([]byte(schema), &ddl)
+	if err != nil {
+		return fmt.Errorf("unmarshalling schema: %w", err)
+	}
+
 	for _, change := range databaseChanges.TableChanges {
 		id := change.Pk
 		switch change.Operation {
@@ -182,10 +193,48 @@ func applyDatabaseChanges(db *MongoDB, databaseChanges *database.DatabaseChanges
 		case database.TableChange_CREATE:
 			entity := map[string]interface{}{}
 			for _, field := range change.Fields {
+				var newValue interface{} = field.NewValue
+				if fs, found := ddl[change.Table]; found {
+					if f, found := fs[field.Name]; found {
+						switch f {
+						case INTEGER:
+							newValue, err = strconv.ParseInt(field.NewValue, 10, 64)
+							if err != nil {
+								return
+							}
+						case DOUBLE:
+							newValue, err = strconv.ParseFloat(field.NewValue, 64)
+							if err != nil {
+								return
+							}
+						case BOOLEAN:
+							newValue, err = strconv.ParseBool(field.NewValue)
+							if err != nil {
+								return
+							}
+						case TIMESTAMP:
+							var tempValue int64
+							tempValue, err = strconv.ParseInt(field.NewValue, 10, 64)
+							if err != nil {
+								return
+							}
+							newValue = primitive.Timestamp{T: uint32(tempValue)}
+						case NULL:
+							if field.NewValue != "" {
+								return
+							}
+							newValue = ""
+						case DATE:
+							// todo
+						default: // string
+
+						}
+					}
+				}
 				//todo: convert value to the right type base on the graphql definition
-				entity[field.Name] = field.NewValue
+				entity[field.Name] = newValue
 			}
-			err := db.SaveEntity(change.Table, id, entity)
+			err := db.SaveEntity(databaseName, change.Table, id, entity)
 			if err != nil {
 				return fmt.Errorf("saving entity %s with id %s: %w", change.Table, id, err)
 			}
@@ -196,7 +245,7 @@ func applyDatabaseChanges(db *MongoDB, databaseChanges *database.DatabaseChanges
 				//todo: convert value to the right type base on the graphql definition
 				entityChanges[field.Name] = field.NewValue
 			}
-			err := db.Update(change.Table, change.Pk, entityChanges)
+			err := db.Update(databaseName, change.Table, change.Pk, entityChanges)
 			if err != nil {
 				return fmt.Errorf("updating entity %s with id %s: %w", change.Table, id, err)
 			}
