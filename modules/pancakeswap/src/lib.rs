@@ -547,7 +547,7 @@ pub fn map_burn_swaps_events(blk: pb::eth::Block, pairs_store: store::StoreGet, 
 }
 
 #[substreams::handlers::store]
-pub fn totals(
+pub fn store_totals(
     clock: substreams::pb::substreams::Clock,
     pairs: pcs::Pairs,
     events: pcs::Events,
@@ -607,7 +607,7 @@ pub fn totals(
 }
 
 #[substreams::handlers::store]
-pub fn volumes(
+pub fn store_volumes(
     clock: substreams::pb::substreams::Clock,
     events: pcs::Events,
     output: store::StoreAddBigFloat,
@@ -753,7 +753,7 @@ pub fn volumes(
 
 // todo: create pcs-token proto
 #[substreams::handlers::store]
-pub fn pcs_tokens(
+pub fn store_pcs_tokens(
     pairs: pcs::Pairs,
     tokens: store::StoreGet,
     output: store::StoreSetIfNotExists,
