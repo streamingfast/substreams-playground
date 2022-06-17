@@ -849,7 +849,7 @@ pub fn db_out(
     volumes_deltas: store::Deltas,
     reserves_deltas: store::Deltas,
     events: pcs::Events,
-    tokens: store::StoreGet,
+    pcs_tokens_store: store::StoreGet,
 ) -> Result<DatabaseChanges, Error> {
     substreams::register_panic_hook();
 
@@ -867,7 +867,7 @@ pub fn db_out(
         volumes_deltas,
         reserves_deltas,
         events,
-        &tokens,
+        &pcs_tokens_store,
     );
 
     return Ok(changes);

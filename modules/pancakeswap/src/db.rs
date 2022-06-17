@@ -28,7 +28,7 @@ pub fn process(
     volumes_deltas: store::Deltas,
     reserves_deltas: store::Deltas,
     events: Events,
-    tokens: &store::StoreGet,
+    pcs_tokens_store: &store::StoreGet,
 ) -> DatabaseChanges {
     let items = join_sort_deltas(
         pair_deltas,
@@ -48,7 +48,7 @@ pub fn process(
     for item in items {
         match item {
             Item::PairDelta(delta) => {
-                handle_pair_delta(delta, &block, &mut database_changes, tokens)
+                handle_pair_delta(delta, &block, &mut database_changes, pcs_tokens_store)
             }
             Item::PcsTokenDelta(delta) => handle_token_delta(delta, &mut database_changes, block),
             Item::TotalDelta(delta) => handle_total_delta(delta, &mut database_changes, block),
@@ -65,7 +65,7 @@ fn handle_pair_delta(
     delta: StoreDelta,
     block: &Clock,
     changes: &mut DatabaseChanges,
-    tokens: &store::StoreGet,
+    pcs_tokens_store: &store::StoreGet,
 ) {
     if delta.operation != store_delta::Operation::Create as i32 {
         return;
@@ -73,8 +73,8 @@ fn handle_pair_delta(
 
     let pair: pcs::Pair = proto::decode(&delta.new_value).unwrap();
 
-    let token0 = utils::get_last_token(&tokens, pair.token0_address.as_str());
-    let token1 = utils::get_last_token(&tokens, pair.token1_address.as_str());
+    let token0 = utils::get_last_token(&pcs_tokens_store, pair.token0_address.as_str());
+    let token1 = utils::get_last_token(&pcs_tokens_store, pair.token1_address.as_str());
 
     changes.table_changes.push(TableChange {
         table: "pair".to_string(),
