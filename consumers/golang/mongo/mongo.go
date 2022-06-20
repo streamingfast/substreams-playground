@@ -171,7 +171,8 @@ func NewMongoDB(address string) (*MongoDB, error) {
 
 func (db *MongoDB) SaveEntity(databaseName string, collectionName string, id string, entity map[string]interface{}) error {
 	collection := db.client.Database(databaseName).Collection(collectionName)
-	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 	_, err := collection.InsertOne(ctx, entity)
 	if err != nil {
 		return err
@@ -179,12 +180,25 @@ func (db *MongoDB) SaveEntity(databaseName string, collectionName string, id str
 	return nil
 }
 
-func (db *MongoDB) Update(databaseName string, collectionName string, id string, changes map[string]interface{}) error {
+func (db *MongoDB) update(databaseName string, collectionName string, id string, changes map[string]interface{}) error {
 	collection := db.client.Database(databaseName).Collection(collectionName)
-	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 	filter := bson.M{"id": id}
 	update := bson.M{"$set": changes}
 	_, err := collection.UpdateOne(ctx, filter, update, options.Update().SetUpsert(true))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (db *MongoDB) delete(databaseName string, collectionName string, id string) error {
+	collection := db.client.Database(databaseName).Collection(collectionName)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	filter := bson.M{"id": id}
+	_, err := collection.DeleteOne(ctx, filter)
 	if err != nil {
 		return err
 	}
@@ -253,12 +267,19 @@ func applyDatabaseChanges(db *MongoDB, databaseChanges *database.DatabaseChanges
 				//todo: convert value to the right type base on the graphql definition
 				entityChanges[field.Name] = field.NewValue
 			}
-			err := db.Update(databaseName, change.Table, change.Pk, entityChanges)
+			err := db.update(databaseName, change.Table, change.Pk, entityChanges)
 			if err != nil {
 				return fmt.Errorf("updating entity %s with id %s: %w", change.Table, id, err)
 			}
-			fmt.Printf("updating entity %s with id %s:\n", change.Table, id)
+			fmt.Printf("updating entity %s with id %s\n", change.Table, id)
 		case database.TableChange_DELETE:
+			for range change.Fields {
+				err := db.delete(databaseName, change.Table, change.Pk)
+				if err != nil {
+					return fmt.Errorf("deleting entity %s with id %s: %w", change.Table, id, err)
+				}
+				fmt.Printf("deleting entity %s with id %s\n", change.Table, id)
+			}
 		}
 	}
 
