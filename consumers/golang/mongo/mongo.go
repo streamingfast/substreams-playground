@@ -229,11 +229,13 @@ func applyDatabaseChanges(db *MongoDB, databaseChanges *database.DatabaseChanges
 							if field.NewValue != "" {
 								return
 							}
-							newValue = ""
+							newValue = nil
 						case DATE:
-							// todo
-						default: // string
-
+							var tempValue time.Time
+							tempValue, err = time.Parse(time.RFC3339, field.NewValue)
+							newValue = tempValue
+						default:
+							// string
 						}
 					}
 				}

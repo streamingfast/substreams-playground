@@ -4,10 +4,19 @@ PancakeSwap Substreams
 Install [`substreams` and its dependencies here](https://github.com/streamingfast/substreams), compile these modules with:
 
 ```
-cd ../eth-token/build.sh
 cd ../pancakeswap
-./build.sh
+cargo run --target=wasm32-unknown-unknown --release
 ```
+
+At the beginning of you manifest `substreams.yaml` file you can add some import statements at the [top](https://substreams.streamingfast.io/developer-guide/creating-your-manifest). If you make some changes to an imported module and you want to
+test the changes, you will have to pack the changes in a `.spkg` file. Simply run:
+
+```bash
+cd ../eth-token
+substreams pack ./substreams.yaml
+```
+
+> Also don't forget to change the url to point to the local .spkg file location
 
 and try with:
 
