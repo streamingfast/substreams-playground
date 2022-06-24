@@ -1,5 +1,5 @@
+pub mod pb;
 mod eth;
-mod pb;
 mod rpc;
 
 use substreams::errors::Error;
