@@ -1,4 +1,4 @@
-pub mod pb;
+mod pb;
 mod eth;
 mod rpc;
 
