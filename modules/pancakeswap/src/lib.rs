@@ -67,6 +67,17 @@ pub fn store_pairs(pairs: pcs::Pairs, output: store::StoreSet) {
             format!("pair:{}", pair.address),
             &proto::encode(&pair).unwrap(),
         );
+        output.set(
+            pair.log_ordinal as u64,
+            format!(
+                "tokens:{}",
+                utils::generate_tokens_key(
+                    pair.token0_address.as_str(),
+                    pair.token1_address.as_str(),
+                )
+            ),
+            &proto::encode(&pair).unwrap(),
+        );
     }
 }
 
