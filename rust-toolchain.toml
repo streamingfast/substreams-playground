@@ -2,3 +2,4 @@
 channel = "1.60.0"
 components = [ "rustfmt" ]
 targets = [ "wasm32-unknown-unknown" ]
+
