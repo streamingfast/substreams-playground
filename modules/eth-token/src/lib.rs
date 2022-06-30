@@ -5,6 +5,7 @@ mod rpc;
 use substreams::errors::Error;
 use substreams::{log, proto, store, Hex, hex};
 use substreams_ethereum::pb::eth as ethpb;
+use crate::rpc::create_rpc_calls;
 
 const INITIALIZE_METHOD_HASH: [u8; 4] = hex!("1459457a");
 
@@ -68,40 +69,51 @@ fn map_tokens(blk: ethpb::v1::Block) -> Result<pb::tokens::Tokens, Error> {
                     continue;
                 }
 
-                let rpc_calls = rpc::create_rpc_calls(&call.address);
-                let rpc_responses_unmarshalled: ethpb::rpc::RpcResponses =
-                    substreams_ethereum::rpc::eth_call(&rpc_calls);
-                let responses = rpc_responses_unmarshalled.responses;
-
-                if responses[0].failed || responses[1].failed || responses[2].failed {
-                    let decimals_error = String::from_utf8_lossy(responses[0].raw.as_ref());
-                    let name_error = String::from_utf8_lossy(responses[1].raw.as_ref());
-                    let symbol_error = String::from_utf8_lossy(responses[2].raw.as_ref());
-
+                let rpc_call_decimal = create_rpc_calls(&call.address, vec![rpc::DECIMALS]);
+                let rpc_responses_unmarshalled_decimal: ethpb::rpc::RpcResponses =
+                    substreams_ethereum::rpc::eth_call(&rpc_call_decimal);
+                let response_decimal = rpc_responses_unmarshalled_decimal.responses;
+                if response_decimal[0].failed {
+                    let decimals_error = String::from_utf8_lossy(response_decimal[0].raw.as_ref());
                     log::debug!(
-                        "{} is not a an ERC20 token contract because of 'eth_call' failures [decimals: {}, name: {}, symbol: {}]",
+                        "{} is not an ERC20 token contract because of 'eth_call' failures [decimals: {}]",
                         Hex(&call.address),
                         decimals_error,
-                        name_error,
-                        symbol_error,
                     );
                     continue;
-                };
+                }
 
-                let decoded_decimals = eth::read_uint32(responses[0].raw.as_ref());
+                let decoded_decimals = eth::read_uint32(response_decimal[0].raw.as_ref());
                 if decoded_decimals.is_err() {
                     log::debug!(
-                        "{} is not a an ERC20 token contract decimal `eth_call` failed: {}",
+                        "{} is not an ERC20 token contract decimal `eth_call` failed: {}",
                         Hex(&call.address),
                         decoded_decimals.err().unwrap(),
                     );
                     continue;
                 }
 
+                let rpc_call_name_symbol = create_rpc_calls(&call.address, vec![rpc::NAME, rpc::SYMBOL]);
+                let rpc_responses_unmarshalled: ethpb::rpc::RpcResponses =
+                    substreams_ethereum::rpc::eth_call(&rpc_call_name_symbol);
+                let responses = rpc_responses_unmarshalled.responses;
+                if responses[0].failed || responses[1].failed {
+                    let name_error = String::from_utf8_lossy(responses[0].raw.as_ref());
+                    let symbol_error = String::from_utf8_lossy(responses[1].raw.as_ref());
+
+                    log::debug!(
+                        "{} is not an ERC20 token contract because of 'eth_call' failures [name: {}, symbol: {}]",
+                        Hex(&call.address),
+                        name_error,
+                        symbol_error,
+                    );
+                    continue;
+                };
+
                 let decoded_name = eth::read_string(responses[1].raw.as_ref());
                 if decoded_name.is_err() {
                     log::debug!(
-                        "{} is not a an ERC20 token contract name `eth_call` failed: {}",
+                        "{} is not an ERC20 token contract name `eth_call` failed: {}",
                         Hex(&call.address),
                         decoded_name.err().unwrap(),
                     );
@@ -111,7 +123,7 @@ fn map_tokens(blk: ethpb::v1::Block) -> Result<pb::tokens::Tokens, Error> {
                 let decoded_symbol = eth::read_string(responses[2].raw.as_ref());
                 if decoded_symbol.is_err() {
                     log::debug!(
-                        "{} is not a an ERC20 token contract symbol `eth_call` failed: {}",
+                        "{} is not an ERC20 token contract symbol `eth_call` failed: {}",
                         Hex(&call.address),
                         decoded_symbol.err().unwrap(),
                     );

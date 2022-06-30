@@ -1,25 +1,19 @@
 use hex;
 use substreams_ethereum::pb::eth;
 
-pub fn create_rpc_calls(addr: &Vec<u8>) -> eth::rpc::RpcCalls {
-    let decimals = hex::decode("313ce567").unwrap();
-    let name = hex::decode("06fdde03").unwrap();
-    let symbol = hex::decode("95d89b41").unwrap();
+pub const DECIMALS: &str = "313ce567";
+pub const NAME: &str = "06fdde03";
+pub const SYMBOL: &str = "95d89b41";
 
-    return eth::rpc::RpcCalls {
-        calls: vec![
-            eth::rpc::RpcCall {
-                to_addr: Vec::from(addr.clone()),
-                method_signature: decimals,
-            },
-            eth::rpc::RpcCall {
-                to_addr: Vec::from(addr.clone()),
-                method_signature: name,
-            },
-            eth::rpc::RpcCall {
-                to_addr: Vec::from(addr.clone()),
-                method_signature: symbol,
-            },
-        ],
-    };
+pub fn create_rpc_calls(addr: &Vec<u8>, method_signatures: Vec<&str>) -> eth::rpc::RpcCalls {
+    let mut rpc_calls = eth::rpc::RpcCalls { calls: vec![] };
+
+    for method_signature in method_signatures {
+        rpc_calls.calls.push(eth::rpc::RpcCall {
+            to_addr: Vec::from(addr.clone()),
+            method_signature: hex::decode(method_signature).unwrap(),
+        })
+    }
+
+    return  rpc_calls
 }
