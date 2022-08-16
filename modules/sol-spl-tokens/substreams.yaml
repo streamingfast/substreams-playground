@@ -34,6 +34,6 @@ modules:
   - name: store_transfers
     kind: store
     updatePolicy: set
-    valueType: proto:solana.spl.v1.TokenTransfers
+    valueType: proto:solana.spl.v1.TokenTransfer
     inputs:
       - map: map_transfers
