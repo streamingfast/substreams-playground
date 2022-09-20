@@ -22,13 +22,13 @@ wget https://github.com/streamingfast/substreams-playground/releases/download/v0
 
 ```
 PKG=./pcs-v0.5.0.spkg
-CMD="python3 -m grpc_tools.protoc --descriptor_set_in=$PKG --python_out=. --grpc_python_out=."
+alias protogen_py="python3 -m grpc_tools.protoc --descriptor_set_in=$PKG --python_out=. --grpc_python_out=."
 
-$CMD sf/substreams/v1/substreams.proto
-$CMD sf/substreams/v1/package.proto
-$CMD sf/substreams/v1/modules.proto
-$CMD sf/substreams/v1/clock.proto
-$CMD pcs/v1/pcs.proto
+protogen_py sf/substreams/v1/substreams.proto
+protogen_py sf/substreams/v1/package.proto
+protogen_py sf/substreams/v1/modules.proto
+protogen_py sf/substreams/v1/clock.proto
+protogen_py pcs/v1/pcs.proto
 ```
 
 4. Get yourself [an access token](https://discord.gg/jZwqxJAvRs)
