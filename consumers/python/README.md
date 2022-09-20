@@ -8,6 +8,7 @@ Example python Substreams Consumer
 python3 -m venv env
 source env/bin/activate
 pip3 install grpcio-tools protobuf==3.20.1
+# important note, 3.20.1 works newer updated protobuf seem to casue issues -> https://github.com/protocolbuffers/protobuf/issues/10571
 ```
 
 2. Grab some [released packages here](https://github.com/streamingfast/substreams-playground/releases). For example:
