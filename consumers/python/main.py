@@ -1,21 +1,23 @@
 #!/usr/bin/env python3
 
+from ast import arg
 import http.client
 import sys
 import os
 import grpc
+import sys
 
 from sf.substreams.v1 import substreams_pb2_grpc
-from sf.substreams.v1.substreams_pb2 import Request, Response, STEP_IRREVERSIBLE
+from sf.substreams.v1.substreams_pb2 import Request, STEP_IRREVERSIBLE
 from sf.substreams.v1.package_pb2 import Package
 
 jwt_token = os.getenv("SUBSTREAMS_API_TOKEN")
 if not jwt_token: raise Error("set SUBSTREAMS_API_TOKEN")
-endpoint = "bsc-dev.streamingfast.io:443"
-package_pb = "./pcs-v0.5.0.spkg"
-output_modules = ["block_to_pairs", "pairs", "db_out"]
-start_block = 6_810_706
-end_block = 6_810_710
+endpoint = "api.streamingfast.io:443"
+package_pb = "uniswap-v3-v0.1.0-beta.spkg"
+output_modules = ["graph_out"]
+start_block = 12369621
+end_block = 12369800
 
 def substreams_service():
     credentials = grpc.composite_channel_credentials(
