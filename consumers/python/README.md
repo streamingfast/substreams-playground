@@ -29,6 +29,7 @@ protogen_py sf/substreams/v1/package.proto
 protogen_py sf/substreams/v1/modules.proto
 protogen_py sf/substreams/v1/clock.proto
 protogen_py pcs/v1/pcs.proto
+unset protogen_py
 ```
 
 4. Get yourself [an access token](https://discord.gg/jZwqxJAvRs)
