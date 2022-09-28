@@ -5,7 +5,9 @@ This repository holds a few example _Substreams Modules_, and example _consuming
 
 ## Documentation
 
-https://github.com/streamingfast/substreams under _Documentation_.
+Full documentation is available for installing, running, and working with Substreams. The documentation is available at:
+
+https://github.com/streamingfast/substreams
 
 ## Example Substreams Modules
 
