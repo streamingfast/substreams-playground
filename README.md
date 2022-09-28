@@ -17,7 +17,6 @@ https://github.com/streamingfast/substreams under _Documentation_.
 
 ## Example Consuming Clients
 
-* In [Go](./consumers/golang)
 * In [Rust](./consumers/rust)
 * In [Python](./consumers/python)
 * An [E2E indexer for PancakeSwap](./consumers/pancakeswap-to-graphnode) in Go.
