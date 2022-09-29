@@ -23,17 +23,56 @@ protobuf:
     - ./proto
 
 modules:
-  - name: map_transfers
+  - name: map_mints
     kind: map
-    initialBlock: 130000000
+    initialBlock: 30000000
     inputs:
       - source: sf.solana.type.v1.Block
     output:
-      type: proto:solana.spl.v1.TokenTransfers
+      type: proto:pb::spl::Mints
 
-  - name: store_transfers
+  - name: store_mints
     kind: store
     updatePolicy: set
-    valueType: proto:solana.spl.v1.TokenTransfer
+    valueType: proto:pb::spl::Mints
+    inputs:
+      - map: map_mints
+
+  - name: map_accounts
+    kind: map
+    initialBlock: 30000000
+    inputs:
+      - source: sf.solana.type.v1.Block
+    output:
+      type: proto:pb::spl::Accounts
+
+  - name: store_accounts
+    kind: store
+    updatePolicy: set
+    valueType: proto:pb::spl::Accounts
+    inputs:
+      - map: map_accounts
+
+  - name: map_transfers
+    kind: map
+    initialBlock: 30000000
+    inputs:
+      - source: sf.solana.type.v1.Block
+      - store: store_mints
+      - store: store_accounts
+    output:
+      type: proto:solana.spl.v1.TokenTransfers
+
+  - name: store_mint_native_volumes
+    kind: store
+    updatePolicy: add
+    valueType: bigint
+    inputs:
+      - map: map_transfers
+
+  - name: store_mint_decimal_volumes
+    kind: store
+    updatePolicy: add
+    valueType: bigfloat
     inputs:
       - map: map_transfers
