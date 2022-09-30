@@ -39,7 +39,7 @@ protogen_py uniswap/v1/uniswap.proto
 unalias protogen_py
 ```
 
-4. Get yourself [an access token](https://discord.gg/jZwqxJAvRs)
+4. Request a StreamingFast [authentication token](https://substreams.streamingfast.io/reference-and-specs/authentication). This is a requirement of connecting to and using Substreams.
 
 5. Run `main.py`
 
