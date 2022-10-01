@@ -15,17 +15,7 @@ substreams protogen substreams.yaml --exclude-paths="sf/solana,sf/substreams,goo
 
 ## Running the Substrams
 ```
-substreams run -k -e mainnet.sol.streamingfast.io:443 substreams.yaml store_transfers -s 130000000 -t 130000100
+substreams run -k -e mainnet.sol.streamingfast.io:443 substreams.yaml store_mint_native_volumes -s 30010000 -t 30010010
 ```
 
-## Visual data flow
-
-This is a flow that is executed for each block.  The graph is produced automatically from the `.yaml` manifest.
-
-```mermaid
-graph TD;
-  spl_transfers[map: spl_transfers]
-  sf.solana.type.v1.Block[source: sf.solana.type.v1.Block] --> spl_transfers
-  transfer_store[store: transfer_store]
-  spl_transfers --> transfer_store
-```
+This will make the substreams backprocess 30,000,000 to 30,010,000 in parallel, then start streaming the next 10 blocks.
