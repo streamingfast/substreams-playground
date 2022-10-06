@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "modules/eth-token",
+    "modules/fork-handling",
     "modules/pancakeswap",
     "modules/sol-spl-tokens",
     "modules/uniswap",

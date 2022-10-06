@@ -1,0 +1,34 @@
+specVersion: v0.1.0
+package:
+  name: fork_handling
+  version: v0.1.0
+  url: https://github.com/streamingfast/substreams-playground/modules/fork-handling
+  doc: |
+    Substreams to implement flow for fork handling
+
+protobuf:
+  files:
+    - fork/v1/fork.proto
+  importPaths:
+    - ./proto
+
+binaries:
+  default:
+    type: wasm/rust-v1
+    file: ../../target/wasm32-unknown-unknown/release/fork_handling.wasm
+
+modules:
+  - name: map_fork_handling
+    kind: map
+    initialBlock: 15691000
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:fork.v1.Block
+
+  - name: store_fork_handling
+    kind: store
+    updatePolicy: set
+    valueType: proto:fork.v1.Block
+    inputs:
+      - map: map_fork_handling
