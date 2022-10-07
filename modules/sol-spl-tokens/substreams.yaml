@@ -25,37 +25,37 @@ protobuf:
 modules:
   - name: map_mints
     kind: map
-    initialBlock: 30000000
+    initialBlock: 31310775
     inputs:
       - source: sf.solana.type.v1.Block
     output:
-      type: proto:pb::spl::Mints
+      type: proto:solana.spl.v1.Mints
 
   - name: store_mints
     kind: store
     updatePolicy: set
-    valueType: proto:pb::spl::Mints
+    valueType: proto:solana.spl.v1.Mint
     inputs:
       - map: map_mints
 
   - name: map_accounts
     kind: map
-    initialBlock: 30000000
+    initialBlock: 31310775
     inputs:
       - source: sf.solana.type.v1.Block
     output:
-      type: proto:pb::spl::Accounts
+      type: proto:sf.solana.type.v1.Accounts
 
   - name: store_accounts
     kind: store
     updatePolicy: set
-    valueType: proto:pb::spl::Accounts
+    valueType: proto:sf.solana.type.v1.Account
     inputs:
       - map: map_accounts
 
   - name: map_transfers
     kind: map
-    initialBlock: 30000000
+    initialBlock: 31310775
     inputs:
       - source: sf.solana.type.v1.Block
       - store: store_mints
