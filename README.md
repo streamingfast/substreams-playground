@@ -10,7 +10,7 @@ Full documentation for installing, running and working with Substreams is availa
 ## Example Substreams Modules
 
 * [PancakeSwap Substreams](./modules/pancakeswap) - Our most complete example to date. Tracking PancakeSwap on BSC Mainnet.
-* [ETH Token Substreams](./modules/erc20) - Substreams tracking ERC-20 tokens. For ETH Mainnet.
+* [ETH Token Substreams](./modules/eth-token) - Substreams tracking ERC-20 tokens. For ETH Mainnet.
 * [Solana SPL Tokens](./modules/sol-spl-tokens) - First draft at solana SPL tokens extraction
 * [Uniswap](./modules/uniswap) - First draft at tracking Uniswap on ETH Mainnet
 
