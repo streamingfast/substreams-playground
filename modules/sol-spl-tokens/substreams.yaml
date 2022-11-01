@@ -25,7 +25,7 @@ protobuf:
 modules:
   - name: map_mints
     kind: map
-    initialBlock: 31310775
+    initialBlock: 31313760
     inputs:
       - source: sf.solana.type.v1.Block
     output:
@@ -40,7 +40,7 @@ modules:
 
   - name: map_accounts
     kind: map
-    initialBlock: 31310775
+    initialBlock: 31313760
     inputs:
       - source: sf.solana.type.v1.Block
     output:
@@ -55,7 +55,7 @@ modules:
 
   - name: map_transfers
     kind: map
-    initialBlock: 31310775
+    initialBlock: 31313760
     inputs:
       - source: sf.solana.type.v1.Block
       - store: store_mints
