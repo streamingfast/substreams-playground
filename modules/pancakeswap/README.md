@@ -21,7 +21,7 @@ substreams pack ./substreams.yaml
 and try with:
 
 ```
-substreams run -e bsc-dev.streamingfast.io:443 substreams.yaml pairs,block_to_pairs,db_out,volumes,totals -s 6810706 -t 6810711
+substreams run -e bsc-dev.streamingfast.io:443 substreams.yaml store_pairs,map_pairs,db_out,store_volumes,store_totals -s 6810706 -t 6810711
 ```
 
 ## Visual data flow
@@ -31,49 +31,49 @@ This is a flow that is executed for each block.  The graph is produced with `sub
 ```mermaid
 
 graph TD;
-  block_to_pairs[map: block_to_pairs]
-  sf.ethereum.type.v1.Block[source: sf.ethereum.type.v1.Block] --> block_to_pairs
-  pairs[store: pairs]
-  block_to_pairs --> pairs
-  pcs_tokens[store: pcs_tokens]
-  block_to_pairs --> pcs_tokens
-  ethtokens:tokens --> pcs_tokens
-  block_to_reserves[map: block_to_reserves]
-  sf.ethereum.type.v1.Block[source: sf.ethereum.type.v1.Block] --> block_to_reserves
-  pairs --> block_to_reserves
-  pcs_tokens --> block_to_reserves
-  reserves[store: reserves]
-  sf.substreams.v1.Clock[source: sf.substreams.v1.Clock] --> reserves
-  block_to_reserves --> reserves
-  pairs --> reserves
-  prices[store: prices]
-  sf.substreams.v1.Clock[source: sf.substreams.v1.Clock] --> prices
-  block_to_reserves --> prices
-  pairs --> prices
-  reserves --> prices
-  mint_burn_swaps_extractor[map: mint_burn_swaps_extractor]
-  sf.ethereum.type.v1.Block[source: sf.ethereum.type.v1.Block] --> mint_burn_swaps_extractor
-  pairs --> mint_burn_swaps_extractor
-  prices --> mint_burn_swaps_extractor
-  pcs_tokens --> mint_burn_swaps_extractor
-  totals[store: totals]
-  sf.substreams.v1.Clock[source: sf.substreams.v1.Clock] --> totals
-  block_to_pairs --> totals
-  mint_burn_swaps_extractor --> totals
-  volumes[store: volumes]
-  sf.substreams.v1.Clock[source: sf.substreams.v1.Clock] --> volumes
-  mint_burn_swaps_extractor --> volumes
+  map_pairs[map: map_pairs]
+  sf.ethereum.type.v1.Block[source: sf.ethereum.type.v1.Block] --> map_pairs
+  store_pcs_tokens[store: store_pcs_tokens]
+  map_pairs --> store_pcs_tokens
+  ethtokens_at_pcs:store_tokens --> store_pcs_tokens
+  store_pairs[store: store_pairs]
+  map_pairs --> store_pairs
+  map_reserves[map: map_reserves]
+  sf.ethereum.type.v1.Block[source: sf.ethereum.type.v1.Block] --> map_reserves
+  store_pairs --> map_reserves
+  store_pcs_tokens --> map_reserves
+  store_reserves[store: store_reserves]
+  sf.substreams.v1.Clock[source: sf.substreams.v1.Clock] --> store_reserves
+  map_reserves --> store_reserves
+  store_pairs --> store_reserves
+  store_prices[store: store_prices]
+  sf.substreams.v1.Clock[source: sf.substreams.v1.Clock] --> store_prices
+  map_reserves --> store_prices
+  store_pairs --> store_prices
+  store_reserves --> store_prices
+  map_burn_swaps_events[map: map_burn_swaps_events]
+  sf.ethereum.type.v1.Block[source: sf.ethereum.type.v1.Block] --> map_burn_swaps_events
+  store_pairs --> map_burn_swaps_events
+  store_reserves --> map_burn_swaps_events
+  store_pcs_tokens --> map_burn_swaps_events
+  store_totals[store: store_totals]
+  sf.substreams.v1.Clock[source: sf.substreams.v1.Clock] --> store_totals
+  map_pairs --> store_totals
+  map_burn_swaps_events --> store_totals
+  store_volumes[store: store_volumes]
+  sf.substreams.v1.Clock[source: sf.substreams.v1.Clock] --> store_volumes
+  map_burn_swaps_events --> store_volumes
   db_out[map: db_out]
   sf.substreams.v1.Clock[source: sf.substreams.v1.Clock] --> db_out
-  pcs_tokens -- deltas --> db_out
-  pairs -- deltas --> db_out
-  totals -- deltas --> db_out
-  volumes -- deltas --> db_out
-  reserves -- deltas --> db_out
-  mint_burn_swaps_extractor --> db_out
-  pcs_tokens --> db_out
-  ethtokens:block_to_tokens[map: ethtokens:block_to_tokens]
-  sf.ethereum.type.v1.Block[source: sf.ethereum.type.v1.Block] --> ethtokens:block_to_tokens
-  ethtokens:tokens[store: ethtokens:tokens]
-  ethtokens:block_to_tokens --> ethtokens:tokens
-  ```
+  store_pcs_tokens -- deltas --> db_out
+  store_pairs -- deltas --> db_out
+  store_totals -- deltas --> db_out
+  store_volumes -- deltas --> db_out
+  store_reserves -- deltas --> db_out
+  map_burn_swaps_events --> db_out
+  store_pcs_tokens --> db_out
+  ethtokens_at_pcs:map_tokens[map: ethtokens_at_pcs:map_tokens]
+  sf.ethereum.type.v1.Block[source: sf.ethereum.type.v1.Block] --> ethtokens_at_pcs:map_tokens
+  ethtokens_at_pcs:store_tokens[store: ethtokens_at_pcs:store_tokens]
+  ethtokens_at_pcs:map_tokens --> ethtokens_at_pcs:store_tokens
+```
