@@ -1,42 +1,30 @@
-use std::rc::Rc;
-
-mod contracts;
+mod abi;
 mod pb;
-pub mod util;
 
-use substreams::{log, proto};
-
-use contracts::factory::FactoryContract;
+use hex_literal::hex;
 use pb::uniswap::{Pool, Pools};
+use substreams::{log, Hex};
+use substreams_ethereum::pb::eth::v2 as eth;
 
-#[no_mangle]
-pub extern "C" fn pools(block_ptr: *mut u8, block_len: usize) {
-    substreams::register_panic_hook();
+const FACTORY_CONTRACT: [u8; 20] = hex!("5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f");
 
-    let mut pools = Pools { pools: vec![] };
+substreams_ethereum::init!();
 
-    let block: Rc<pb::eth::Block> = Rc::new(proto::decode_ptr(block_ptr, block_len).unwrap());
+#[substreams::handlers::map]
+fn map_pools(blk: eth::Block) -> Result<Pools, substreams::errors::Error> {
+    Ok(Pools {
+        pools: blk
+            .events::<abi::factory::events::PoolCreated>(&[&FACTORY_CONTRACT])
+            .map(|(pool_created, _log)| {
+                log::info!("PoolCreated event seen");
 
-    let factory = FactoryContract::bind(block.clone(), "1f98431c8ad98523631ae4a59f267346ea31f984");
-
-    for event in factory.pool_created_events() {
-        log::info!("Pool created at block #{}", block.number);
-
-        let mut pool = Pool::default();
-        let header = block.header.as_ref().expect("header");
-
-        pool.token0 = hex::encode(&event.topics[1][12..]);
-        pool.token1 = hex::encode(&event.topics[2][12..]);
-
-        let timestamp = header.timestamp.as_ref().expect("timestamp");
-
-        pool.created_at_timestamp = timestamp.seconds as u64;
-        pool.created_at_block_number = header.number;
-
-        pools.pools.push(pool);
-    }
-
-    if !pools.pools.is_empty() {
-        substreams::output(pools);
-    }
+                Pool {
+                    created_at_timestamp: blk.timestamp_seconds(),
+                    created_at_block_number: blk.number,
+                    token0: Hex(pool_created.token0).to_string(),
+                    token1: Hex(pool_created.token1).to_string(),
+                }
+            })
+            .collect(),
+    })
 }

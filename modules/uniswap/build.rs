@@ -1,7 +1,10 @@
-use std::io::Result;
+use anyhow::{Ok, Result};
+use substreams_ethereum::Abigen;
 
-fn main() -> Result<()> {
-    let mut prost_build = prost_build::Config::new();
-    prost_build.out_dir("./src/pb");
-    prost_build.compile_protos(&["modules.proto"], &["./proto/"])
+fn main() -> Result<(), anyhow::Error> {
+    Abigen::new("Factory", "abis/factory.json")?
+        .generate()?
+        .write_to_file("src/abi/factory.rs")?;
+
+    Ok(())
 }
