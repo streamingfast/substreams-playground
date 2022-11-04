@@ -1,28 +1,21 @@
 PancakeSwap Substreams
 ======================
 
-Install [`substreams` and its dependencies here](https://github.com/streamingfast/substreams), compile these modules with:
+Install [`substreams` and its dependencies here](https://substreams.streamingfast.io/getting-started/installing-the-cli), compile these modules with:
 
 ```
-cd ../pancakeswap
-cargo build --target wasm32-unknown-unknown --release
+# We assume you are at root of project
+cd modules/pancakeswap
+cargo build --target=wasm32-unknown-unknown --release
 ```
 
-At the beginning of you manifest `substreams.yaml` file you can add some import statements at the [top](https://substreams.streamingfast.io/developer-guide/creating-your-manifest). If you make some changes to an imported module and you want to
-test the changes, you will have to pack the changes in a `.spkg` file. Simply run:
-
-```bash
-cd ../eth-token
-substreams pack ./substreams.yaml
-```
-
-> Also don't forget to change the url to point to the local .spkg file location
-
-and try with:
+Run with:
 
 ```
-substreams run -e bsc-dev.streamingfast.io:443 substreams.yaml store_pairs,map_pairs,db_out,store_volumes,store_totals -s 6810706 -t 6810711
+substreams run -e bsc.streamingfast.io:443 substreams.yaml store_pairs,map_pairs,db_out,store_volumes,store_totals -s 6810706 -t 6810711
 ```
+
+> Right now `bsc.streamingfast.io` endpoint is not running Substreams service for a temporary period, the command below will not work, please visit https://substreams.streamingfast.io/getting-started to look for other Substreams to run to test. If you are in dire needs for BNB Substreams support, drop a message in our [StreamingFast Discord](https://discord.gg/jZwqxJAvRs)  
 
 ## Visual data flow
 
