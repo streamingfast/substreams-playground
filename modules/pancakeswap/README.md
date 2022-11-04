@@ -5,7 +5,7 @@ Install [`substreams` and its dependencies here](https://github.com/streamingfas
 
 ```
 cd ../pancakeswap
-cargo run --target=wasm32-unknown-unknown --release
+cargo build --target wasm32-unknown-unknown --release
 ```
 
 At the beginning of you manifest `substreams.yaml` file you can add some import statements at the [top](https://substreams.streamingfast.io/developer-guide/creating-your-manifest). If you make some changes to an imported module and you want to
