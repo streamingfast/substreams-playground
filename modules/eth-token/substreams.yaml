@@ -1,7 +1,7 @@
 specVersion: v0.1.0
 package:
   name: eth_token
-  version: v0.5.1
+  version: v0.5.5
   url: https://github.com/streamingfast/substreams-playground
   doc: |
     This package provides modules that keep track of all ERC-20 tokens on the chain
@@ -28,7 +28,7 @@ modules:
     kind: map
     initialBlock: 0
     inputs:
-      - source: sf.ethereum.type.v1.Block
+      - source: sf.ethereum.type.v2.Block
     output:
       type: proto:sf.ethereum.tokens.v1.Tokens
 
