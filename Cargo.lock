@@ -869,6 +869,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "substreams-eth-block-producers"
+version = "0.1.0"
+dependencies = [
+ "bigdecimal",
+ "hex",
+ "num-bigint",
+ "pad",
+ "prost 0.10.4",
+ "prost-types 0.10.1",
+ "substreams 0.0.11",
+ "substreams-ethereum 0.1.2",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "substreams-eth-token"
 version = "0.1.0"
 dependencies = [

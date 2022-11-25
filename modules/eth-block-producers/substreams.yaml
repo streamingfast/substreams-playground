@@ -1,0 +1,33 @@
+specVersion: v0.1.0
+package:
+  name: eth_block_producers
+  version: v0.5.5
+  url: https://github.com/streamingfast/substreams-playground
+  doc: |
+    This package provides modules that keep track of the number of produced block per coinbase address
+
+    The coinbase is extracted in the map_coinbase module and counts are added up in the store_coinbase
+
+imports:
+  eth: https://github.com/streamingfast/sf-ethereum/releases/download/v0.10.2/ethereum-v0.10.4.spkg
+
+binaries:
+  default:
+    type: wasm/rust-v1
+    file: ../../target/wasm32-unknown-unknown/release/substreams_eth_block_producers.wasm
+
+modules:
+  - name: map_coinbase
+    kind: map
+    initialBlock: 0
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: ::prost::alloc::string::String
+
+  - name: store_coinbase
+    kind: store
+    updatePolicy: add
+    valueType: int64
+    inputs:
+      - map: map_coinbase
