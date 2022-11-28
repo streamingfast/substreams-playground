@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+package sf.block_producers;
+
+message Coinbase {
+    string address = 1;
+}
