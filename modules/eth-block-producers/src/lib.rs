@@ -7,13 +7,10 @@ use substreams_ethereum::pb::eth as ethpb;
 
 #[substreams::handlers::map]
 fn map_coinbase(blk: ethpb::v1::Block) -> Result<pb::block_producers::Coinbase, Error> {
-    log::info!("patate".to_string());
     match blk.header {
-        Some(h) => {
-            let stringed = Hex(h.coinbase).to_string();
-            log::info!(stringed.clone());
-            Ok(pb::block_producers::Coinbase { address: stringed })
-        }
+        Some(h) => Ok(pb::block_producers::Coinbase {
+            address: Hex(h.coinbase).to_string(),
+        }),
         None => Err(Unexpected("no header in block".to_string())),
     }
 }
