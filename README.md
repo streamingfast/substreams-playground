@@ -1,6 +1,13 @@
 # Substreams Playground
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
+
+---
+
+**This repo has been archived, and is no longer under active maintainenance. You can find all maintain substreams example repos here: [https://substreams.streamingfast.io/reference-and-specs/examples](https://substreams.streamingfast.io/reference-and-specs/examples)**
+
+---
+
 This repository holds a few example _Substreams Modules_, and example _consuming clients_.
 
 ## Documentation
